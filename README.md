@@ -70,11 +70,12 @@ python watch.py --run humanoid_baseline   # watch this policy live
 ### Spyder-v0 (custom 12-DoF spider)
 
 <p align="center">
-  <img src="assets/spyder_walk_v3.gif" alt="SAC policy on the custom Spyder-v0 spider environment" width="400"/>
+  <img src="assets/spyder_walk_v3.gif" alt="SAC policy on the custom Spyder-v0 spider environment" width="390"/>
+  <img src="assets/spyder_shell_turntable.gif" alt="Turntable of the Blender-authored visual shell on Spyder-v0" width="390"/>
 </p>
 
 <p align="center">
-  <em>Custom Spyder-v0 (Ant-style reward + upright termination) — a fast four-legged bounding run.</em>
+  <em>Left: the trained 3.75M-step bounding run (eval 7,392). Right: a turntable of the Blender-authored visual shell — a procedural pose sweep, not a policy, showing the model the left-hand run is actually simulating.</em>
 </p>
 
 | Run | Reward function | Steps | Best eval return | Gait |
@@ -82,6 +83,8 @@ python watch.py --run humanoid_baseline   # watch this policy live
 | `spyder_walk_v3` | Spyder-v0 default (Ant-style + upright termination) | 3.75M | 7,392 | fast four-legged bounding run |
 
 Spyder-v0 is this repo's own environment: a 12-DoF spider (model in `assets/spyder12.xml`, env in `envs/spyder_env.py`) with an Ant-style reward plus an upright-termination rule. Earlier versions got reward-hacked twice — first a jump-to-termination exploit, then a cartwheeling gait — and the fixes are written up as a postmortem in the `envs/spyder_env.py` docstring. With both loopholes closed, SAC trained clean: an upright 3.2 m/s walk by 400K steps (eval 3,457), accelerating into a ~6.5 m/s bounding run by 3.75M (eval 7,392) with full 1000-step episodes.
+
+The robot's shell is modelled in Blender by `make_spyder_mesh.py` (headless `bpy`, exports the OBJs in `assets/meshes/`) and attached as visual-only geoms — `contype=0 conaffinity=0 density=0`, so the capsules still carry every gram and every contact. `check_shell_physics.py` asserts that: it strips the shell out of the shipped MJCF and checks `qpos`/`qvel`/`cfrc_ext` match bit-for-bit over 2,000 contact-rich steps, so the appearance change can't invalidate a trained policy. Press `3` in the MuJoCo viewer to see the capsules underneath.
 
 > Viewing note: the floor's checker texture is only rendered over an 80×80 m patch around the origin (`size="40 40 40"` on the plane geom — collisions are infinite, rendering isn't). The spider outruns it mid-episode, so late frames in the eval videos show it running against a bare horizon. It's on the ground the whole time.
 
