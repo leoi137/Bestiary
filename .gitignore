@@ -32,6 +32,9 @@ logs/
 videos/
 *.mp4
 
+# Blender auto-backup, written whenever it saves over an existing .blend
+*.blend1
+
 # Best-model trackers
 *_best.txt
 
