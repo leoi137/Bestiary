@@ -47,3 +47,15 @@ Thumbs.db
 .idea/
 .vscode/
 *.swp
+
+# Blender walker assets (make_walker.py / make_walker_scene.py): the machine
+# and the final frames are tracked, but the scene file and the review passes
+# are regenerable output — rebuild with
+#   make_walker_scene.py -- --shot hero --no-render     (scene.blend)
+#   make_walker.py -- --stage build --render            (clay/)
+# Patterns are callsign-agnostic because the output directory is derived from
+# CALLSIGN, so --callsign ONYX writes assets/onyx/ and stays ignored too.
+assets/*/scene.blend
+assets/*/clay/
+assets/*/blockout_spec/
+assets/*/blockout_crouch/
