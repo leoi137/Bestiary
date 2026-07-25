@@ -81,11 +81,12 @@ from __future__ import annotations
 
 from pathlib import Path
 
-import mujoco
 import numpy as np
 from gymnasium import utils
 from gymnasium.envs.mujoco import MujocoEnv
 from gymnasium.spaces import Box
+
+from envs.terrain import HeightField, ground_height_at
 
 SPYDER_XML = str(Path(__file__).resolve().parent.parent / "assets" / "spyder12.xml")
 
@@ -192,19 +193,8 @@ class SpyderEnv(MujocoEnv, utils.EzPickle):
         # heightfield, cache what the ground lookup needs and re-base the
         # spawn height off the measured ground at the origin. hfield_data is
         # MuJoCo-normalized to [0,1]; world elevation = geom_z + data * z_size.
-        self._hfield = None
-        if self.model.nhfield > 0:
-            geom_ids = np.nonzero(
-                self.model.geom_type == mujoco.mjtGeom.mjGEOM_HFIELD
-            )[0]
-            hid = int(self.model.geom_dataid[geom_ids[0]])
-            nrow = int(self.model.hfield_nrow[hid])
-            ncol = int(self.model.hfield_ncol[hid])
-            self._hfield = {
-                "data": self.model.hfield_data.reshape(nrow, ncol),
-                "size": self.model.hfield_size[hid].copy(),  # (rx, ry, z, base)
-                "pos": self.model.geom_pos[geom_ids[0]].copy(),
-            }
+        self._hfield = HeightField.from_model(self.model)
+        if self._hfield is not None:
             self.init_qpos[2] += self._ground_height_at(0.0, 0.0)
 
     # --- Terrain -------------------------------------------------------------
@@ -212,26 +202,12 @@ class SpyderEnv(MujocoEnv, utils.EzPickle):
     def _ground_height_at(self, x: float, y: float) -> float:
         """World-z of the terrain surface under (x, y); 0 on the flat model.
 
-        Bilinear interpolation over the heightfield grid — the same surface
-        MuJoCo collides against (its hfield collider triangulates these
-        cells). Coordinates beyond the field clamp to the edge cell.
+        The bilinear interpolation itself moved to envs/terrain.py when
+        HoundEnv came along and needed the identical calculation. Behaviour
+        is unchanged — check_hound.py asserts a Spyder rollout matches
+        bit-for-bit across the move.
         """
-        if self._hfield is None:
-            return 0.0
-        data = self._hfield["data"]
-        rx, ry, zscale = self._hfield["size"][:3]
-        nrow, ncol = data.shape
-        # Grid coordinates: col 0..ncol-1 spans x in [-rx, rx], rows span y.
-        cx = (x - self._hfield["pos"][0] + rx) / (2 * rx) * (ncol - 1)
-        cy = (y - self._hfield["pos"][1] + ry) / (2 * ry) * (nrow - 1)
-        cx = min(max(cx, 0.0), ncol - 1.0)
-        cy = min(max(cy, 0.0), nrow - 1.0)
-        c0, r0 = int(min(cx, ncol - 2)), int(min(cy, nrow - 2))
-        fx, fy = cx - c0, cy - r0
-        v = (data[r0, c0] * (1 - fx) + data[r0, c0 + 1] * fx) * (1 - fy) + (
-            data[r0 + 1, c0] * (1 - fx) + data[r0 + 1, c0 + 1] * fx
-        ) * fy
-        return float(self._hfield["pos"][2] + v * zscale)
+        return ground_height_at(self._hfield, x, y)
 
     # --- Reward pieces -------------------------------------------------------
 
