@@ -32,6 +32,21 @@ Heightfields, stairs, rocks, slopes — difficulty ramps up as the policy improv
   fine-tune run (`runs/spyder_desert_v0`) seeded from the spyder_walk_v3
   checkpoint. Remaining for this step: per-reset terrain randomization and
   terrain observation (height samples) for non-blind climbing.
+- **Second robot (2026-07-25):** Hound-v0 / HoundDesert-v0 — a 16-DoF
+  wheel-legged dog (`make_hound.py`, `envs/hound_env.py`), Unitree Go2
+  kinematics and masses with a driven hub wheel replacing each foot. Model,
+  env, 38-assertion mechanics check and figures are in; **the real training
+  run is not started** (a 150k throwaway on CPU confirmed the pipeline and,
+  via CORE_PLAN's standing check, caught a control-cost that made moving a
+  net loss — fixed before any long run). The point of this robot for Step 3
+  is that the terrain becomes the shaping term on its own: on flat ground the
+  optimal policy is to lock
+  the legs and roll, and only a dune the wheels cannot climb makes twelve leg
+  motors worth using. Known limitation carried into training: ~5 cm/s of
+  passive backward creep on the heightfield, because the desert's 7.82 cm
+  terrain cells are the same size as the 8.5 cm wheels — the fix is
+  regenerating make_terrain.py at GRID=2048, which the spider does not need
+  and would change a shared asset.
 
 ## Step 4 — Multi-Spider Cooperation
 
