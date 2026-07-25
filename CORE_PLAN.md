@@ -324,10 +324,48 @@ shared asset that Spyder does not need.
 
 ## Open decisions (blocking Step 2)
 
-Both land in the observation list, so both must be answered *once*, before the
-fresh run starts:
+**Both are UNDECIDED as of 2026-07-25.** The numbers used elsewhere in this
+document (25 samples, 141 obs) are placeholders reflecting a recommendation, not a
+choice that has been made. Both land in the observation list, so both must be
+settled *once*, before the fresh run starts.
 
-1. **How many terrain height samples?** `legged_gym` uses ~187 points. Heavy for
-   a first pass — suggest a 5×5 grid (25 values) around the torso.
-2. **Do we pad Spyder and Hound to one shared obs width?** Recommendation above is
-   no — lock them separately (Spyder 141, Hound 169). Revisit on Isaac Lab.
+### 1. How many terrain height samples? — undecided
+
+**What a height sample is.** The policy is blind today: it feels the ground only
+through foot contact. Height samples let it *see* — measure the ground height at a
+grid of points around the body and feed those numbers into the observation:
+
+```
+· · · · ·     each · = "how high is the ground here,
+· · · · ·      relative to my torso?"
+· · ▲ · ·     ▲ = the robot
+· · · · ·     5×5 grid = 25 numbers
+· · · · ·
+```
+
+A dune ahead shows up as positive values before a foot ever touches it, so the
+policy can prepare instead of stumbling.
+
+**Not lidar — a lookup.** We already own the terrain as a heightfield array, so
+there is no ray casting and no rendering: for each grid point, compute its world
+(x, y) and call the existing `ground_height_at()` in `envs/terrain.py` — the same
+function the terrain-aware health check already uses. 25 array reads per step.
+
+That is **privileged information**: data the sim has that a real robot could not
+get for free. The standard way to cash it in is teacher-student — a teacher trains
+with the cheat lookups, then a student learns to reproduce its actions from what
+real sensors (depth camera, lidar) actually measure, noise and blind spots
+included. The student trains *supervised*, which is the stable regime from
+[`learnings/002`](learnings/002-no-warm-start-across-reward-change.md).
+
+**The decision:** `legged_gym` uses ~187 points (denser foresight, bigger network,
+slower). Suggest 25 as a light first pass. Whatever we pick sets the obs width
+permanently, so picking 187 later would orphan every checkpoint trained at 25.
+
+Note the first fresh run stays **blind** regardless (`height_enabled=False`) — the
+slots are reserved so switching sight on later costs a config flag, not a retrain.
+
+### 2. Do we pad Spyder and Hound to one shared obs width? — undecided
+
+Recommendation above is no — lock them separately (Spyder 141, Hound 169) and
+revisit on Isaac Lab.
