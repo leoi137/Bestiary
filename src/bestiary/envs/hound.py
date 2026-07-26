@@ -196,6 +196,7 @@ from gymnasium.envs.mujoco import MujocoEnv
 from gymnasium.spaces import Box
 
 from bestiary import paths
+from bestiary.envs.obs_spec import ObsSpec, ObsTerm
 from bestiary.robots.hound.build import SPEC
 from bestiary.terrain import HeightField, ground_height_at
 
@@ -364,14 +365,34 @@ class HoundEnv(MujocoEnv, utils.EzPickle):
         self._n_height = 25      # 5x5 height scan around the trunk — Step 3
         self._reserved = np.zeros(self._n_command + self._n_height)
 
-        # Size the observation from the loaded model rather than hardcoding
-        # it, so an XML edit cannot silently desync the env from the robot.
-        obs_size = (
-            len(self._obs_qpos_idx) + self.model.nv + (self.model.nbody - 1) * 6
-            + self._reserved.size
+        # Declare the observation ONCE, sized from the loaded model rather than
+        # hardcoded, so an XML edit cannot silently desync the env from the
+        # robot. `_get_obs` concatenates these blocks in this order and
+        # validates against this declaration, so the two can no longer drift.
+        #
+        # The reserved block is declared as TWO terms rather than one 28-wide
+        # block on purpose: the spec hash then changes if the split moves (say
+        # 25 height samples to legged_gym's 187) even though a single 28 would
+        # have hidden it. See envs/obs_spec.py.
+        self._obs_spec = ObsSpec(
+            env=type(self).__name__,
+            terms=(
+                ObsTerm("qpos_no_world_xy_no_wheels", len(self._obs_qpos_idx),
+                        "trunk z + quaternion + 12 leg angles; world x,y and "
+                        "the 4 unbounded wheel angles dropped"),
+                ObsTerm("qvel", self.model.nv,
+                        "trunk linear/angular velocity + all joint velocities, "
+                        "wheels included"),
+                ObsTerm("cfrc_ext", (self.model.nbody - 1) * 6,
+                        "external contact force/torque, 6 per non-world body"),
+                ObsTerm("command_reserved", self._n_command,
+                        "[vx, vy, yaw_rate] target — zero-filled in v0, roadmap Step 1"),
+                ObsTerm("height_reserved", self._n_height,
+                        "5x5 terrain height scan — zero-filled in v0, roadmap Step 3"),
+            ),
         )
         self.observation_space = Box(
-            low=-np.inf, high=np.inf, shape=(obs_size,), dtype=np.float64
+            low=-np.inf, high=np.inf, shape=(self._obs_spec.width,), dtype=np.float64
         )
 
         # The standing stance ships in the model as keyframe 0 (robots/hound/build.py
@@ -541,8 +562,12 @@ class HoundEnv(MujocoEnv, utils.EzPickle):
         contact_force = self.data.cfrc_ext[1:].flatten()  # [1:] skips world
         # _reserved is all zeros in v0 — see __init__. It goes LAST so the
         # first 141 entries stay exactly what the docstring describes, and a
-        # future version can fill it without moving anything else.
-        return np.concatenate((position, velocity, contact_force, self._reserved))
+        # future version can fill it without moving anything else. Order must
+        # match self._obs_spec.terms; validate() raises rather than warns,
+        # because a silent width drift orphans every checkpoint (learnings/003).
+        return self._obs_spec.validate(
+            np.concatenate((position, velocity, contact_force, self._reserved))
+        )
 
     def reset_model(self) -> np.ndarray:
         """Spawn in the authored stance, lightly perturbed.

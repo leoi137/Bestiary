@@ -86,6 +86,7 @@ from gymnasium.envs.mujoco import MujocoEnv
 from gymnasium.spaces import Box
 
 from bestiary import paths
+from bestiary.envs.obs_spec import ObsSpec, ObsTerm
 from bestiary.terrain import HeightField, ground_height_at
 
 SPYDER_XML = str(paths.SPYDER_XML)
@@ -176,17 +177,24 @@ class SpyderEnv(MujocoEnv, utils.EzPickle):
             **kwargs,
         )
 
-        # Size the observation from the loaded model instead of hardcoding
-        # 113, so an XML edit (say, adding a tail) can't silently desync the
-        # env from the robot. qpos minus the 2 excluded world x,y; full qvel;
-        # 6 contact-force values per non-world body.
-        obs_size = (
-            (self.data.qpos.size - 2)
-            + self.data.qvel.size
-            + (self.model.nbody - 1) * 6
+        # Declare the observation ONCE, sized from the loaded model rather than
+        # hardcoded at 113, so an XML edit (say, adding a tail) can't silently
+        # desync the env from the robot. `_get_obs` concatenates these blocks in
+        # this order and validates against this declaration, so the two can no
+        # longer drift apart -- see envs/obs_spec.py for why that mattered.
+        self._obs_spec = ObsSpec(
+            env=type(self).__name__,
+            terms=(
+                ObsTerm("qpos_no_world_xy", self.data.qpos.size - 2,
+                        "joint angles + torso quaternion; world x,y dropped"),
+                ObsTerm("qvel", self.data.qvel.size,
+                        "joint + torso velocities"),
+                ObsTerm("cfrc_ext", (self.model.nbody - 1) * 6,
+                        "external contact force/torque, 6 per non-world body"),
+            ),
         )
         self.observation_space = Box(
-            low=-np.inf, high=np.inf, shape=(obs_size,), dtype=np.float64
+            low=-np.inf, high=np.inf, shape=(self._obs_spec.width,), dtype=np.float64
         )
 
         # Terrain support (see module docstring). If the model carries a
@@ -289,7 +297,11 @@ class SpyderEnv(MujocoEnv, utils.EzPickle):
         position = self.data.qpos.flatten()[2:]  # drop world x,y (see docstring)
         velocity = self.data.qvel.flatten()
         contact_force = self.data.cfrc_ext[1:].flatten()  # [1:] skips the world body
-        return np.concatenate((position, velocity, contact_force))
+        # Order must match self._obs_spec.terms. validate() raises rather than
+        # warns: a silent width drift orphans every checkpoint (learnings/003).
+        return self._obs_spec.validate(
+            np.concatenate((position, velocity, contact_force))
+        )
 
     def reset_model(self) -> np.ndarray:
         # Small noise around the authored stance: enough that the policy can't
