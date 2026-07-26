@@ -67,6 +67,7 @@ def _registry() -> tuple[Guard, ...]:
     from bestiary.guards import (
         checkpoint_width,
         disk,
+        eval_sampling,
         ledger_schema,
         metric_liveness,
         privacy,
@@ -98,6 +99,12 @@ def _registry() -> tuple[Guard, ...]:
             enforces="learnings/003",
             cost="fast",
             run=checkpoint_width.run,
+        ),
+        Guard(
+            name="eval-sampling",
+            enforces="learnings/008",
+            cost="fast",
+            run=eval_sampling.run,
         ),
         Guard(
             name="metric-liveness",
