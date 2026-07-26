@@ -1018,8 +1018,8 @@ def report(spec: Spec) -> None:
     obs = (nq - 2 - 4) + nv + nbody * 6 + reserved
 
     print("── HOUND-16 ──────────────────────────────────────────────────────")
-    print(f"  4 legs x (abduct + hip + knee + wheel) = 16 actuated DoF")
-    print(f"  + 6 unactuated DoF from the trunk's free joint")
+    print("  4 legs x (abduct + hip + knee + wheel) = 16 actuated DoF")
+    print("  + 6 unactuated DoF from the trunk's free joint")
     print()
     print("  Standing stance")
     print(f"    abduct  {spec.stance_abduct:+.4f} rad ({deg(spec.stance_abduct):+6.1f} deg)  input")
@@ -1064,14 +1064,14 @@ def report(spec: Spec) -> None:
               f"{stance[j]:+8.2f}{refs[j]:+10.2f}{auth[j]:9.2f}r  "
               f"[{band[0]:+.2f},{band[1]:+.2f}] vs [{lo:+.2f},{hi:+.2f}] "
               f"{covers:<18} {note}")
-    print(f"    holds    = SIGNED gravity torque at the stance")
+    print("    holds    = SIGNED gravity torque at the stance")
     print(f"    springref= stance wound {spec.sag_target} rad AGAINST it, so the "
           f"spring already carries `holds` at the stance (t=0 is an equilibrium)")
     print(f"    spring k = |holds| / sag_target ({spec.sag_target} rad = "
           f"{deg(spec.sag_target):.1f} deg); LOAD ONLY, so the motor keeps its travel")
     print(f"    stab k   = {spec.stability_margin} x the inverted-pendulum threshold")
-    print(f"               -N*d2h/dq2. Abduction is exempt: a wheel rolls fore-aft")
-    print(f"               but GRIPS sideways, so only the hip loses its stability.")
+    print("               -N*d2h/dq2. Abduction is exempt: a wheel rolls fore-aft")
+    print("               but GRIPS sideways, so only the hip loses its stability.")
     ok, lo_eig = spec.is_stance_stable()
     print(f"    coupled (hip,knee) Hessian min eigenvalue {lo_eig:+.2f} -> "
           f"{'STABLE' if ok else 'UNSTABLE'}")
@@ -1092,8 +1092,8 @@ def report(spec: Spec) -> None:
     print(f"    ...but the wheelie limit   {wheelie:6.2f} N  -> "
           f"{wheelie / spec.total_mass:.2f} m/s^2  (thrust acts at ground level,"
           f" mass sits {spec.stand_z:.2f} m up on a {2 * spec.hip_x:.3f} m wheelbase)")
-    print(f"    measured saturation        ~2.0 m/s^2 (robots/hound/check.py) — geometry")
-    print(f"                               binds before friction does")
+    print("    measured saturation        ~2.0 m/s^2 (robots/hound/check.py) — geometry")
+    print("                               binds before friction does")
     print()
     print("  Spaces")
     print(f"    nq {nq}   nv {nv}   nbody(non-world) {nbody}   nu 16")

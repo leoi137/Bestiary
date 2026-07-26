@@ -143,7 +143,7 @@ def main():
 
     print()
     if failures:
-        print(f"FAILED — the visual shell is affecting physics:")
+        print("FAILED — the visual shell is affecting physics:")
         for f in failures:
             print(f"  - {f}")
         return 1
