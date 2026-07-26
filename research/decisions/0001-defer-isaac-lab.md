@@ -77,9 +77,9 @@ Until one fires, do not re-argue this. Re-reading this file is the check.
 ## What we gave up
 
 Isaac Lab is the industry standard for legged locomotion. There is real
-résumé and credibility value in having used it, which matters for xTech and
-similar programs. We are trading that for keeping our validation oracle and
-not fighting an unsupported GPU. The trigger above is what buys it back.
+résumé and credibility value in having used it. We are trading that for
+keeping our validation oracle and not fighting an unsupported GPU. The trigger
+above is what buys it back.
 
 ## How we would know this was wrong
 
