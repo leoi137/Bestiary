@@ -100,7 +100,7 @@ class FootContactRewardWrapper(gym.Wrapper):
         return obs, reward + shaping, terminated, truncated, info
 
 
-# Registry so train.py can pick a wrapper by name via a CLI flag.
+# Registry so the trainer can pick a wrapper by name via a CLI flag.
 WRAPPERS: dict[str, type[gym.Wrapper]] = {
     "foot_contact": FootContactRewardWrapper,
 }

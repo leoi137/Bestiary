@@ -46,8 +46,8 @@ compiled heightfield and re-bases init_qpos z off the measured ground height
 under the origin, so regenerating with a different seed never breaks resets.
 
 Usage:
-    python make_terrain.py            # deterministic (seed 7)
-    python make_terrain.py --seed 12  # a different desert
+    python -m bestiary.terrain.generate            # deterministic (seed 7)
+    python -m bestiary.terrain.generate --seed 12  # a different desert
 """
 from __future__ import annotations
 
@@ -58,7 +58,9 @@ from pathlib import Path
 import numpy as np
 from PIL import Image
 
-ASSET_DIR = Path(__file__).resolve().parent / "assets" / "terrain"
+from bestiary import paths
+
+ASSET_DIR = paths.TERRAIN_DIR
 
 # Must match the <hfield> element in spyder12_desert.xml (see main()'s check).
 HALF_EXTENT = 40.0   # meters; size="40 40 ..." -> 80 x 80 m world

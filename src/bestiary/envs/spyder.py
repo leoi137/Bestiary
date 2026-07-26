@@ -60,7 +60,7 @@ any state value goes non-finite. Truncation at 1000 steps is handled by
 the registration in envs/__init__.py, not here.
 
 Terrain (Spyder-Desert-v0): the same class also runs spyder12_desert.xml,
-which swaps the plane for a procedural desert heightfield (make_terrain.py).
+which swaps the plane for a procedural desert heightfield (terrain/generate.py).
 The robot subtree is identical, so obs/action spaces don't change and a
 flat-world checkpoint loads directly. Two things must become terrain-aware:
 
@@ -86,9 +86,10 @@ from gymnasium import utils
 from gymnasium.envs.mujoco import MujocoEnv
 from gymnasium.spaces import Box
 
-from envs.terrain import HeightField, ground_height_at
+from bestiary import paths
+from bestiary.terrain import HeightField, ground_height_at
 
-SPYDER_XML = str(Path(__file__).resolve().parent.parent / "assets" / "spyder12.xml")
+SPYDER_XML = str(paths.SPYDER_XML)
 
 DEFAULT_CAMERA_CONFIG = {
     # Tracking camera pinned to the torso (body 1; body 0 is the world), so
@@ -202,9 +203,9 @@ class SpyderEnv(MujocoEnv, utils.EzPickle):
     def _ground_height_at(self, x: float, y: float) -> float:
         """World-z of the terrain surface under (x, y); 0 on the flat model.
 
-        The bilinear interpolation itself moved to envs/terrain.py when
+        The bilinear interpolation itself moved to terrain/field.py when
         HoundEnv came along and needed the identical calculation. Behaviour
-        is unchanged — check_hound.py asserts a Spyder rollout matches
+        is unchanged — robots/hound/check.py asserts a Spyder rollout matches
         bit-for-bit across the move.
         """
         return ground_height_at(self._hfield, x, y)

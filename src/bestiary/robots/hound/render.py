@@ -1,7 +1,7 @@
 """Render HOUND-16: previews, a labelled leg diagram, and the mechanics plots.
 
-    ./venv/bin/python render_hound.py            # everything, into assets/hound/
-    ./venv/bin/python render_hound.py --only preview
+    python -m bestiary.robots.hound.render            # everything, into assets/hound/
+    python -m bestiary.robots.hound.render --only preview
 
 Outputs
     assets/hound/preview.png        three-quarter view on the plane
@@ -34,9 +34,10 @@ import mujoco  # noqa: E402
 import numpy as np  # noqa: E402
 from matplotlib.patches import Arc, Circle, FancyArrowPatch  # noqa: E402
 
-from make_hound import SPEC  # noqa: E402
+from bestiary import paths
+from bestiary.robots.hound.build import SPEC
 
-OUT = Path(__file__).resolve().parent / "assets" / "hound"
+OUT = paths.ASSETS / "hound"
 LEGS = ("FL", "FR", "RL", "RR")
 
 # The joint colour code, shared by every figure here and by the model's own
@@ -85,9 +86,9 @@ def render(model_path: str, out: Path, width=1600, height=1000, *,
 
 def render_previews() -> None:
     OUT.mkdir(parents=True, exist_ok=True)
-    render("assets/hound16.xml", OUT / "preview.png",
+    render(str(paths.HOUND_XML), OUT / "preview.png",
            azimuth=132, elevation=-16, distance=1.45)
-    render("assets/hound16_desert.xml", OUT / "desert.png",
+    render(str(paths.HOUND_DESERT_XML), OUT / "desert.png",
            azimuth=118, elevation=-12, distance=1.9, lookat=(0, 0, 0.25))
 
 
@@ -102,7 +103,7 @@ def render_contact_sheet() -> None:
     ]
     fig, axes = plt.subplots(2, 2, figsize=(13, 8.6), facecolor="white")
     for ax, (label, kw) in zip(axes.ravel(), views):
-        px = render("assets/hound16.xml", OUT / "_tmp.png", 1100, 760, **kw)
+        px = render(str(paths.HOUND_XML), OUT / "_tmp.png", 1100, 760, **kw)
         ax.imshow(px)
         ax.set_title(label, fontsize=11, color=C_INK, pad=6)
         ax.axis("off")
@@ -264,7 +265,7 @@ def mechanics_plots() -> None:
 
     # (a) the wheel angle runs away; its velocity does not -------------------
     ax = axes[0]
-    m = mujoco.MjModel.from_xml_path("assets/hound16.xml")
+    m = mujoco.MjModel.from_xml_path(str(paths.HOUND_XML))
     d = mujoco.MjData(m)
     d.qpos[:] = m.key_qpos[0]
     mujoco.mj_forward(m, d)
@@ -307,7 +308,7 @@ def mechanics_plots() -> None:
     taus, accs, loads = [], [], []
     weight = SPEC.total_mass * 9.81
     for frac in (0.25, 0.5, 0.75, 1.0, 1.5, 2.0, 3.0, 4.0, 5.0):
-        mm = _drive("assets/hound16.xml", frac)
+        mm = _drive(str(paths.HOUND_XML), frac)
         dd = mujoco.MjData(mm)
         dd.qpos[:] = mm.key_qpos[0]
         mujoco.mj_forward(mm, dd)
@@ -352,7 +353,7 @@ def mechanics_plots() -> None:
     tau_hip = SPEC.static_torques()["hip"]
     zs = []
     for k in ks:
-        mm = mujoco.MjModel.from_xml_path("assets/hound16.xml")
+        mm = mujoco.MjModel.from_xml_path(str(paths.HOUND_XML))
         for leg in LEGS:
             j = mm.joint(f"{leg}_hip")
             mm.jnt_stiffness[j.id] = k

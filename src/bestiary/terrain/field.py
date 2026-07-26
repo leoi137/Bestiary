@@ -5,7 +5,7 @@ World-absolute z is meaningless as a health check on a hill — a robot standing
 on a 2 m dune is not "too high", it is standing — so the healthy-z band has to
 be measured against the surface underneath, and resets have to spawn on it.
 
-This was written inline inside envs/spyder_env.py first. It lives here now
+This was written inline inside envs/spyder.py first. It lives here now
 because HoundEnv needs the identical calculation, and two copies of a
 bilinear interpolation are two chances to fix a bug once.
 """

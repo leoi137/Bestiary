@@ -1,16 +1,16 @@
 """Assert the mechanics of HOUND-16, and demonstrate them.
 
-    ./venv/bin/python check_hound.py
-    ./venv/bin/python check_hound.py -v      # also print the demo tables
+    python -m bestiary.robots.hound.check
+    python -m bestiary.robots.hound.check -v      # also print the demo tables
 
-Two jobs, and they are the same job. Every claim make_hound.py's docstring
+Two jobs, and they are the same job. Every claim robots/hound/build.py's docstring
 makes about this robot — the wheel is traction-limited, the stance is a real
 equilibrium, the wheel angle is unbounded and therefore excluded from the
 observation, being alive pays more than dying — is checked here against the
 compiled model rather than left as prose that used to be true.
 
 The wheeled morphology is what makes this worth its own file. The spider's
-check (check_shell_physics.py) has one thing to prove: decoration does not
+check (robots/spyder/check.py) has one thing to prove: decoration does not
 touch the dynamics. Here the fourth joint per leg changes the observation
 design, the actuator sizing, the contact model and the reset, and each of
 those is a place where an edit to Spec can quietly invalidate the env.
@@ -23,8 +23,8 @@ Sections:
     5  TERRAIN       resets survive on the heightfield
     6  REGRESSION    the shared terrain helper did not change Spyder
 
-Re-run this after editing make_hound.py's Spec, envs/hound_env.py, or
-envs/terrain.py.
+Re-run this after editing robots/hound/build.py's Spec, envs/hound.py, or
+terrain/field.py.
 """
 from __future__ import annotations
 
@@ -34,9 +34,10 @@ import sys
 import mujoco
 import numpy as np
 
-from make_hound import SPEC
+from bestiary import paths
+from bestiary.robots.hound.build import SPEC
 
-MODELS = ["assets/hound16.xml", "assets/hound16_desert.xml"]
+MODELS = [str(paths.HOUND_XML), str(paths.HOUND_DESERT_XML)]
 LEGS = ("FL", "FR", "RL", "RR")
 VERBOSE = "-v" in sys.argv
 
@@ -100,7 +101,7 @@ def section_structure() -> None:
 
     m = mujoco.MjModel.from_xml_path(MODELS[0])
 
-    # The action-space contract quoted in envs/hound_env.py's docstring.
+    # The action-space contract quoted in envs/hound.py's docstring.
     expected = [f"{leg}_{j}" for leg in LEGS
                 for j in ("abduct", "hip", "knee", "wheel")]
     actual = [m.actuator(i).name for i in range(m.nu)]
@@ -115,7 +116,7 @@ def section_structure() -> None:
           f"wheel {gears['FL_wheel']} vs hip {gears['FL_hip']} vs knee {gears['FL_knee']}")
 
     # Decoration must be weightless and non-colliding — the same invariant
-    # check_shell_physics.py enforces for the spider's shell. Geom mass is
+    # robots/spyder/check.py enforces for the spider's shell. Geom mass is
     # not kept in mjModel (the compiler folds it into the body), so the test
     # is that every BODY weighs exactly its one structural link: any mass
     # leaking out of a density=0 decorative geom would show up here.
@@ -179,7 +180,7 @@ def section_stance() -> None:
         tag = path.split("/")[-1]
         # The plane must hold the drawn height almost exactly. The desert is
         # allowed to sag and lean, because 10 s of the documented creep
-        # (make_hound.py, KNOWN LIMITATION) walks it ~0.5 m backwards and it
+        # (robots/hound/build.py, KNOWN LIMITATION) walks it ~0.5 m backwards and it
         # leans into the drift as it goes. What is NOT negotiable on either
         # world is that it stays on its wheels and does not collapse — those
         # are the assertions that would catch a real regression.
@@ -208,7 +209,7 @@ def section_stance() -> None:
 def section_wheel() -> None:
     print("\n3  WHEEL")
     import gymnasium as gym
-    import envs  # noqa: F401  (registers Hound-v0)
+    import bestiary.envs  # noqa: F401  (registers Hound-v0)
 
     m = mujoco.MjModel.from_xml_path(MODELS[0])
 
@@ -263,7 +264,7 @@ def section_wheel() -> None:
           not np.array_equal(obs_a, env._get_obs()))
     env.close()
 
-    # WHAT ACTUALLY LIMITS THRUST — and it is not what make_hound.py's
+    # WHAT ACTUALLY LIMITS THRUST — and it is not what robots/hound/build.py's
     # sizing argument assumes, which is exactly why this is measured.
     #
     # The Spec sizes gear_wheel against the friction cone: a wheel carrying
@@ -329,7 +330,7 @@ def section_wheel() -> None:
 def section_reward() -> None:
     print("\n4  REWARD")
     import gymnasium as gym
-    import envs  # noqa: F401
+    import bestiary.envs  # noqa: F401
 
     env = gym.make("Hound-v0").unwrapped
     w = env._ctrl_cost_weight
@@ -357,7 +358,7 @@ def section_reward() -> None:
 def section_terrain() -> None:
     print("\n5  TERRAIN")
     import gymnasium as gym
-    import envs  # noqa: F401
+    import bestiary.envs  # noqa: F401
 
     for eid in ("Hound-v0", "HoundDesert-v0"):
         env = gym.make(eid).unwrapped
@@ -378,7 +379,7 @@ def section_terrain() -> None:
         env.close()
 
     # The heightfield lookup agrees with what MuJoCo actually collides.
-    from envs.terrain import HeightField
+    from bestiary.terrain import HeightField
     m = mujoco.MjModel.from_xml_path(MODELS[1])
     hf = HeightField.from_model(m)
     check("heightfield helper resolves on the desert model", hf is not None)
@@ -393,9 +394,9 @@ def section_terrain() -> None:
 def section_regression() -> None:
     print("\n6  REGRESSION")
     import gymnasium as gym
-    import envs  # noqa: F401
+    import bestiary.envs  # noqa: F401
 
-    # envs/terrain.py was extracted OUT of envs/spyder_env.py. These hashes
+    # terrain/field.py was extracted OUT of envs/spyder.py. These hashes
     # were taken from the pre-extraction code and must not move: the spider
     # has a 3.75M-step checkpoint trained against those exact dynamics.
     EXPECTED = {

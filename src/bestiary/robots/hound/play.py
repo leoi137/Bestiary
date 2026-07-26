@@ -1,8 +1,8 @@
 """Drive HOUND-16 yourself in the MuJoCo viewer.
 
-    ./venv/bin/python play_hound.py             # flat plane
-    ./venv/bin/python play_hound.py --desert    # the heightfield
-    ./venv/bin/python play_hound.py --selftest  # no window; check the controls work
+    python -m bestiary.robots.hound.play             # flat plane
+    python -m bestiary.robots.hound.play --desert    # the heightfield
+    python -m bestiary.robots.hound.play --selftest  # no window; check the controls work
 
     W / S    drive all four wheels forward / back
     A / D    turn — drive the left and right wheels in opposite directions
@@ -18,7 +18,7 @@
     TAB      MuJoCo's own control panel (per-actuator sliders)
     ESC      quit
 
-Why this file exists: `watch.py` replays a trained policy, and there is no
+Why this file exists: `bestiary.train.watch` replays a trained policy, and there is no
 trained policy for this robot yet. This is a hand controller instead, so the
 mechanics the explainer describes can be felt rather than read.
 
@@ -45,9 +45,9 @@ from __future__ import annotations
 
 import argparse
 import os
-from pathlib import Path
 
-HERE = Path(__file__).resolve().parent
+from bestiary import paths
+
 LEGS = ("FL", "FR", "RL", "RR")
 
 
@@ -70,7 +70,7 @@ def main() -> int:
     import mujoco
     import numpy as np
 
-    xml = HERE / "assets" / ("hound16_desert.xml" if args.desert else "hound16.xml")
+    xml = paths.HOUND_DESERT_XML if args.desert else paths.HOUND_XML
     model = mujoco.MjModel.from_xml_path(str(xml))
     data = mujoco.MjData(model)
 
@@ -92,7 +92,7 @@ def main() -> int:
          "hold": True, "brake": False}
 
     # PD gains, in N*m per rad and per rad/s. Sized off the same static loads
-    # make_hound.py's springs are: enough to hold the stance and re-pose it in
+    # robots/hound/build.py's springs are: enough to hold the stance and re-pose it in
     # a fraction of a second, soft enough not to fight the physics into
     # instability at the 20 Hz-equivalent rate this loop runs.
     KP = {"abduct": 60.0, "hip": 80.0, "knee": 90.0}
@@ -106,7 +106,7 @@ def main() -> int:
             targets = {
                 # +splay swings each leg outward on its OWN side, which needs
                 # the y sign because abduction shares one global axis (Unitree's
-                # convention — see make_hound.py). This is the joint that is
+                # convention — see robots/hound/build.py). This is the joint that is
                 # invisible from a side view.
                 "abduct": STANCE[f"{leg}_abduct"] + S["splay"] * sy,
                 # Crouch folds hip and knee together so the foot stays roughly

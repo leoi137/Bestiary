@@ -5,8 +5,8 @@ deterministic rollout. Each episode pops up a window; close it or wait for
 the episode to end to move on.
 
 Usage:
-    python watch.py --run baseline_2leg
-    python watch.py --run foot_contact_v1 --episodes 3 --latest
+    python -m bestiary.train.watch --run baseline_2leg
+    python -m bestiary.train.watch --run foot_contact_v1 --episodes 3 --latest
 """
 from __future__ import annotations
 
@@ -17,7 +17,9 @@ from pathlib import Path
 import gymnasium as gym
 from stable_baselines3 import SAC
 
-import envs  # noqa: F401 -- registers Spyder-v0 with Gymnasium
+from bestiary import paths
+
+import bestiary.envs  # noqa: F401 -- registers Spyder-v0 with Gymnasium
 
 
 def parse_args() -> argparse.Namespace:
@@ -34,7 +36,7 @@ def parse_args() -> argparse.Namespace:
 
 def main() -> None:
     args = parse_args()
-    run_dir = Path("runs") / args.run
+    run_dir = paths.RUNS / args.run
     best = run_dir / "ant_sac_best.zip"
     latest = run_dir / "ant_sac.zip"
 

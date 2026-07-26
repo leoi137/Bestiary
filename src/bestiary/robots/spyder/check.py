@@ -1,8 +1,8 @@
 """Prove the Spyder visual shell is invisible to the physics.
 
-    ./venv/bin/python check_shell_physics.py
+    python -m bestiary.robots.spyder.check
 
-assets/meshes/*.obj (built by make_spyder_mesh.py) exist only to make the
+assets/meshes/*.obj (built by robots/spyder/build_mesh.py) exist only to make the
 robot look like hardware. They are declared contype=0 conaffinity=0 density=0,
 which SHOULD mean no contacts and no mass — but "should" is doing a lot of work
 in a model where inertiafromgeom="true" derives every body's inertia from its
@@ -35,7 +35,9 @@ import xml.etree.ElementTree as ET
 import mujoco
 import numpy as np
 
-MODELS = ["assets/spyder12.xml", "assets/spyder12_desert.xml"]
+from bestiary import paths
+
+MODELS = [str(paths.SPYDER_XML), str(paths.SPYDER_DESERT_XML)]
 STEPS = 2000
 SEED = 0
 

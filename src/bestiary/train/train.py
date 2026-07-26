@@ -7,16 +7,16 @@ recording what produced it.
 
 Examples:
     # Baseline (no wrapper, default reward), 750k steps:
-    python train.py --run-name baseline_seed0 --seed 0
+    python -m bestiary.train.train --run-name baseline_seed0 --seed 0
 
     # Foot-contact shaping experiment from scratch:
-    python train.py --run-name foot_contact_v1 \\
+    python -m bestiary.train.train --run-name foot_contact_v1 \\
                     --wrapper foot_contact \\
                     --wrapper-kwargs '{"penalty": 1.0, "window": 50}' \\
                     --seed 0 --steps 1_500_000
 
     # Resume the same run (auto-detected by re-using the same --run-name):
-    python train.py --run-name foot_contact_v1 --steps 500_000
+    python -m bestiary.train.train --run-name foot_contact_v1 --steps 500_000
 
 Re-invoking with the same --run-name resumes from disk; a new --run-name
 starts fresh. The wrapper/seed args are only consulted on the *first*
@@ -36,8 +36,10 @@ import numpy as np
 from stable_baselines3 import SAC
 from stable_baselines3.common.callbacks import BaseCallback
 
-import envs  # noqa: F401 -- registers Spyder-v0 with Gymnasium
-from wrappers import WRAPPERS
+from bestiary import paths
+
+import bestiary.envs  # noqa: F401 -- registers Spyder-v0 with Gymnasium
+from bestiary.rewards import WRAPPERS
 
 DEFAULT_ENV = "Ant-v5"
 
@@ -245,7 +247,7 @@ def parse_args() -> argparse.Namespace:
 
 def main() -> None:
     args = parse_args()
-    run_dir = Path("runs") / args.run_name
+    run_dir = paths.RUNS / args.run_name
     run_dir.mkdir(parents=True, exist_ok=True)
     paths = _run_paths(run_dir)
 

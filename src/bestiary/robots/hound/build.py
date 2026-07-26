@@ -1,13 +1,13 @@
 """HOUND-16 — generate the MJCF for a 16-DoF wheel-legged robot dog.
 
-    python make_hound.py            # write both worlds
-    python make_hound.py --report   # ...and print the DoF / mass / traction budget
+    python -m bestiary.robots.hound.build            # write both worlds
+    python -m bestiary.robots.hound.build --report   # ...and print the DoF / mass / traction budget
 
 Writes two models from one source of truth:
 
     assets/hound16.xml          flat plane  -> Hound-v0
     assets/hound16_desert.xml   desert hfield -> HoundDesert-v0  (same robot,
-                                the terrain from make_terrain.py under it)
+                                the terrain from terrain/generate.py under it)
 
 The robot subtree is byte-identical between the two, so nq/nv/nbody and
 therefore the observation and action spaces are unchanged and a flat-world
@@ -61,7 +61,7 @@ the leg plane. The fourth is the wheel, and it is a genuinely different kind
 of joint — the three reasons it needs its own treatment everywhere downstream:
 
   1. It never stops. `limited="false"`: its angle integrates without bound,
-     so it is NOT a state you can feed a policy (envs/hound_env.py drops it
+     so it is NOT a state you can feed a policy (envs/hound.py drops it
      from the observation and keeps only its velocity). Every other joint in
      this repo lives inside a range.
   2. It has no rest pose. The leg joints carry a spring toward the standing
@@ -73,7 +73,7 @@ of joint — the three reasons it needs its own treatment everywhere downstream:
      motors are sized by what they must *hold*; the wheel motors by what the
      ground will *accept*.
 
-     check_hound.py measures this and finds the conclusion right for the
+     robots/hound/check.py measures this and finds the conclusion right for the
      wrong reason, which is worth knowing before tuning anything. Thrust
      does saturate — 5x the gear gives LESS acceleration, not more — but it
      saturates at ~2 m/s^2, a quarter of the mu*g = 8.8 the friction cone
@@ -120,7 +120,7 @@ the env's 5 mm spawn clearance.
 Living with it is defensible — 5 cm/s is 2% of the speed this machine drives
 at, and it is a force a policy holding station simply has to counter, which
 is true of a real wheeled robot on a slope too. The real fix is a finer
-heightfield: regenerating make_terrain.py at GRID=2048 would put four cells
+heightfield: regenerating terrain/generate.py at GRID=2048 would put four cells
 under each wheel. That changes an asset the spider shares (its 0.5 m legs and
 point feet never noticed the 7.82 cm cells), so it is a deliberate follow-up,
 not a silent edit.
@@ -131,7 +131,9 @@ import argparse
 import math
 from pathlib import Path
 
-ASSET_DIR = Path(__file__).resolve().parent / "assets"
+from bestiary import paths
+
+ASSET_DIR = paths.ASSETS
 
 
 class Spec:
@@ -723,8 +725,8 @@ def actuator_xml(spec: Spec) -> str:
     """16 motors, in the order the action vector uses.
 
     Per-leg blocks of four, legs in Spec.legs order. This block IS the
-    contract for the action space — envs/hound_env.py's docstring quotes it,
-    and check_hound.py asserts the order.
+    contract for the action space — envs/hound.py's docstring quotes it,
+    and robots/hound/check.py asserts the order.
     """
     rows = []
     for name in spec.legs:
@@ -742,7 +744,7 @@ def actuator_xml(spec: Spec) -> str:
 def keyframe_xml(spec: Spec) -> str:
     """The standing stance, shipped as a MuJoCo keyframe.
 
-    envs/hound_env.py reads init_qpos straight out of this rather than
+    envs/hound.py reads init_qpos straight out of this rather than
     recomputing the stance from Spec, so the pose the env spawns and the pose
     the springs are wound against can never drift apart — the XML is the one
     place both of them read. (Go2 ships its crouch the same way, as
@@ -779,7 +781,7 @@ def common_head(spec: Spec, model: str) -> str:
        every other env here, over 200 Hz physics. -->
   <option integrator="implicitfast" timestep="0.005"/>
 
-  <!-- Offscreen buffer for HD eval videos and for render_hound.py. MuJoCo
+  <!-- Offscreen buffer for HD eval videos and for robots/hound/render.py. MuJoCo
        defaults to 640x480 and REFUSES a larger render rather than scaling,
        so this has to be declared here, in both worlds. -->
   <visual>
@@ -817,7 +819,7 @@ def common_head(spec: Spec, model: str) -> str:
     <!-- Visual-only geometry. density=0 AND mass unset so it adds nothing to
          the inertia; contype/conaffinity=0 so it never makes a contact. The
          physics is exactly what it would be with these deleted — the same
-         invariant check_shell_physics.py enforces for the spider's shell. -->
+         invariant robots/spyder/check.py enforces for the spider's shell. -->
     <default class="deco">
       <geom contype="0" conaffinity="0" density="0" group="2"/>
     </default>
@@ -861,7 +863,7 @@ FLAT_WORLD = """  <asset>
 DESERT_WORLD = """  <worldbody>
     <light cutoff="100" diffuse="1 0.96 0.88" dir="0.45 0.25 -0.86" directional="true"
            exponent="1" pos="0 0 10" mode="trackcom" specular=".1 .1 .1"/>
-    <!-- The desert floor from make_terrain.py, reused verbatim from
+    <!-- The desert floor from terrain/generate.py, reused verbatim from
          spyder12_desert.xml: same .bin, same texture, same pos z = the
          generator's printed h_min so the spawn pad sits at world z = 0.
          Ground friction is the sand value (0.8), but the tyre's priority=1
@@ -904,7 +906,7 @@ def build(spec: Spec, desert: bool) -> str:
     model = "hound16_desert" if desert else "hound16"
     header = (
         "Hound-Desert-v0: the SAME hound16 robot on the procedural desert\n"
-        "       heightfield (make_terrain.py). The robot subtree below is generated\n"
+        "       heightfield (terrain/generate.py). The robot subtree below is generated\n"
         "       from the same Spec as assets/hound16.xml, so nq/nv/nbody and\n"
         "       therefore the whole observation and action space are unchanged and a\n"
         "       flat-world checkpoint loads here directly. Only the ground changed."
@@ -917,8 +919,8 @@ def build(spec: Spec, desert: bool) -> str:
         extra_assets=DESERT_ASSETS if desert else ""
     )
     return f"""<mujoco model="{model}">
-  <!-- GENERATED BY make_hound.py — DO NOT EDIT BY HAND.
-       Re-generate with `python make_hound.py`; change the numbers in that
+  <!-- GENERATED BY robots/hound/build.py — DO NOT EDIT BY HAND.
+       Re-generate with `python -m bestiary.robots.hound.build`; change the numbers in that
        file's Spec class, not here.
 
        {header}
@@ -1021,7 +1023,7 @@ def report(spec: Spec) -> None:
     print(f"    ...but the wheelie limit   {wheelie:6.2f} N  -> "
           f"{wheelie / spec.total_mass:.2f} m/s^2  (thrust acts at ground level,"
           f" mass sits {spec.stand_z:.2f} m up on a {2 * spec.hip_x:.3f} m wheelbase)")
-    print(f"    measured saturation        ~2.0 m/s^2 (check_hound.py) — geometry")
+    print(f"    measured saturation        ~2.0 m/s^2 (robots/hound/check.py) — geometry")
     print(f"                               binds before friction does")
     print()
     print("  Spaces")
@@ -1030,7 +1032,7 @@ def report(spec: Spec) -> None:
           f"{nq - 2 - 4} + {nv} + {nbody * 6} + {reserved} = {obs}")
     print("         ^ -2 drops world x,y (position-invariant locomotion)")
     print("         ^ -4 drops the WHEEL ANGLES: unbounded integrators, see")
-    print("           envs/hound_env.py. Their velocities are kept.")
+    print("           envs/hound.py. Their velocities are kept.")
     print(f"         ^ +{reserved} RESERVED slots (3 command + 25 height scan),")
     print("           held at zero in v0 so a later roadmap step cannot")
     print("           change the observation width and orphan every checkpoint.")
