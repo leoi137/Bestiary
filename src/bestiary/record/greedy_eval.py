@@ -8,10 +8,17 @@ episodes that averaged 799 steps. The denominator is a *deterministic*
 zero-action rollout over 1000 steps, measured live. The comparison is between a
 noisy past statistic and a clean present one.
 
-That is not a small discrepancy. On `hound_desert_v0` the ledger numerator gives
-1010.0 / 960.6 = x1.05; the greedy numerator gives 1218.3 / 960.6 = x1.27. The
-guard's verdict at its 1.18 advisory margin flips on which one is used, and the
-guard never states that it chose.
+That discrepancy is real but it is smaller than it first looks, and the first
+version of this docstring got it wrong in an instructive way. It argued that
+"the greedy numerator gives 1218.3 / 960.6 = x1.27" — using `best_eval_return`,
+which is a maximum over a noisy sequence and is exactly the statistic
+`learnings/007` exists to condemn. Measured properly at n=60, the honest greedy
+ratio for `hound_desert_v0` is **x1.042**, essentially identical to the ledger
+numerator this module was written to replace. A tool built to remove a bias was
+motivated by a number exhibiting that bias.
+
+The real defect in `standing.py` is not the size of the gap. It is that the
+comparison is unstated and the sample is tiny.
 
 This module measures both arms under one protocol so the ratio means something:
 same env, same episode count, same seed sequence, deterministic actions on both
@@ -39,10 +46,21 @@ import numpy as np
 
 from bestiary import paths
 
-# Matches guards/standing.py so the two are comparable by construction. Episode
-# i uses seed SEED0 + i on both arms, which is what makes the paired comparison
-# legitimate rather than two independent samples of different terrain draws.
-EPISODES = 5
+# Episode i uses seed SEED0 + i on BOTH arms, which is what makes this a paired
+# comparison rather than two independent samples of different terrain draws.
+#
+# 20, not 5, and not standing.py's 3. These policies are bimodal: they either
+# complete the episode or fail early, at measured rates of 26.7% (torque hound,
+# 16/60) and 10.0% (PD hound, 6/60). At a 26.7% failure rate, five episodes
+# return a clean sweep 0.733**5 = 21% of the time, so n=5 routinely produces a
+# confident picture of a policy that fails one run in four. That is not
+# hypothetical: an n=5 draw in this repo once showed the torque hound at x1.265
+# with 0/5 failures, against its true x1.042 with 16/60 — and it was reported as
+# overturning a published result before an independent check killed it.
+#
+# A crash rate is a proportion, and proportions need samples. Anything claiming
+# reliability should raise this further and say what n it used.
+EPISODES = 20
 SEED0 = 0
 
 
