@@ -3,14 +3,14 @@
 Run with (Blender is a separate app, NOT a pip package):
 
     /Applications/Blender.app/Contents/MacOS/Blender --background \
-        --python make_walker.py -- --stage build --render
+        --python concepts/anvil/make_anvil.py -- --stage build --render
 
     skeleton   the Empty hierarchy alone — 14 joints, nothing else. Cheap to
                print and verify, and the only thing that must be right before
                any geometry exists.
     build      the machine: every link chamfered, panel-cut and greebled, with
                the four shaders attached. Writes assets/<callsign>/walker.blend,
-               which make_walker_scene.py imports to light and render.
+               which concepts/anvil/make_anvil_scene.py imports to light and render.
 
 The machine's name is a PARAMETER, not a string sprinkled through the file:
 CALLSIGN below drives the hull stencils, the material names and every output
@@ -26,7 +26,7 @@ flank; and the hero camera keeps its 50 mm but stands back far enough to hold
 the whole machine in a 2.39:1 frame.
 
 THE RIG IS THE SPEC. The machine is a beauty asset, but its skeleton is a
-contract with envs/spyder_env.py's morphology: 4 legs x 3 joints, yaw at the
+contract with envs/spyder.py's morphology: 4 legs x 3 joints, yaw at the
 hip, pitch at the two joints below it, driven by 12 actuators. The turret adds
 2 non-locomotion joints (yaw, then barrel pitch) that hang off the chassis and
 never enter the action space.
@@ -652,7 +652,7 @@ def build_materials():
 
     # Amber emissive. One shader for every fixture: the strength differences
     # the brief describes come from real lamps placed at the headlights in
-    # make_walker_scene.py, which is also the only way the light spills onto
+    # concepts/anvil/make_anvil_scene.py, which is also the only way the light spills onto
     # ground and the machine's own lower armor.
     mat = bpy.data.materials.new(f"{CALLSIGN}_amber")
     nt, out = _nodes(mat)
@@ -1100,7 +1100,7 @@ def build_skeleton(spec):
 def studio_world(scene):
     """A neutral grey dome, for LOOKING at the asset in the GUI.
 
-    Not part of the design — make_walker_scene.py swaps in the night sky.
+    Not part of the design — concepts/anvil/make_anvil_scene.py swaps in the night sky.
     It exists because the shaders below use Pointiness and Ambient Occlusion,
     which are Cycles features, and a Cycles material preview with no world is
     a black screen. Opening the asset should show the asset.

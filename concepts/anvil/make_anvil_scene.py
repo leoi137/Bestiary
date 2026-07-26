@@ -1,13 +1,13 @@
 """Light ANVIL in a night desert and render the hero frame (Part 6 of the brief).
 
     /Applications/Blender.app/Contents/MacOS/Blender --background \
-        --python make_walker_scene.py -- --samples 512
+        --python concepts/anvil/make_anvil_scene.py -- --samples 512
 
     --preview      half resolution, few samples, for checking composition
     --samples N    Cycles sample cap (adaptive sampling usually stops earlier)
     --shot NAME    hero (the brief's 2.39:1 frame), detail, or prowl
 
-make_walker.py is imported rather than duplicated, so the machine in this
+concepts/anvil/make_anvil.py is imported rather than duplicated, so the machine in this
 frame is the same asset that file writes to assets/<callsign>/walker.blend —
 one definition, two consumers. The machine's name comes from there too, so
 --callsign on that file renames the renders here without a second edit.
@@ -54,7 +54,7 @@ import bpy
 from mathutils import Matrix, Vector, noise
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-import make_walker as walker  # noqa: E402
+import make_anvil as walker  # noqa: E402
 
 # ── Framing (Part 6, with the pull-back agreed at the silhouette review) ────
 # 50 mm and a 1.2 m eyeline as briefed. 22 m would frame 6.6 m of height
