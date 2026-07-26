@@ -194,6 +194,52 @@ def _load_or_init_config(run_paths: dict[str, Path], args: argparse.Namespace) -
     return config
 
 
+def _record_or_verify_obs_spec(config: dict[str, Any], run_paths: dict[str, Path],
+                               env: gym.Env) -> None:
+    """Pin what this run trained against — or refuse to resume if it moved.
+
+    `learnings/003`: the observation list is the one truly one-way door here.
+    Until now no run recorded which observation it was trained against, so the
+    only evidence was the pickled space width inside the checkpoint, and the
+    only way to detect a change was to attempt a load and catch the exception.
+    That is an autopsy. `hound_desert_test150k` was orphaned this way and it
+    took git archaeology to work out that the env had never been committed at
+    the width its checkpoint carries.
+
+    A width change would at least fail loudly at `SAC.load()`. The dangerous
+    case is the one that does NOT: reordering two terms, or redefining what a
+    term means, keeps the width identical, loads cleanly, and silently feeds
+    the policy a permuted world. The hash catches that; nothing else here can.
+
+    Fresh run: record it. Resume: compare and raise. Legacy runs (started
+    before this existed) carry no spec — they are recorded on their next
+    resume rather than guessed at, because back-filling a spec from today's
+    code is exactly the false provenance this is meant to prevent.
+    """
+    spec = env.unwrapped._obs_spec
+    recorded = config.get("obs_spec")
+
+    if recorded is None:
+        config["obs_spec"] = spec.to_record()
+        run_paths["config"].write_text(json.dumps(config, indent=2) + "\n")
+        print(f"[config] pinned obs spec {spec.hash} ({spec.width} values)")
+        return
+
+    if recorded.get("hash") != spec.hash:
+        raise RuntimeError(
+            f"observation spec changed since this run started.\n"
+            f"  recorded: {recorded.get('hash')} "
+            f"width {recorded.get('width')} {recorded.get('terms')}\n"
+            f"  current:  {spec.hash} width {spec.width} "
+            f"{[(t.name, t.size) for t in spec.terms]}\n"
+            f"Resuming would train a policy against a different observation "
+            f"than the one in its checkpoint and replay buffer. Either restore "
+            f"the observation list, or start a NEW run name — do not resume "
+            f"this one (learnings/003)."
+        )
+    print(f"[config] obs spec {spec.hash} matches the recorded spec")
+
+
 def _build_model(env: gym.Env, run_paths: dict[str, Path], seed: int | None) -> tuple[SAC, bool]:
     """Resume from runs/<name>/ant_sac.zip if present, else fresh agent."""
     if run_paths["model"].exists():
@@ -258,6 +304,10 @@ def main() -> None:
     seed = config["seed"]
 
     train_env = _make_env(env_id, wrapper_name, wrapper_kwargs, seed)
+    # Before a single step is taken: pin the observation spec on a fresh run,
+    # and on a resume refuse to continue if it has moved. See the function.
+    _record_or_verify_obs_spec(config, run_paths, train_env)
+
     model, is_resume = _build_model(train_env, run_paths, seed)
 
     callbacks = []
