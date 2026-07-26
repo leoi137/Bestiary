@@ -14,9 +14,25 @@ These are repeated from `../CLAUDE.md` on purpose, so they survive a clone.
 2. **Public vs private.** Physics, code, robots, results, lessons, and
    teaching notes live here. Anything naming an agency, a customer, or a
    dollar figure goes in Scriptorium. When unsure: Scriptorium.
-3. **No unattended training.** Never start a training run unless the current
-   instruction explicitly asks for one. Runs take hours and hold the only GPU
-   (a single RTX 2080).
+3. **Training is authorized, within a budget.** A run may be started without
+   asking first, subject to *all* of:
+   - **GPU pre-flight.** `nvidia-smi --query-gpu=memory.free
+     --format=csv,noheader,nounits` reports **≥ 6500 MiB free**. Below that,
+     something else is using the card: do not launch, do not queue, do not
+     poll — do non-GPU work instead.
+   - **One run at a time, machine-wide.** Never two, not even two small ones.
+   - **A declared wall-clock ceiling**, written down before launch. A run that
+     exceeds it is stopped, not extended — checkpoints save in a `finally`
+     block, so stopping is cheap and resuming is one command.
+   - **Resource ceilings:** ≤6000 MiB VRAM, ≤6 env workers, ≤6 torch threads
+     (`OMP_NUM_THREADS=6`), ≤12 GiB RAM, ≤60 GB total in `runs/`.
+   - **No long run through an open one-way door.** If the run costs more than
+     ~1 GPU-hour and the observation width is not locked, lock it first — see
+     the invariant below.
+   - **Disk checked first.** A run needs ~3 GB for its replay buffer.
+4. **The machine is shared.** Another long-running workload uses this GPU and
+   these cores. Never assume you have the machine — the ceilings above are
+   roughly half of what exists, deliberately.
 
 ## Commit discipline
 
@@ -29,8 +45,8 @@ Use the `commit-push` skill every time. The standard, repeated from
   accumulate 30 changed files and reconstruct history from the pile.
 - **Mechanical and semantic changes never share a commit.** `git mv`-only
   commits carry no content edits.
-- **In the research loop: one commit per learning, per decision, per episode,
-  per ledger append.** Those are the units the record is read in.
+- **One commit per ledger append, per learning, per lesson, per episode.**
+  Those are the units the record is read in.
 - **When torn, split.** Over-splitting squashes away; under-splitting cannot
   be undone.
 
@@ -47,8 +63,8 @@ rather than hand-written XML:
   with a driven hub wheel replacing each foot.
 
 Training is SAC via Stable-Baselines3. The long-term direction is in
-`ROADMAP.md`; the current bottleneck analysis is in
-`research/episodes/001-hound-throughput.md`.
+`ROADMAP.md`; the reward and observation spec that gates the next serious run
+is `research/CORE_PLAN.md`, and it is **not yet applied**.
 
 ## Environment
 
@@ -59,6 +75,8 @@ pip install -e . --no-deps        # already done; --no-deps protects pinned vers
 
 GPU training assumes CUDA 12.1 (torch 2.5.1+cu121); `DEVICE = "cuda"` is
 hardcoded in the trainer. Watching a policy runs on CPU.
+
+Hardware: one RTX 2080 (8 GB VRAM), i9-9900K (8c/16t), 31 GiB RAM.
 
 ## Layout
 
@@ -71,8 +89,9 @@ src/bestiary/          the importable library
   train/               train.py, watch.py
   robots/<name>/       build.py (MJCF generator), check.py (assertions), CARD.md
 concepts/anvil/        Blender concept art (ANVIL siege walker) — not RL
-research/              learnings/, decisions/, episodes/, ledger.jsonl
-docs/theory/           the teaching track: math written when it is load-bearing
+research/              learnings/, decisions/, episodes/, ledger.jsonl, CORE_PLAN.md
+docs/lessons/          the curriculum: one idea per page, from scratch
+docs/theory/           the deep notes: math written when it is load-bearing
 assets/                GENERATED output — model XMLs, meshes, terrain, figures
 runs/                  per-run artifacts; gitignored, tens of GB
 ```
@@ -110,7 +129,7 @@ python -m bestiary.terrain.generate
 **`paths.py` is the only place that builds paths.** No module may use
 `Path(__file__).parent.parent` chains, and nothing may be relative to the
 current working directory. Both patterns broke during the refactor, and both
-fail silently under an unattended loop launched from an arbitrary directory.
+fail silently when a session is launched from an arbitrary directory.
 
 **Model XMLs must stay in `assets/`.** MuJoCo resolves
 `<mesh file="meshes/...">` and `<hfield file="terrain/...">` relative to the
@@ -125,10 +144,21 @@ conflicting `--env`/`--wrapper`/`--seed` on the CLI. Changing env or reward
 semantics mid-run would contaminate a replay buffer filled under different
 dynamics. Resume vs. fresh is decided purely by whether `config.json` exists.
 
+**The observation width is a one-way door.** The actor's first layer is
+`Linear(obs, 256)`, so changing the observation list makes every existing
+checkpoint fail to load — not degrade, *fail*. Spyder is at 113 today and
+`research/CORE_PLAN.md` locks it at 141 with reserved command and height
+slots. Never start a multi-hour run while that width is still unsettled.
+
 **Two checkpoints per run.** `<prefix>_sac.zip` (latest, used to resume) and
 `<prefix>_sac_best.zip` (only overwritten when an eval beats the prior best,
 used for watching). Saving happens in a `finally` block so an interrupted run
 stays resumable.
+
+**The replay buffer is resume-only.** `ant_buffer.pkl` is ~2.6 GB per run and
+is 94% of everything under `runs/`. Once a run has finished and its ledger row
+is written, its buffer can be deleted; the two `.zip` checkpoints, `ant_tb/`,
+and `config.json` are the run. Never delete those.
 
 **Artifact filenames are hardcoded with an `ant_` prefix** (`ant_sac.zip`,
 `ant_buffer.pkl`) even for non-Ant runs. Cosmetic, kept so existing runs do
@@ -153,39 +183,45 @@ from the repo root.
 
 - `research/learnings/` — one file per lesson, written when something
   surprises us. Format and standard are in that folder's `README.md`. These
-  must be readable by a human who is learning, not just by a model.
+  must be readable by a human who is learning, not just by a model. A learning
+  that is later falsified is **superseded by a new numbered learning**, never
+  edited and never deleted.
 - `research/decisions/` — a decision plus the **trigger that would reverse
-  it**, so the loop does not re-litigate settled questions every few weeks.
-- `research/episodes/` — one file per loop cycle: what was tried, what was
+  it**, so a settled question is not re-litigated every few weeks.
+- `research/episodes/` — one file per research cycle: what was tried, what was
   predicted beforehand, what happened.
 - `research/ledger.jsonl` — **append-only**, one row per finished run. Never
-  rewrite this file; an unattended process that rewrites can clobber, one
-  that appends cannot.
+  rewrite this file; an appending process cannot lose what is already there,
+  a rewriting one can lose all of it on a crash.
+- `docs/lessons/` — the curriculum. One idea per page, explained from scratch,
+  with the equation worked on a real number from this repo.
 
-Write predictions *before* results are known. The habit is what makes the
+Three rules make this a record rather than a diary:
+
+**Write predictions before results are known.** The habit is what makes the
 record evidence rather than narration.
 
-## The loop's skills
+**The seed rule — no effect is claimed from one run.** A comparison needs ≥3
+seeds per arm, reported as mean and spread, with exactly one variable changed
+between arms. Between-seed variance in SAC is comparable to most effects worth
+claiming. A single-seed result is a **probe**, written up as provisional, never
+as a finding. The PD-versus-torque comparison in episode 003 is provisional on
+both counts — one seed per arm, and the step budgets differed too.
 
-Version-controlled in `.claude/skills/`, so they travel with a clone and
-change under review rather than drifting.
+**The number rule — no number enters the record unless code computed it.**
+Every figure in a ledger row, a learning, an episode, or a plan comes from a
+run log, a check script, a measurement command, or a small script committed
+alongside it. Arithmetic done in prose is fluent, checkable, and unchecked; if
+a calculation is worth recording it is worth four lines of Python.
 
-| Skill | Use |
-|---|---|
-| `run-episode` | one bounded cycle: read state → one experiment → predict → record → next episode. Also the body of a `/loop`. |
-| `write-learning` | write a `research/learnings/` entry to standard: plain English, real math with real numbers, an explicit way to be wrong. |
-| `robotics-research` | investigate a robotics/RL/simulation question against primary sources; land it as a decision with a trigger, or a theory note. |
+## Delegating
 
-`run-episode` will not start a training run without explicit authorization —
-hard rule 3 above. It prepares the run and hands back instead.
+Use a subagent when work would flood the main context with material not worth
+keeping: long run logs, literature sweeps, multi-file surveys. Ask for the
+conclusion and the numbers, never the file contents, and keep the decision in
+the main thread.
 
-> **Project skills are registered when a session starts.** A skill created
-> mid-session is not invocable until the next one — creating the three above
-> and then trying to call `run-episode` in the same session fails with
-> "Unknown skill". Follow the contract in the file by hand until the session
-> restarts. Found the first time the loop was exercised, 2026-07-25.
-
-**Delegate to a subagent** when work would flood the main context with
-material not worth keeping: long run logs, literature sweeps, multi-file
-surveys. Ask for the conclusion and the numbers, never the file contents, and
-keep the decision in the main thread.
+**Always Opus 5** — pass `model: "opus"` explicitly, including for work that
+looks mechanical. The product here is judgement, and a cheaper model returns
+confident wrong numbers into an append-only record that later work trusts
+without re-deriving.
