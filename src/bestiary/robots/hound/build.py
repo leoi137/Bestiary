@@ -192,6 +192,32 @@ class Spec:
     # Wheel: see Spec.report(). 3.0 N*m sits just under the traction limit.
     gear_wheel = 3.0
 
+    # ── PD position control (the HoundPD-v0 variant) ─────────────────────
+    # Used only when build(control="pd"). The twelve leg joints become
+    # position servos; the four wheels stay on torque, because a wheel that
+    # spins forever has no pose to hold and a position target on it is
+    # meaningless.
+    #
+    # kp in N*m/rad, kv in N*m/(rad/s). These are the gains the hand
+    # controller in robots/hound/play.py already uses. They are the only
+    # gains on this machine that have been shown to hold the stance and
+    # re-pose it without fighting the physics into instability, so the PD
+    # variant starts from them rather than from a fresh guess. See
+    # docs/theory/pd-control.md for the damping-ratio check.
+    kp_abduct = 60.0
+    kp_hip = 80.0
+    kp_knee = 90.0
+    kv_abduct = 3.0
+    kv_hip = 4.0
+    kv_knee = 4.5
+
+    # Radians either side of the standing stance that the policy may command.
+    # The action stays in [-1, 1] (the repo convention) and the env maps it to
+    # target = stance + action * action_scale, so a zero action IS the stance.
+    # That is the whole prior: the policy starts at "standing" instead of
+    # having to discover it.
+    action_scale = 0.5
+
     # ── Joint dynamics ───────────────────────────────────────────────────
     armature = 0.01                 # Go2's reflected rotor inertia
     damping = 1.5
@@ -721,21 +747,63 @@ def robot_xml(spec: Spec) -> str:
     </body>"""
 
 
-def actuator_xml(spec: Spec) -> str:
-    """16 motors, in the order the action vector uses.
+def actuator_xml(spec: Spec, control: str = "torque") -> str:
+    """16 actuators, in the order the action vector uses.
 
     Per-leg blocks of four, legs in Spec.legs order. This block IS the
     contract for the action space — envs/hound.py's docstring quotes it,
     and robots/hound/check.py asserts the order.
+
+    Two control modes, same 16 slots and same order in both:
+
+    "torque"  every joint is a <motor>. ctrl is a fraction of peak torque,
+              so `gear` IS the peak torque in N*m. What Hound-v0 uses.
+
+    "pd"      the twelve leg joints become <position> servos: ctrl is a
+              TARGET ANGLE in radians and MuJoCo runs
+                  tau = kp * (target - q) - kv * qdot
+              internally at the 200 Hz physics rate, five times per control
+              step. The four wheels stay <motor>, because a wheel that turns
+              forever has no pose to hold.
+
+              forcerange keeps the same Go2 torque ceiling the torque model
+              has, so the machine is no easier to drive — only easier to
+              command.
+
+              ctrlrange is each joint's own travel, written explicitly rather
+              than via inheritrange: the <motor ctrlrange="-1 1"> default in
+              common_head applies to every actuator type, not just <motor>,
+              and MuJoCo rejects a model that sets both.
     """
+    if control not in ("torque", "pd"):
+        raise ValueError(f"control must be 'torque' or 'pd', got {control!r}")
+
+    lo_a, hi_a = spec.abduct_range
+    lo_h, hi_h = spec.hip_range
+    lo_k, hi_k = spec.knee_range
+
     rows = []
     for name in spec.legs:
-        rows.append(f'    <motor name="{name}_abduct" joint="{name}_abduct" '
-                    f'gear="{spec.gear_abduct}"/>')
-        rows.append(f'    <motor name="{name}_hip"    joint="{name}_hip"    '
-                    f'gear="{spec.gear_hip}"/>')
-        rows.append(f'    <motor name="{name}_knee"   joint="{name}_knee"   '
-                    f'gear="{spec.gear_knee}"/>')
+        if control == "torque":
+            rows.append(f'    <motor name="{name}_abduct" joint="{name}_abduct" '
+                        f'gear="{spec.gear_abduct}"/>')
+            rows.append(f'    <motor name="{name}_hip"    joint="{name}_hip"    '
+                        f'gear="{spec.gear_hip}"/>')
+            rows.append(f'    <motor name="{name}_knee"   joint="{name}_knee"   '
+                        f'gear="{spec.gear_knee}"/>')
+        else:
+            rows.append(f'    <position name="{name}_abduct" joint="{name}_abduct" '
+                        f'kp="{spec.kp_abduct}" kv="{spec.kv_abduct}" '
+                        f'ctrlrange="{lo_a} {hi_a}" '
+                        f'forcerange="-{spec.gear_abduct} {spec.gear_abduct}"/>')
+            rows.append(f'    <position name="{name}_hip"    joint="{name}_hip"    '
+                        f'kp="{spec.kp_hip}" kv="{spec.kv_hip}" '
+                        f'ctrlrange="{lo_h} {hi_h}" '
+                        f'forcerange="-{spec.gear_hip} {spec.gear_hip}"/>')
+            rows.append(f'    <position name="{name}_knee"   joint="{name}_knee"   '
+                        f'kp="{spec.kp_knee}" kv="{spec.kv_knee}" '
+                        f'ctrlrange="{lo_k} {hi_k}" '
+                        f'forcerange="-{spec.gear_knee} {spec.gear_knee}"/>')
         rows.append(f'    <motor name="{name}_wheel"  joint="{name}_wheel"  '
                     f'gear="{spec.gear_wheel}"/>')
     return "\n".join(rows)
@@ -902,12 +970,13 @@ DESERT_VISUAL = """  <visual>
 """
 
 
-def build(spec: Spec, desert: bool) -> str:
-    model = "hound16_desert" if desert else "hound16"
+def build(spec: Spec, desert: bool, control: str = "torque") -> str:
+    stem = "hound16" if control == "torque" else "hound16pd"
+    model = f"{stem}_desert" if desert else stem
     header = (
         "Hound-Desert-v0: the SAME hound16 robot on the procedural desert\n"
         "       heightfield (terrain/generate.py). The robot subtree below is generated\n"
-        "       from the same Spec as assets/hound16.xml, so nq/nv/nbody and\n"
+        f"       from the same Spec as assets/{stem}.xml, so nq/nv/nbody and\n"
         "       therefore the whole observation and action space are unchanged and a\n"
         "       flat-world checkpoint loads here directly. Only the ground changed."
         if desert else
@@ -930,7 +999,7 @@ def build(spec: Spec, desert: bool) -> str:
   </worldbody>
 
   <actuator>
-{actuator_xml(spec)}
+{actuator_xml(spec, control)}
   </actuator>
 
 {keyframe_xml(spec)}
@@ -1044,13 +1113,18 @@ def main() -> None:
     ap.add_argument("--report", action="store_true",
                     help="print the DoF / mass / traction budget")
     ap.add_argument("--out-dir", type=Path, default=ASSET_DIR)
+    ap.add_argument("--control", choices=("torque", "pd", "both"), default="both",
+                    help="which actuator variant to write (default: both)")
     args = ap.parse_args()
 
+    modes = ("torque", "pd") if args.control == "both" else (args.control,)
     args.out_dir.mkdir(parents=True, exist_ok=True)
-    for desert in (False, True):
-        path = args.out_dir / ("hound16_desert.xml" if desert else "hound16.xml")
-        path.write_text(build(SPEC, desert))
-        print(f"wrote {path}")
+    for control in modes:
+        stem = "hound16" if control == "torque" else "hound16pd"
+        for desert in (False, True):
+            path = args.out_dir / (f"{stem}_desert.xml" if desert else f"{stem}.xml")
+            path.write_text(build(SPEC, desert, control))
+            print(f"wrote {path}")
 
     if args.report:
         print()
