@@ -36,5 +36,12 @@ MESH_DIR = ASSETS / "meshes"
 
 HOUND_XML = ASSETS / "hound16.xml"
 HOUND_DESERT_XML = ASSETS / "hound16_desert.xml"
+
+# Same robot, same 16 action slots in the same order — the twelve leg joints
+# are <position> servos instead of <motor>. Kept as a separate model rather
+# than replacing the torque one so the two can be compared head to head in
+# research/ledger.jsonl, and so hound_desert_v0's checkpoint still loads.
+HOUND_PD_XML = ASSETS / "hound16pd.xml"
+HOUND_PD_DESERT_XML = ASSETS / "hound16pd_desert.xml"
 SPYDER_XML = ASSETS / "spyder12.xml"
 SPYDER_DESERT_XML = ASSETS / "spyder12_desert.xml"

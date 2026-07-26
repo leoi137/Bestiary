@@ -159,6 +159,7 @@ from gymnasium.envs.mujoco import MujocoEnv
 from gymnasium.spaces import Box
 
 from bestiary import paths
+from bestiary.robots.hound.build import SPEC
 from bestiary.terrain import HeightField, ground_height_at
 
 HOUND_XML = str(paths.HOUND_XML)
@@ -346,6 +347,45 @@ class HoundEnv(MujocoEnv, utils.EzPickle):
         self.init_qpos = self.model.key_qpos[0].copy()
         self.init_qvel = np.zeros(self.model.nv)
 
+        # --- Action -> ctrl mapping ------------------------------------------
+        # Read off the MODEL rather than passed in, so the env cannot disagree
+        # with the XML it just loaded. A <position> actuator has an affine
+        # bias (tau = kp*(target - q) - kv*qdot); a <motor> has none.
+        import mujoco  # local: keeps module import cheap for non-sim callers
+
+        is_position = (
+            self.model.actuator_biastype == mujoco.mjtBias.mjBIAS_AFFINE
+        )
+        self.control_mode = "pd" if is_position.any() else "torque"
+
+        # ctrl = center + action * scale, with action in [-1, 1] either way.
+        #
+        #   <motor>     center 0, scale 1        -> ctrl IS the torque fraction
+        #   <position>  center = stance angle,   -> ctrl is a TARGET ANGLE, and
+        #               scale  = action_scale       a zero action commands the
+        #                                           stance exactly
+        #
+        # The second line is the entire point of PD targets: "stand still" is
+        # the origin of the action space instead of a pose the policy has to
+        # discover and then actively hold.
+        self._ctrl_center = np.zeros(self.model.nu)
+        self._ctrl_scale = np.ones(self.model.nu)
+        for i in range(self.model.nu):
+            if not is_position[i]:
+                continue
+            jnt = self.model.actuator_trnid[i, 0]
+            self._ctrl_center[i] = self.model.key_qpos[0][self.model.jnt_qposadr[jnt]]
+            self._ctrl_scale[i] = SPEC.action_scale
+
+        # MujocoEnv derives action_space from actuator_ctrlrange, which on the
+        # PD model is joint travel in RADIANS. The policy's action is
+        # normalized to [-1, 1] in both models — action_to_ctrl is what turns
+        # it into ctrl — so the space is restated here. Without this, the two
+        # models would present different action spaces for the same policy.
+        self.action_space = Box(
+            low=-1.0, high=1.0, shape=(self.model.nu,), dtype=np.float32
+        )
+
         # Terrain: re-base the spawn height on the measured ground under the
         # origin, so regenerating the heightfield can never break resets.
         self._hfield = HeightField.from_model(self.model)
@@ -397,9 +437,21 @@ class HoundEnv(MujocoEnv, utils.EzPickle):
 
     # --- Gym API --------------------------------------------------------------
 
+    def action_to_ctrl(self, action: np.ndarray) -> np.ndarray:
+        """Map the policy's [-1, 1] action onto this model's ctrl vector.
+
+        Identity for the torque model. For the PD model, a zero action
+        commands the standing stance, and +/-1 commands SPEC.action_scale
+        radians either side of it. Clipped to each actuator's ctrlrange so a
+        target outside the joint's travel can never be requested.
+        """
+        ctrl = self._ctrl_center + np.asarray(action) * self._ctrl_scale
+        lo, hi = self.model.actuator_ctrlrange.T
+        return np.clip(ctrl, lo, hi)
+
     def step(self, action: np.ndarray):
         xy_before = self.data.body("trunk").xpos[:2].copy()
-        self.do_simulation(action, self.frame_skip)
+        self.do_simulation(self.action_to_ctrl(action), self.frame_skip)
         xy_after = self.data.body("trunk").xpos[:2].copy()
 
         x_velocity, y_velocity = (xy_after - xy_before) / self.dt

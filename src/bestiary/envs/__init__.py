@@ -44,6 +44,26 @@ if "HoundDesert-v0" not in registry:
         max_episode_steps=1000,
     )
 
+if "HoundPD-v0" not in registry:
+    register(
+        id="HoundPD-v0",
+        # Same env class and same 16-slot action vector as Hound-v0. The model
+        # differs only in actuator type: the twelve leg joints are position
+        # servos, so an action is a target angle offset from the standing
+        # stance rather than a torque. The env reads which it is off the model.
+        entry_point="bestiary.envs.hound:HoundEnv",
+        kwargs={"xml_file": str(paths.HOUND_PD_XML)},
+        max_episode_steps=1000,
+    )
+
+if "HoundPDDesert-v0" not in registry:
+    register(
+        id="HoundPDDesert-v0",
+        entry_point="bestiary.envs.hound:HoundEnv",
+        kwargs={"xml_file": str(paths.HOUND_PD_DESERT_XML)},
+        max_episode_steps=1000,
+    )
+
 if "SpyderDesert-v0" not in registry:
     register(
         id="SpyderDesert-v0",
