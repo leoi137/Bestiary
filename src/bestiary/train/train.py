@@ -156,16 +156,16 @@ class VideoEvalCallback(BaseCallback):
         self.logger.record("eval/best_mean_reward", self.best_eval_reward)
 
 
-def _load_or_init_config(paths: dict[str, Path], args: argparse.Namespace) -> dict[str, Any]:
+def _load_or_init_config(run_paths: dict[str, Path], args: argparse.Namespace) -> dict[str, Any]:
     """First invocation: write config.json from CLI args. Resume: read it back.
 
     Keeping wrapper/seed pinned in config.json (not re-read from CLI on resume)
     prevents an accidental --wrapper change mid-run from contaminating a buffer
     that was filled under different reward semantics.
     """
-    if paths["config"].exists():
-        config = json.loads(paths["config"].read_text())
-        print(f"[config] loaded existing config from {paths['config']}")
+    if run_paths["config"].exists():
+        config = json.loads(run_paths["config"].read_text())
+        print(f"[config] loaded existing config from {run_paths['config']}")
         if (args.wrapper is not None or args.wrapper_kwargs != "{}"
                 or args.seed is not None or args.env != DEFAULT_ENV):
             print("[config] note: --env/--wrapper/--seed args ignored on resume "
@@ -188,26 +188,26 @@ def _load_or_init_config(paths: dict[str, Path], args: argparse.Namespace) -> di
         "seed": args.seed,
         "notes": "",
     }
-    paths["config"].parent.mkdir(parents=True, exist_ok=True)
-    paths["config"].write_text(json.dumps(config, indent=2) + "\n")
-    print(f"[config] wrote new config to {paths['config']}")
+    run_paths["config"].parent.mkdir(parents=True, exist_ok=True)
+    run_paths["config"].write_text(json.dumps(config, indent=2) + "\n")
+    print(f"[config] wrote new config to {run_paths['config']}")
     return config
 
 
-def _build_model(env: gym.Env, paths: dict[str, Path], seed: int | None) -> tuple[SAC, bool]:
+def _build_model(env: gym.Env, run_paths: dict[str, Path], seed: int | None) -> tuple[SAC, bool]:
     """Resume from runs/<name>/ant_sac.zip if present, else fresh agent."""
-    if paths["model"].exists():
-        print(f"Resuming from {paths['model']}")
-        model = SAC.load(paths["model"], env=env, device=DEVICE,
-                         tensorboard_log=str(paths["tb"]))
-        if paths["buffer"].exists():
-            print(f"  loading replay buffer from {paths['buffer']}")
-            model.load_replay_buffer(paths["buffer"])
+    if run_paths["model"].exists():
+        print(f"Resuming from {run_paths['model']}")
+        model = SAC.load(run_paths["model"], env=env, device=DEVICE,
+                         tensorboard_log=str(run_paths["tb"]))
+        if run_paths["buffer"].exists():
+            print(f"  loading replay buffer from {run_paths['buffer']}")
+            model.load_replay_buffer(run_paths["buffer"])
         else:
             print("  no replay buffer file -- starting with an empty buffer")
         return model, True
 
-    print(f"Starting fresh SAC run -> {paths['model']}")
+    print(f"Starting fresh SAC run -> {run_paths['model']}")
     model = SAC(
         policy="MlpPolicy",
         env=env,
@@ -215,7 +215,7 @@ def _build_model(env: gym.Env, paths: dict[str, Path], seed: int | None) -> tupl
         buffer_size=BUFFER_SIZE,
         batch_size=BATCH_SIZE,
         device=DEVICE,
-        tensorboard_log=str(paths["tb"]),
+        tensorboard_log=str(run_paths["tb"]),
         seed=seed,
         verbose=1,
     )
@@ -249,16 +249,16 @@ def main() -> None:
     args = parse_args()
     run_dir = paths.RUNS / args.run_name
     run_dir.mkdir(parents=True, exist_ok=True)
-    paths = _run_paths(run_dir)
+    run_paths = _run_paths(run_dir)
 
-    config = _load_or_init_config(paths, args)
+    config = _load_or_init_config(run_paths, args)
     env_id = config["env_id"]
     wrapper_name = config["wrapper"]
     wrapper_kwargs = config["wrapper_kwargs"]
     seed = config["seed"]
 
     train_env = _make_env(env_id, wrapper_name, wrapper_kwargs, seed)
-    model, is_resume = _build_model(train_env, paths, seed)
+    model, is_resume = _build_model(train_env, run_paths, seed)
 
     callbacks = []
     if args.video_every > 0:
@@ -266,9 +266,9 @@ def main() -> None:
         callbacks.append(VideoEvalCallback(
             eval_env=eval_env,
             record_every=args.video_every,
-            video_dir=paths["videos"],
-            best_model_path=paths["best_model"],
-            best_reward_path=paths["best_reward"],
+            video_dir=run_paths["videos"],
+            best_model_path=run_paths["best_model"],
+            best_reward_path=run_paths["best_reward"],
         ))
 
     try:
@@ -279,10 +279,10 @@ def main() -> None:
             progress_bar=True,
         )
     finally:
-        print(f"\nSaving model to {paths['model']}")
-        model.save(paths["model"])
-        print(f"Saving replay buffer to {paths['buffer']}")
-        model.save_replay_buffer(paths["buffer"])
+        print(f"\nSaving model to {run_paths['model']}")
+        model.save(run_paths["model"])
+        print(f"Saving replay buffer to {run_paths['buffer']}")
+        model.save_replay_buffer(run_paths["buffer"])
         train_env.close()
 
 
