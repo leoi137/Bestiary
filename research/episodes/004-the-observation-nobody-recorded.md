@@ -164,6 +164,68 @@ the prediction anticipated that Spyder *dies* in 2 of 5 episodes.
 
 Brier over 7 resolved rows: 0.0787, from 0.0917. Still too few to read as skill.
 
+## Refutation — what an independent check killed
+
+Nothing above this line was edited after the fact. This section is what an
+independent Opus 5 pass, given the claims and the evidence and told to kill
+them, came back with.
+
+**A claim made from the table above was REFUTED.** During this cycle the n=5
+numbers were read as inverting `episodes/003`'s stability ranking — the torque
+hound looking clean at 0/5 while the PD hound failed 1/5. Re-run at **n=60**
+(three disjoint seed blocks, same tool, same checkpoints), the ranking is not
+inverted and `episodes/003` is **confirmed**:
+
+| best ckpt, n=60 | mean | sd | ratio | below standing |
+|---|---|---|---|---|
+| `hound_desert_v0` (torque) | 1000.5 | 365.8 | **×1.042** | **16/60 (26.7%)** |
+| `hound_pd_desert_v0` (PD) | 1078.2 | 293.6 | **×1.128** | 6/60 (10.0%) |
+
+Fisher exact on 16 vs 6: **p = 0.032**. The probability of drawing exactly the
+misleading n=5 picture is 0.0869 — about one in twelve. It was a lucky draw,
+reported as a reversal.
+
+It was also a **category error**. `episodes/003`'s "far more stable" describes
+the *training-time eval sequence* — a different checkpoint every 250k/50k steps,
+measuring whether a run holds its gains. The n=5 measurement describes *one
+frozen checkpoint's* robustness to initial conditions. No ranking between those
+two objects can invert. Confirmed by reproducing episode 003's numbers exactly
+(torque 887.5 over 13 evals, PD 1113.2 over 12), and its post-400k torque
+collapses sit at 2.25M–2.75M — *after* `best` was already saved at 1.5M.
+
+Two defects in this cycle's own instrument, both the mistake it exists to
+prevent, both now fixed:
+
+- Its docstring justified itself with `1218.3 / 960.6 = ×1.27`, using
+  `best_eval_return` — the peak statistic `learnings/007` condemns. The honest
+  greedy ratio is **×1.042**, essentially the ledger numerator it claimed to
+  replace.
+- Its default was 5 episodes, with a comment claiming that matched
+  `standing.py`, which uses 3. Now 20, with the arithmetic in the comment.
+
+**The R0 claim SURVIVES, PROVISIONAL.** Paired per-seed at n=60:
+
+| | greedy | zero | ratio | paired diff, 95% CI | greedy wins |
+|---|---|---|---|---|---|
+| hound torque | 1000.5 | 960.2 | ×1.042 | **+40.4 [−52.1, +132.9]** | 44/60 |
+| hound PD | 1078.2 | 955.5 | ×1.128 | +122.7 [+48.4, +197.0] | 54/60 |
+| spyder | 495.9 | 920.7 | **×0.539** | −424.9 [−507.1, −342.6] | 3/60 |
+
+Spyder is robust — 60/60 below standing across three disjoint blocks, sign test
+p = 6e-14. **The hound half is weaker than this episode claimed above.** The
+torque arm's headline ×1.265 was the same n=5 artifact; its true margin over
+doing nothing is ×1.042 with a paired CI *including zero*, and it loses outright
+to standing in 27% of episodes. Only the PD arm clears with confidence, and both
+fail the 1.18 advisory margin at n=60.
+
+And a confound this episode did not check: `hound_desert_v0`'s `ant_sac_best.zip`
+was saved at step **1,502,322 — 40% into a 3.75M run**. Calling it a "final best
+checkpoint" was wrong.
+
+What survives is the mechanism, written up as
+[`learnings/008`](../learnings/008-best-checkpoint-is-the-luckiest-episode.md):
+every `*_best.zip` here is selected by argmax over **one-episode** evaluations.
+
 ## Ranked actions
 
 1. **A `toolchain` guard.** This venv was created as `GymMuJoCo/venv` and
