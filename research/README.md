@@ -47,6 +47,14 @@ Fields: `run`, `date`, `robot`, `env_id`, `algo`, `wrapper`, `seed`, `steps`,
 `wall_clock_s`, `fps`, `best_eval_return`, `final_ep_rew_mean`,
 `final_ep_len_mean`, `final_ent_coef`, `verdict`, `notes`.
 
+**Required from row 3 onward:** `mean_eval_after_converge` and
+`eval_crash_rate`. `best_eval_return` is a maximum over a noisy sequence, so
+it rewards instability and grows with run length — comparing two runs on it
+alone ranked a policy that scored 1218 once and 390 repeatedly *above* one
+that reliably scored 1170. Rows 1 and 2 predate these fields and carry the
+numbers in `notes` instead. See
+[learning 007](learnings/007-peak-score-hides-an-unreliable-policy.md).
+
 `verdict` is one of `plateau`, `improved`, `regressed`, `crashed`,
 `inconclusive` — a coarse judgement so the history can be scanned without
 reading every note.
