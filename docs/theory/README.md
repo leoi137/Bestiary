@@ -25,9 +25,10 @@ the theory and the implementation stay tied together.
 
 ## Planned, in the order they will be needed
 
-- `pd-control.md` — PD position targets: the control law, why stiffness and
-  damping are chosen as a ratio, and why emitting positions instead of
-  torques removes pose-holding from what the policy must learn.
+- ~~`pd-control.md`~~ — **written 2026-07-25** with the PD-targets work.
+  [The control law](pd-control.md), the gains checked against this robot's
+  real inertia, and the Nyquist argument for why the PD loop runs at physics
+  rate rather than policy rate.
 - `torque-to-weight.md` — what the ratio measures, why the hound's 2.17 N·m/N
   makes locomotion hard, and how it compares to the spider and to Ant-v5.
 - `sac.md` — Soft Actor-Critic: the entropy term, what `ent_coef` collapsing
@@ -37,4 +38,5 @@ the theory and the implementation stay tied together.
   wheel radius matters, and where the hound's passive backward creep comes
   from.
 
-Nothing here yet. The first note lands with the PD-targets work.
+The remaining three are unwritten by design. Each lands when the project
+needs it to decide something, not before.
