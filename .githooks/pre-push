@@ -1,0 +1,39 @@
+#!/usr/bin/env bash
+# Block a push that would publish private content.
+#
+# This is the last line of defence in front of the only irreversible failure in
+# this workspace. Everything else here is recoverable; a private fact pushed to
+# a public repository is cloned and indexed within minutes and cannot be
+# recalled.
+#
+# Deliberately runs ONLY the privacy guard. The other guards gate a training
+# launch, not a publication — blocking a documentation push because a replay
+# buffer needs pruning would train everyone to reach for --no-verify, and a
+# hook that gets bypassed by habit protects nothing.
+#
+# Installed with:  git config core.hooksPath .githooks   (repo-local)
+set -euo pipefail
+
+repo_root="$(git rev-parse --show-toplevel)"
+python="$repo_root/venv/bin/python"
+
+if [ ! -x "$python" ]; then
+    echo "pre-push: cannot find $python — refusing to push unchecked." >&2
+    echo "          The privacy guard must run before anything is published." >&2
+    exit 1
+fi
+
+if ! "$python" -m bestiary.guards --only privacy; then
+    cat >&2 <<'MSG'
+
+pre-push BLOCKED: the privacy guard failed.
+
+Public -> private is not possible. Once this is pushed it is cloned and
+indexed, and no later commit removes it.
+
+Move the content to Scriptorium, or add an allowlist entry WITH A REASON in
+src/bestiary/guards/privacy.py if the match is genuinely a false positive.
+
+MSG
+    exit 1
+fi
