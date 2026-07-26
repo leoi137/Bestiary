@@ -1,3 +1,9 @@
+---
+triggers: [obs_change, resume, long_run, new_robot]
+guard: checkpoint-width
+last_confirmed: 2026-07-26
+---
+
 # 003 — Changing the observation list throws away every checkpoint
 
 **Date:** 2026-07-25 · **From:** planning `CORE_PLAN.md`

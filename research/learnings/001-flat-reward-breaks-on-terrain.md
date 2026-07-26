@@ -1,3 +1,9 @@
+---
+triggers: [reward_change, new_terrain, new_robot, long_run]
+guard: standing-control
+last_confirmed: 2026-07-26
+---
+
 # 001 — A reward tuned on flat ground breaks on terrain
 
 **Date:** 2026-07-25 · **From:** `runs/spyder_desert_v0`

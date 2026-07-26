@@ -1,3 +1,9 @@
+---
+triggers: [refactor, metric_added]
+guard: none — coverage of an entry point is proven by running it, not by asserting on it
+last_confirmed: 2026-07-26
+---
+
 # 006 — Our regression oracle covered the robot, not the trainer
 
 **Date:** 2026-07-25 · **From:** the PD-position-targets refactor, cycle 002

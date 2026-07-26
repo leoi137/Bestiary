@@ -1,3 +1,9 @@
+---
+triggers: [new_robot, new_terrain, reward_change]
+guard: standing-control
+last_confirmed: 2026-07-26
+---
+
 # 005 — The standing check caught it again, on a different robot, from scratch
 
 **Date:** 2026-07-25 · **From:** `runs/hound_desert_test150k`

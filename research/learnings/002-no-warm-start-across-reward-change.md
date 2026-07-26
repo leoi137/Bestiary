@@ -1,3 +1,9 @@
+---
+triggers: [warm_start, reward_change, critic_reset, resume]
+guard: none — nothing on disk records that a run was warm-started across a reward change
+last_confirmed: 2026-07-26
+---
+
 # 002 — Don't warm-start a critic across a reward change
 
 **Date:** 2026-07-25 · **From:** `runs/spyder_desert_v0`

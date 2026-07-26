@@ -1,3 +1,9 @@
+---
+triggers: [reward_change, long_run]
+guard: none — 'is this reward shape final?' is a judgement, not a check
+last_confirmed: 2026-07-26
+---
+
 # 004 — Lock the reward *shape*, not just the weights
 
 **Date:** 2026-07-25 · **From:** planning `CORE_PLAN.md` step 2

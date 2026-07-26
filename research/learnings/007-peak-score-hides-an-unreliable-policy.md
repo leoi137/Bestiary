@@ -1,3 +1,9 @@
+---
+triggers: [comparison, metric_added]
+guard: ledger-schema
+last_confirmed: 2026-07-26
+---
+
 # 007 — A peak score hides an unreliable policy
 
 **Date:** 2026-07-25 · **From:** comparing `hound_desert_v0` (torque) with
