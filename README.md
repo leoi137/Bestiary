@@ -1,8 +1,10 @@
-# MuJoCo locomotion with SAC (Stable-Baselines3 + MuJoCo)
+# Bestiary — legged robots built, trained, and documented in simulation
 
 > 🚧 **Work in progress.** Functional and reproducible today; actively being polished. Expect frequent updates — issues and PRs welcome.
 
-Train Soft Actor-Critic agents on Gymnasium MuJoCo locomotion environments — `Ant-v5`, `Walker2d-v5`, `Humanoid-v5`, and friends — on GPU. Each experiment lives in its own directory under `runs/<run-name>/`, so different environments, reward shapings, seeds, and hyperparameter sweeps can coexist without clobbering each other. The environment is chosen per-run with `--env` and pinned in that run's `config.json`, so once a run is created you never re-specify it.
+Two custom machines authored as MuJoCo MJCF by generator scripts rather than hand-written XML — a 12-DoF spider (**Spyder**) and a 16-DoF wheel-legged dog on Unitree Go2 kinematics (**Hound**) — plus Soft Actor-Critic training on them and on the standard Gymnasium MuJoCo benchmarks (`Ant-v5`, `Walker2d-v5`, `Humanoid-v5`). Each experiment lives in its own directory under `runs/<run-name>/`, so different environments, reward shapings, seeds, and hyperparameter sweeps can coexist without clobbering each other. The environment is chosen per-run with `--env` and pinned in that run's `config.json`, so once a run is created you never re-specify it.
+
+The written record — what each run taught us, which decisions are settled and what would reverse them — is in [`research/`](research/). **The weights are disposable; that folder is not.**
 
 ## Trained policies
 
@@ -44,7 +46,7 @@ The baseline scores higher in raw forward-velocity reward because it doesn't pay
 The same SAC setup and hyperparameters that train Ant transfer directly to Walker2d — no reward shaping needed. A 2D biped can't move forward without using both legs, so there's no degenerate local optimum to shape away (which is why the foot-contact wrapper is Ant-only).
 
 ```bash
-python watch.py --run walker_baseline   # watch this policy live
+python -m bestiary.train.watch --run walker_baseline   # watch this policy live
 ```
 
 ### Humanoid-v5
@@ -64,7 +66,7 @@ python watch.py --run walker_baseline   # watch this policy live
 Humanoid-v5 is the hardest of the three — a 17-DoF 3D biped with a ~350-dim observation — but the same SAC setup and hyperparameters that train Ant and Walker2d transfer directly, with no reward shaping. Like Walker2d, a biped can't move forward on a degenerate gait, so there's no local optimum to shape away; it just needs more steps to converge.
 
 ```bash
-python watch.py --run humanoid_baseline   # watch this policy live
+python -m bestiary.train.watch --run humanoid_baseline   # watch this policy live
 ```
 
 ### Spyder-v0 (custom 12-DoF spider)
@@ -82,14 +84,14 @@ python watch.py --run humanoid_baseline   # watch this policy live
 | --- | --- | --- | --- | --- |
 | `spyder_walk_v3` | Spyder-v0 default (Ant-style + upright termination) | 3.75M | 7,392 | fast four-legged bounding run |
 
-Spyder-v0 is this repo's own environment: a 12-DoF spider (model in `assets/spyder12.xml`, env in `envs/spyder_env.py`) with an Ant-style reward plus an upright-termination rule. Earlier versions got reward-hacked twice — first a jump-to-termination exploit, then a cartwheeling gait — and the fixes are written up as a postmortem in the `envs/spyder_env.py` docstring. With both loopholes closed, SAC trained clean: an upright 3.2 m/s walk by 400K steps (eval 3,457), accelerating into a ~6.5 m/s bounding run by 3.75M (eval 7,392) with full 1000-step episodes.
+Spyder-v0 is this repo's own environment: a 12-DoF spider (model in `assets/spyder12.xml`, env in `envs/spyder.py`) with an Ant-style reward plus an upright-termination rule. Earlier versions got reward-hacked twice — first a jump-to-termination exploit, then a cartwheeling gait — and the fixes are written up as a postmortem in the `envs/spyder.py` docstring. With both loopholes closed, SAC trained clean: an upright 3.2 m/s walk by 400K steps (eval 3,457), accelerating into a ~6.5 m/s bounding run by 3.75M (eval 7,392) with full 1000-step episodes.
 
-The robot's shell is modelled in Blender by `make_spyder_mesh.py` (headless `bpy`, exports the OBJs in `assets/meshes/`) and attached as visual-only geoms — `contype=0 conaffinity=0 density=0`, so the capsules still carry every gram and every contact. `check_shell_physics.py` asserts that: it strips the shell out of the shipped MJCF and checks `qpos`/`qvel`/`cfrc_ext` match bit-for-bit over 2,000 contact-rich steps, so the appearance change can't invalidate a trained policy. Press `3` in the MuJoCo viewer to see the capsules underneath.
+The robot's shell is modelled in Blender by `robots/spyder/build_mesh.py` (headless `bpy`, exports the OBJs in `assets/meshes/`) and attached as visual-only geoms — `contype=0 conaffinity=0 density=0`, so the capsules still carry every gram and every contact. `robots/spyder/check.py` asserts that: it strips the shell out of the shipped MJCF and checks `qpos`/`qvel`/`cfrc_ext` match bit-for-bit over 2,000 contact-rich steps, so the appearance change can't invalidate a trained policy. Press `3` in the MuJoCo viewer to see the capsules underneath.
 
 > Viewing note: the floor's checker texture is only rendered over an 80×80 m patch around the origin (`size="40 40 40"` on the plane geom — collisions are infinite, rendering isn't). The spider outruns it mid-episode, so late frames in the eval videos show it running against a bare horizon. It's on the ground the whole time.
 
 ```bash
-python watch.py --run spyder_walk_v3   # watch this policy live
+python -m bestiary.train.watch --run spyder_walk_v3   # watch this policy live
 ```
 
 ### Hound-v0 (custom 16-DoF wheel-legged dog) — model and env, no trained policy yet
@@ -121,13 +123,13 @@ ANYbotics ANYmal-on-Wheels, Swiss-Mile).
 | Mass | 17.0 kg (Go2's 15.2 kg + 4 hub wheels) |
 | Stands at | 0.363 m |
 | Peak torque | 23.7 / 23.7 / 40 N·m at the leg joints, **3.0 N·m** at the wheel |
-| Models | `assets/hound16.xml`, `assets/hound16_desert.xml` — both generated by `make_hound.py` |
-| Env | `envs/hound_env.py` |
+| Models | `assets/hound16.xml`, `assets/hound16_desert.xml` — both generated by `robots/hound/build.py` |
+| Env | `envs/hound.py` |
 
 ```bash
-python make_hound.py --report   # regenerate both models, print the design budget
-python check_hound.py -v        # 38 assertions on the mechanics, with the measurements
-python render_hound.py          # the figures below
+python -m bestiary.robots.hound.build --report   # regenerate both models, print the design budget
+python robots/hound/check.py -v        # 38 assertions on the mechanics, with the measurements
+python robots/hound/render.py          # the figures below
 ```
 
 #### The leg
@@ -194,14 +196,14 @@ the wheels cannot climb is the thing that makes legs worth using. **The terrain
 is the shaping term** — which is what [ROADMAP](ROADMAP.md) Step 3 claims a
 curriculum is for.
 
-Two more suspects are written down in `envs/hound_env.py` *before* the first
+Two more suspects are written down in `envs/hound.py` *before* the first
 run, deliberately: the spider's two reward hacks were both found the expensive
 way, after the compute had been spent. Predicting them costs nothing and makes
 the postmortem honest either way.
 
 ```bash
 # smoke-tested to 150k on CPU (throwaway); the real run is not started
-python train.py --run-name hound_desert_v0 --env HoundDesert-v0 --seed 0 --steps 2_000_000
+python -m bestiary.train.train --run-name hound_desert_v0 --env HoundDesert-v0 --seed 0 --steps 2_000_000
 ```
 
 ## Install
@@ -210,9 +212,12 @@ python train.py --run-name hound_desert_v0 --env HoundDesert-v0 --seed 0 --steps
 python3.13 -m venv venv
 source venv/bin/activate
 pip install -r requirements.txt
+pip install -e . --no-deps      # makes `bestiary` importable from anywhere
 ```
 
 > `requirements.txt` pins PyTorch 2.5.1 built against CUDA 12.1. For CPU-only or a different CUDA version, drop the `--extra-index-url` line and follow <https://pytorch.org/get-started/locally/>.
+>
+> `--no-deps` on the editable install is deliberate: every dependency is already pinned by `requirements.txt`, and letting pip resolve them again can silently move a version out from under a reproducible run.
 
 ## Stack
 
@@ -234,22 +239,22 @@ source venv/bin/activate
 Watch either trained policy in a live MuJoCo window:
 
 ```bash
-python watch.py --run baseline_2leg        # the two-legged baseline
-python watch.py --run foot_contact_v1      # the four-legged shaped policy
+python -m bestiary.train.watch --run baseline_2leg        # the two-legged baseline
+python -m bestiary.train.watch --run foot_contact_v1      # the four-legged shaped policy
 ```
 
 Start a fresh experiment of your own. `--env` is given once, at creation, and defaults to `Ant-v5`:
 
 ```bash
 # Ant baseline, default hyperparameters, 1M steps
-python train.py --run-name my_baseline --seed 0 --steps 1_000_000
+python -m bestiary.train.train --run-name my_baseline --seed 0 --steps 1_000_000
 
 # A different environment — just pass --env once
-python train.py --run-name walker_baseline --env Walker2d-v5 --seed 0 --steps 1_000_000
-python train.py --run-name humanoid_baseline --env Humanoid-v5 --seed 0 --steps 2_000_000
+python -m bestiary.train.train --run-name walker_baseline --env Walker2d-v5 --seed 0 --steps 1_000_000
+python -m bestiary.train.train --run-name humanoid_baseline --env Humanoid-v5 --seed 0 --steps 2_000_000
 
 # Foot-contact reward shaping (Ant-only — see note below)
-python train.py --run-name my_shaped --seed 0 --steps 1_000_000 \
+python -m bestiary.train.train --run-name my_shaped --seed 0 --steps 1_000_000 \
                 --wrapper foot_contact \
                 --wrapper-kwargs '{"penalty": 1.0, "window": 50, "contact_threshold": 1.0}'
 ```
@@ -257,7 +262,7 @@ python train.py --run-name my_shaped --seed 0 --steps 1_000_000 \
 Resume an interrupted run with the same `--run-name` — `--env`, wrapper, and seed are all read back from `config.json`, so you only pass `--steps`:
 
 ```bash
-python train.py --run-name walker_baseline --steps 2_000_000
+python -m bestiary.train.train --run-name walker_baseline --steps 2_000_000
 # env / wrapper / seed are read from runs/walker_baseline/config.json automatically
 ```
 
@@ -287,7 +292,7 @@ RL policies can briefly degrade late in training (catastrophic forgetting / temp
 - **`ant_sac.zip`** is always overwritten with the latest model — this is what `train.py` reads to resume.
 - **`ant_sac_best.zip`** is only overwritten when an eval beats the previous best — this is what `watch.py` loads by default. The high-water mark survives across runs via `ant_sac_best.txt`.
 
-A resumed run that goes worse won't lose you anything: you can still watch your best-ever policy and keep training from the most recent state. Use `python watch.py --run <name> --latest` to override and watch the latest checkpoint instead of the best.
+A resumed run that goes worse won't lose you anything: you can still watch your best-ever policy and keep training from the most recent state. Use `python -m bestiary.train.watch --run <name> --latest` to override and watch the latest checkpoint instead of the best.
 
 ## Watch progress over time (videos)
 
@@ -333,23 +338,35 @@ The baseline run (`baseline_2leg`) optimized the stock Ant-v5 reward: forward ve
 
 The shaped run (`foot_contact_v1`) adds one extra term: for each step, count how many ankles have made ground contact in the last 50 steps, and penalize the agent for each leg that hasn't. The penalty is small (1.0 per idle leg per step) but consistent, so policies that drag two legs are strictly worse than policies that use all four. The forward-velocity term still does the heavy lifting; the wrapper just removes one bad local optimum from the optimization landscape.
 
-The wrapper lives in `wrappers.py` as `FootContactRewardWrapper` and is registered in the `WRAPPERS` dict so any new reward-shaping idea can be added in one place.
+The wrapper lives in `rewards/shaping.py` as `FootContactRewardWrapper` and is registered in the `WRAPPERS` dict so any new reward-shaping idea can be added in one place.
 
-## Files
+## Layout
 
-| File | Purpose |
+The library is an installable package under `src/`, so nothing depends on the
+current working directory and there are no `sys.path` games.
+
+| Path | Purpose |
 | --- | --- |
-| `train.py` | train / resume SAC on any MuJoCo env (per-run `--env`, output dir, optional wrapper) |
-| `watch.py` | render a chosen run's best policy in a window (env read from its `config.json`) |
-| `wrappers.py` | reward-shaping wrappers (currently `FootContactRewardWrapper`, Ant-only) and the `WRAPPERS` registry |
-| `envs/` | custom Gymnasium environments (`Spyder-v0`, `Hound-v0`, and their `*Desert-v0` variants) — `import envs` registers them, which `train.py`/`watch.py` do automatically |
-| `envs/terrain.py` | shared heightfield lookup used by both terrain envs |
-| `make_hound.py` | generate `assets/hound16*.xml` from one `Spec`; `--report` prints the design budget |
-| `check_hound.py` | 38 assertions on the hound's mechanics, with the measurements behind them |
-| `render_hound.py` | the hound's preview renders, leg diagram and mechanics figures |
-| `make_terrain.py` | generate the desert heightfield + ground texture |
+| `src/bestiary/paths.py` | **every** filesystem path in the project resolves from here |
+| `src/bestiary/train/train.py` | train / resume SAC on any env (per-run `--env`, output dir, optional wrapper) |
+| `src/bestiary/train/watch.py` | render a chosen run's best policy in a window (env read from its `config.json`) |
+| `src/bestiary/rewards/shaping.py` | reward-shaping wrappers (currently `FootContactRewardWrapper`, Ant-only) and the `WRAPPERS` registry |
+| `src/bestiary/envs/` | custom Gymnasium environments (`Spyder-v0`, `Hound-v0`, and their `*Desert-v0` variants) — `import bestiary.envs` registers them, which the trainer does automatically |
+| `src/bestiary/terrain/field.py` | shared heightfield lookup used by both terrain envs |
+| `src/bestiary/terrain/generate.py` | generate the desert heightfield + ground texture |
+| `src/bestiary/robots/hound/build.py` | generate `assets/hound16*.xml` from one `Spec`; `--report` prints the design budget |
+| `src/bestiary/robots/hound/check.py` | 38 assertions on the hound's mechanics, with the measurements behind them |
+| `src/bestiary/robots/hound/render.py` | the hound's preview renders, leg diagram and mechanics figures |
+| `src/bestiary/robots/spyder/check.py` | proves the decorative shell leaves physics bit-for-bit unchanged |
+| `concepts/anvil/` | Blender concept art (ANVIL siege walker) — runs under Blender's Python, not this package |
+| `research/` | learnings, decisions, episodes, and the append-only run ledger |
+| `docs/theory/` | the teaching track: the math, written when it becomes load-bearing |
+| `assets/` | **generated** output — model XMLs, meshes, terrain, figures, README GIFs |
 | `runs/<name>/` | one self-contained experiment — model, buffer, TB logs, videos, config |
-| `assets/` | GIFs used by this README |
+
+Model XMLs live in `assets/` and must stay there: MuJoCo resolves
+`<mesh file="meshes/…">` and `<hfield file="terrain/…">` relative to the XML's
+own directory. Robot folders hold source; `assets/` holds generated output.
 
 ## What to expect (SAC on Ant-v5, default reward)
 
