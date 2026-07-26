@@ -16,7 +16,7 @@ it can be wrong, and being wrong on paper is how the diagnosis improves.
   prediction. "A plateau between 500k and 1.5M steps, with `ent_coef` under
   0.02 by 60k" is.
 - One episode per cycle. If a cycle produced nothing, write that — a quiet
-  cycle is data about the loop.
+  cycle is data about the method.
 
 ## Shape
 

@@ -53,7 +53,7 @@ should try to be both.
 A decision, the reasoning behind it, and **the observation that would
 reverse it**. The trigger is the whole point: without it, a settled question
 gets re-argued every few weeks by whoever has the most recent context. With
-it, the loop can check the trigger in seconds and move on.
+it, checking whether a decision still holds takes seconds.
 
 ## episodes/
 
