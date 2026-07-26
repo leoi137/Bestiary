@@ -28,6 +28,7 @@ dependencies = [
 [project.optional-dependencies]
 # Only needed to regenerate figures and terrain textures, not to train.
 viz = ["matplotlib", "pillow"]
+dev = ["ruff"]
 
 [project.scripts]
 bestiary-train = "bestiary.train.train:main"
@@ -39,3 +40,14 @@ where = ["src"]
 [tool.ruff]
 line-length = 100
 src = ["src"]
+
+[tool.ruff.lint]
+# E/W are style and deliberately not enforced — this codebase's comments are
+# load-bearing prose and reflowing them to satisfy a linter would damage them.
+#
+# F is pyflakes, and it is enforced because it finds REAL bugs. F823 in
+# particular ("local variable referenced before assignment") is what caught
+# the shadowed `paths` that made the trainer unlaunchable — a whole entry
+# point broken, invisible to the 38-assertion robot check, and found in
+# milliseconds by this rule. See research/learnings/006.
+select = ["F"]
