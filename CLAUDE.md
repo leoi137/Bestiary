@@ -74,9 +74,20 @@ is `research/CORE_PLAN.md`, and it is **not yet applied**.
 ## Environment
 
 ```bash
-source venv/bin/activate          # python is not on PATH without it
-pip install -e . --no-deps        # already done; --no-deps protects pinned versions
+venv/bin/python -m bestiary.guards --fast     # call the interpreter directly
+venv/bin/pip install -e . --no-deps           # already done; --no-deps protects pinned versions
 ```
+
+**Do not use `source venv/bin/activate`.** This venv was created as
+`GymMuJoCo/venv` and moved here, so `activate` still exports
+`VIRTUAL_ENV=.../GymMuJoCo/venv` — a path outside both repositories — and
+prepends its `bin` to `PATH`. After sourcing it there is no `python` on `PATH`
+at all, so a documented launch line like `python -m bestiary.guards --fast ||
+exit 1` exits 127 and reports a guard failure that never ran. Worse, if that
+directory is ever recreated, the same command silently trains against a
+different interpreter with different package versions. Call
+`venv/bin/python` explicitly and the question does not arise.
+See `research/anomalies.jsonl`.
 
 GPU training assumes CUDA 12.1 (torch 2.5.1+cu121); `DEVICE = "cuda"` is
 hardcoded in the trainer. Watching a policy runs on CPU.
@@ -105,35 +116,35 @@ runs/                  per-run artifacts; gitignored, tens of GB
 
 ```bash
 # Fresh run — --env is given ONCE at creation, then pinned in config.json
-python -m bestiary.train.train --run-name hound_v1 --env HoundDesert-v0 --seed 0 --steps 1_000_000
+venv/bin/python -m bestiary.train.train --run-name hound_v1 --env HoundDesert-v0 --seed 0 --steps 1_000_000
 
 # Resume — same --run-name; env/wrapper/seed come from config.json
-python -m bestiary.train.train --run-name hound_v1 --steps 2_000_000
+venv/bin/python -m bestiary.train.train --run-name hound_v1 --steps 2_000_000
 
 # Watch a trained policy
-python -m bestiary.train.watch --run hound_v1            # best-eval checkpoint
-python -m bestiary.train.watch --run hound_v1 --latest
+venv/bin/python -m bestiary.train.watch --run hound_v1            # best-eval checkpoint
+venv/bin/python -m bestiary.train.watch --run hound_v1 --latest
 
 # Validate a robot (the regression oracle — run this after ANY physics change)
-python -m bestiary.robots.hound.check      # 38 assertions
-python -m bestiary.robots.spyder.check     # shell is decorative, physics unchanged
+venv/bin/python -m bestiary.robots.hound.check      # 38 assertions
+venv/bin/python -m bestiary.robots.spyder.check     # shell is decorative, physics unchanged
 
 # Guards — the lessons this project already paid for, as assertions.
 # --fast runs in well under a second, so it gates every training launch.
-python -m bestiary.guards --fast && python -m bestiary.train.train ...
-python -m bestiary.guards                  # everything, ~11 s
-python -m bestiary.guards --json           # machine-readable
+venv/bin/python -m bestiary.guards --fast && venv/bin/python -m bestiary.train.train ...
+venv/bin/python -m bestiary.guards                  # everything, ~11 s
+venv/bin/python -m bestiary.guards --json           # machine-readable
 
 # How well calibrated our predictions have been
-python -m bestiary.record.calibration
+venv/bin/python -m bestiary.record.calibration
 
 # Lint — REQUIRED after any refactor. Catches the bug class the robot checks
 # structurally cannot see (see research/learnings/006).
-python -m ruff check --select F src/ concepts/
+venv/bin/python -m ruff check --select F src/ concepts/
 
 # Regenerate a robot model or the terrain
-python -m bestiary.robots.hound.build
-python -m bestiary.terrain.generate
+venv/bin/python -m bestiary.robots.hound.build
+venv/bin/python -m bestiary.terrain.generate
 ```
 
 `--steps` is **per-invocation** (additional steps), not a cumulative target.
@@ -209,7 +220,7 @@ from the repo root.
   a rewriting one can lose all of it on a crash.
 - `research/calibration.jsonl` — one row per prediction, with its stated
   probability and its outcome. Append-only. Scored by
-  `python -m bestiary.record.calibration`.
+  `venv/bin/python -m bestiary.record.calibration`.
 - `research/nulls.jsonl` — one line per dead end already paid for, with the
   condition that would make it worth retrying. Append-only.
 - `research/anomalies.jsonl` — one line per surprising thing noticed and not
