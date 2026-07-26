@@ -39,7 +39,9 @@ videos/
 *_best.txt
 
 # Claude Code
-CLAUDE.md
+# CLAUDE.md is deliberately TRACKED. It is the contract the research loop runs
+# under, so it has to travel with a clone and be reviewable in a diff.
+.claude/settings.local.json
 
 # OS / editor
 .DS_Store
