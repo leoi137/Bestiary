@@ -154,3 +154,22 @@ from the repo root.
 
 Write predictions *before* results are known. The habit is what makes the
 record evidence rather than narration.
+
+## The loop's skills
+
+Version-controlled in `.claude/skills/`, so they travel with a clone and
+change under review rather than drifting.
+
+| Skill | Use |
+|---|---|
+| `run-episode` | one bounded cycle: read state → one experiment → predict → record → next episode. Also the body of a `/loop`. |
+| `write-learning` | write a `research/learnings/` entry to standard: plain English, real math with real numbers, an explicit way to be wrong. |
+| `robotics-research` | investigate a robotics/RL/simulation question against primary sources; land it as a decision with a trigger, or a theory note. |
+
+`run-episode` will not start a training run without explicit authorization —
+hard rule 3 above. It prepares the run and hands back instead.
+
+**Delegate to a subagent** when work would flood the main context with
+material not worth keeping: long run logs, literature sweeps, multi-file
+surveys. Ask for the conclusion and the numbers, never the file contents, and
+keep the decision in the main thread.
