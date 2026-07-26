@@ -1,0 +1,3 @@
+{"cycle": "002", "date": "2026-07-25", "run": "hound_pd_desert_v0", "claim": "ep_rew_mean clears 1096 by 1M steps", "p": 0.55, "outcome": true, "resolved_in": "episodes/003-pd-result-cheaper-not-higher.md", "notes": "Finished at 1099.63, inside the band called most likely."}
+{"cycle": "002", "date": "2026-07-25", "run": "hound_pd_desert_v0", "claim": "the policy parks at standing (950-1000)", "p": 0.25, "outcome": false, "resolved_in": "episodes/003-pd-result-cheaper-not-higher.md", "notes": "Correctly not taken."}
+{"cycle": "002", "date": "2026-07-25", "run": "hound_pd_desert_v0", "claim": "eval return exceeds 2000, i.e. a real gait", "p": 0.10, "outcome": false, "resolved_in": "episodes/003-pd-result-cheaper-not-higher.md", "notes": "Correctly not taken."}
