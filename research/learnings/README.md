@@ -67,13 +67,25 @@ Worked example of the standard, from the control-cost lesson:
 
 ## How to add one
 
-Number in order, add a line to the index, and use these sections:
+Number in order, add a line to the index, and use this shape:
 
 ```markdown
+---
+triggers: [warm_start, reward_change, critic_reset]
+guard: standing-control          # or: none — see "Make it a guard" below
+last_confirmed: 2026-07-25
+---
+
 # NNN — Short title
 
 **Date:** YYYY-MM-DD · **From:** <run name, or where it came from>
 **Robot:** <hound | spyder | both | n/a>
+
+## What we believed before
+The belief this lesson overturned, and **why it was reasonable at the time**.
+Not self-flagellation — the shape of the mistake is the part that transfers.
+"The reward was gamed" teaches nothing; "we verified walking beat standing on
+flat ground and never re-checked when the terrain changed the ratio" does.
 
 ## What happened
 The observation, with real numbers and units. What we expected, what we got.
@@ -94,6 +106,32 @@ The rule this becomes. Concrete enough to act on without re-reading the rest.
 What observation would overturn this lesson. A learning with no way to be
 wrong is a belief, not a finding.
 ```
+
+### The front matter
+
+**`triggers`** is the whole retrieval mechanism. A lesson is useful in a
+specific instant — learning 002 matters in exactly the moment someone proposes
+warm-starting a critic — and that is precisely the moment nobody thinks to go
+looking. So the lesson declares its own moment, and the intended action is
+written in the same vocabulary before acting. This is interception rather than
+recall: it works when you do not know what you do not know.
+
+Keep the vocabulary small and shared. Current terms: `warm_start`,
+`reward_change`, `critic_reset`, `obs_change`, `new_terrain`, `new_robot`,
+`metric_added`, `long_run`, `resume`, `refactor`, `comparison`.
+
+**`last_confirmed`** is the staleness handle. A cycle that touches a lesson's
+subject either re-confirms the date or explains why it could not.
+
+### Make it a guard
+
+**If the lesson can be expressed as an assertion, it must also become one** —
+`src/bestiary/guards/`. Prose depends on someone reading it at the right
+moment; a guard depends on nothing.
+
+Set `guard:` to the guard's name, or to `none` with a one-line reason. "None
+because it is a judgement, not a check" is a legitimate answer. "None because
+I did not get to it" is a TODO, not an answer.
 
 Link related lessons inline by filename so the folder becomes a graph rather
 than a list.

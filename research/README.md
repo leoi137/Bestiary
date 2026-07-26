@@ -2,16 +2,36 @@
 
 The written record. Weights are disposable; this folder is not.
 
-Four kinds of artifact, deliberately kept separate because they rot at
-different rates and answer different questions.
+Whoever picks this project up next inherits exactly what is here and nothing
+else, so the record is not documentation — it is working memory, engineered as
+one. **[`MEMORY.md`](MEMORY.md) explains how the pieces work together**; this
+file is the reference for each.
+
+Artifacts are kept separate because they rot at different rates and answer
+different questions.
 
 ```
-learnings/     lessons that outlive any single run       — timeless
-decisions/     choices made, each with a reversal trigger — until the trigger fires
-episodes/      one file per loop cycle                    — a snapshot, never edited
-ledger.jsonl   one row per finished run                   — append-only
-CORE_PLAN.md   the locked reward and observation spec
+learnings/         lessons that outlive any single run       — superseded, never edited
+decisions/         choices made, each with a reversal trigger — until the trigger fires
+episodes/          one file per research cycle                — a snapshot, never edited
+ledger.jsonl       one row per finished run                   — append-only
+calibration.jsonl  one row per resolved prediction            — append-only
+nulls.jsonl        one row per dead end already paid for      — append-only
+anomalies.jsonl    one row per unexplained observation        — append-only
+CORE_PLAN.md       the locked reward and observation spec
+MEMORY.md          how all of the above works as one system
 ```
+
+And the part of the record that is not prose at all:
+
+```
+../src/bestiary/guards/    lessons rewritten as assertions the machine enforces
+```
+
+**Every lesson that can become a check becomes a check** —
+`python -m bestiary.guards`. A lesson in prose is worth someone's willingness
+to read it at the right moment; a lesson as an assertion is enforced whether
+anyone remembers it or not.
 
 ## Two rules that apply to everything in this folder
 
@@ -96,20 +116,62 @@ budget (3.75M vs 1M).
 reading every note. A result that failed its refutation pass is
 `inconclusive`, whatever the numbers looked like.
 
+## calibration.jsonl
+
+One row per prediction, resolved or pending. Every prediction here is written
+before the result is known and carries an explicit probability, which makes the
+whole history scoreable:
+
+```json
+{"cycle": "002", "date": "2026-07-25", "run": "hound_pd_desert_v0",
+ "claim": "ep_rew_mean clears 1096 by 1M steps", "p": 0.55, "outcome": true,
+ "resolved_in": "episodes/003-pd-result-cheaper-not-higher.md", "notes": "..."}
+```
+
+`python -m bestiary.record.calibration` reports the Brier score and — more
+usefully — a reliability table: do claims made at 70% come true about 70% of
+the time, and in which direction does the bias run? A record that stores only
+conclusions cannot tell you whether the person writing them is any good.
+
+Append the row with `"outcome": null` when the prediction is made; the tool
+skips unresolved rows until the result lands.
+
+## nulls.jsonl
+
+One line per dead end: what was tried, what happened, what it cost, and
+`do_not_repeat_unless` — the condition that would make it worth trying again.
+
+Deliberately the cheapest possible thing to write, because null results never
+feel like findings and anything more expensive than a line will not get
+written. The most valuable thing a long project can know is *this was already
+tried*, and it is the least likely thing to be recorded.
+
+## anomalies.jsonl
+
+Observations that were surprising but not chased. Each carries `why_it_matters`
+and `cheapest_next_step`, and a `status` that may move from `open` to
+`explained` or `retired`.
+
+Without somewhere to put them, anomalies are silently discarded — and they are
+disproportionately where real findings come from.
+
 ## The cycle contract
 
 One research cycle does exactly this, and stops:
 
-1. Read `ledger.jsonl` and the open questions inherited from the last cycle.
+1. **Read state**, and check what the record already knows about the intended
+   action before taking it.
 2. Choose **one** experiment.
-3. Write the falsifiable prediction — **before** running anything.
-4. Run it.
+3. Write the falsifiable prediction with an explicit probability — **before**
+   running anything — and append it to `calibration.jsonl`.
+4. Run guards, then run the experiment.
 5. Have it **refuted** — an independent pass whose job is to kill the
    conclusion by checking for a wrong metric, dead instrumentation, a
    confound, seed noise, or a peak compared against a mean.
-6. Append **one** row to the ledger.
+6. Append **one** row to the ledger, and resolve the calibration rows.
 7. Write **at most one** learning — only if something surprised us, and only
-   if it survived step 5.
+   if it survived step 5. If it can be expressed as an assertion, it also
+   becomes a guard.
 8. Write the episode.
 
 Bounded on purpose. An unbounded process generates motion rather than
