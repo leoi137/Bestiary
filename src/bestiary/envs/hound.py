@@ -19,12 +19,37 @@ ACTION SPACE -- Box(-1, 1, (16,))
 
         [FL_abduct, FL_hip, FL_knee, FL_wheel,  FR_..., RL_..., RR_...]
 
-    Magnitude is the fraction of that motor's peak torque, and the peaks are
-    NOT uniform: 23.7 N*m at abduction and hip, 40 at the knee, and only 3.0
-    at the wheel. That last one is not a typo and not timidity — a wheel
-    carrying 4.25 kgf breaks traction at 3.19 N*m, so a bigger wheel motor
-    would buy wheelspin and nothing else. The leg motors are sized by what
-    they must hold; the wheel motors by what the ground will accept.
+    WHAT A MAGNITUDE MEANS DEPENDS ON THE MODEL. Both are Box(-1, 1, (16,))
+    with the same slots in the same order; only the twelve leg entries change
+    meaning. The env reads which it is off the model's actuator types, so they
+    cannot disagree — see `action_to_ctrl`.
+
+    Hound-v0 / HoundDesert-v0  (<motor>, assets/hound16*.xml)
+        A fraction of that motor's peak torque. The peaks are NOT uniform:
+        23.7 N*m at abduction and hip, 40 at the knee, and only 3.0 at the
+        wheel. That last one is not a typo and not timidity — a wheel carrying
+        4.25 kgf breaks traction at 3.19 N*m, so a bigger wheel motor would
+        buy wheelspin and nothing else. The leg motors are sized by what they
+        must hold; the wheel motors by what the ground will accept.
+
+    HoundPD-v0 / HoundPDDesert-v0  (<position>, assets/hound16pd*.xml)
+        For the twelve LEG entries: a target angle, as an offset from the
+        standing stance, scaled by Spec.action_scale = 0.5 rad. So 0.0 asks
+        the joint to stay at its standing angle and +/-1.0 asks for +/-28.6
+        degrees off it, clipped to the joint's own travel. MuJoCo then runs
+        tau = kp*(target - q) - kv*qdot at the 200 Hz physics rate, ten times
+        per control step.
+
+        A ZERO ACTION VECTOR THEREFORE COMMANDS THE STANDING STANCE, which is
+        the entire point: standing is the origin of the action space instead
+        of a pose the policy must discover and then spend torque holding.
+
+        The four WHEEL entries are unchanged — still a torque fraction. A
+        wheel that turns forever has no pose to hold.
+
+        Peak torques are identical (forcerange matches gear), so PD does not
+        make the machine stronger, only easier to command. See
+        docs/theory/pd-control.md.
 
 
 OBSERVATION SPACE -- Box(-inf, inf, (169,))
@@ -72,8 +97,21 @@ OBSERVATION SPACE -- Box(-inf, inf, (169,))
 REWARD (Ant-v5's terms, ctrl weight retuned for 16 motors)
     reward = forward_velocity              # dx/dt of the trunk, m/s
            + 1.0 * healthy                 # alive bonus, paid every step
-           - 0.05 * ||action||^2           # torque cost
+           - 0.01 * ||action||^2           # control cost  (see __init__)
            - 5e-4 * ||clip(cfrc,-1,1)||^2  # contact cost
+
+    The control weight is 0.01, NOT the 0.05 the reasoning below arrives at.
+    0.05 defended against the suicide exploit but created the opposite trap on
+    rough ground, where a slow quadruped's forward term shrinks while its
+    torque bill does not — a zero-action policy beat the trained one 960 to 72
+    on the 150k run. The full derivation of both bounds is in __init__.
+
+    ON THE PD MODELS THIS TERM MEANS SOMETHING ELSE. The action is an offset
+    from the standing stance, not a torque, so ||action||^2 penalizes moving
+    the legs AWAY FROM STANDING rather than penalizing effort. Same name,
+    different quantity. It may act as an unintended crouch-and-freeze prior,
+    and it is flagged as an open question in
+    research/episodes/002-pd-position-targets.md rather than silently retuned.
 
     The 0.05 is inherited reasoning, not a fresh guess. Spyder-v0's postmortem
     (see envs/spyder.py) established that this family of robot can reach
