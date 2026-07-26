@@ -6,6 +6,8 @@ Two custom machines authored as MuJoCo MJCF by generator scripts rather than han
 
 The written record — what each run taught us, which decisions are settled and what would reverse them — is in [`research/`](research/). **The weights are disposable; that folder is not.**
 
+If you are learning this field rather than following the project, start at [`docs/lessons/`](docs/lessons/README.md) — one idea per page, from scratch, with the equation worked on a number this repo actually produced.
+
 ## Trained policies
 
 ### Ant-v5

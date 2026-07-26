@@ -1,7 +1,12 @@
 # Theory
 
-The teaching track. One note per idea, written **when the idea becomes
+The deep notes. One note per idea, written **when the idea becomes
 load-bearing** — not upfront, and not as a survey.
+
+**Start at [`../lessons/`](../lessons/README.md) instead if you are learning
+the field.** A lesson is one page that answers *what is this thing*; a theory
+note is the room behind that doorway, and assumes you now want the full
+derivation. Lessons link into these notes; these notes do not link back.
 
 The rule exists because theory learned in the abstract does not stick and
 does not get used. Theory learned the week it decides something does both.
