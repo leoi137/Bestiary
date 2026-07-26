@@ -94,6 +94,10 @@ python -m bestiary.train.watch --run hound_v1 --latest
 python -m bestiary.robots.hound.check      # 38 assertions
 python -m bestiary.robots.spyder.check     # shell is decorative, physics unchanged
 
+# Lint — REQUIRED after any refactor. Catches the bug class the robot checks
+# structurally cannot see (see research/learnings/006).
+python -m ruff check --select F src/ concepts/
+
 # Regenerate a robot model or the terrain
 python -m bestiary.robots.hound.build
 python -m bestiary.terrain.generate
@@ -129,6 +133,12 @@ stays resumable.
 **Artifact filenames are hardcoded with an `ant_` prefix** (`ant_sac.zip`,
 `ant_buffer.pkl`) even for non-Ant runs. Cosmetic, kept so existing runs do
 not break.
+
+**The robot checks are a ROBOT oracle, not a repository oracle.** 38/38 green
+means the machine is unchanged. It says nothing about `train.py` or
+`watch.py` — nothing in the suite imports them. `--help` is not coverage
+either: argparse exits before most of `main()` runs. To check an entry point,
+actually run it (`--steps 2000` takes ~16 s). See learning 006.
 
 **`FootContactRewardWrapper` is Ant-only.** It resolves four `*_ankle_geom`
 bodies at init and raises if it does not find exactly four. Do not apply it to
@@ -168,6 +178,12 @@ change under review rather than drifting.
 
 `run-episode` will not start a training run without explicit authorization —
 hard rule 3 above. It prepares the run and hands back instead.
+
+> **Project skills are registered when a session starts.** A skill created
+> mid-session is not invocable until the next one — creating the three above
+> and then trying to call `run-episode` in the same session fails with
+> "Unknown skill". Follow the contract in the file by hand until the session
+> restarts. Found the first time the loop was exercised, 2026-07-25.
 
 **Delegate to a subagent** when work would flood the main context with
 material not worth keeping: long run logs, literature sweeps, multi-file
