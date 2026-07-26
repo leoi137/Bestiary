@@ -74,18 +74,20 @@ Fields: `run`, `date`, `robot`, `env_id`, `algo`, `wrapper`, `seed`, `steps`,
 `wall_clock_s`, `fps`, `best_eval_return`, `final_ep_rew_mean`,
 `final_ep_len_mean`, `final_ent_coef`, `verdict`, `notes`.
 
-**Required from row 3 onward:** `mean_eval_after_converge` and
-`eval_crash_rate`. `best_eval_return` is a maximum over a noisy sequence, so
-it rewards instability and grows with run length — comparing two runs on it
-alone ranked a policy that scored 1218 once and 390 repeatedly *above* one
-that reliably scored 1170. Rows 1 and 2 predate these fields and carry the
-numbers in `notes` instead. See
-[learning 007](learnings/007-peak-score-hides-an-unreliable-policy.md).
+**Required from row 3 onward**, four more fields:
 
-**Required from row 3 onward:** `seeds` (how many seeds this row summarizes)
-and `provisional` (true when `seeds` is 1, or when more than one variable
-differed from the run being compared against). Rows 1 and 2 predate these and
-are both `seeds: 1` — in particular the PD-versus-torque comparison they
+- `mean_eval_after_converge` and `eval_crash_rate`, because
+  `best_eval_return` is a maximum over a noisy sequence — it rewards
+  instability and grows with run length. Comparing two runs on it alone ranked
+  a policy that scored 1218 once and 390 repeatedly *above* one that reliably
+  scored 1170. See
+  [learning 007](learnings/007-peak-score-hides-an-unreliable-policy.md).
+- `seeds` (how many seeds the row summarizes) and `provisional` (true when
+  `seeds` is 1, or when more than one variable differed from the run being
+  compared against).
+
+Rows 1 and 2 predate all four. They carry the stability numbers in `notes`
+instead, and both are `seeds: 1` — so the PD-versus-torque comparison they
 support is provisional twice over, since the two runs also differed in step
 budget (3.75M vs 1M).
 
