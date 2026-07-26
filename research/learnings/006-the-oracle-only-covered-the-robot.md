@@ -138,8 +138,8 @@ use as local variables.
 **4. Know what the oracle actually covers.** Ours is a *robot* oracle and is
 very good at that. It was quietly being treated as a *repository* oracle. A
 green suite means "the thing the suite tests is fine", never "the change is
-fine" — and the gap between those is where an autonomous loop will fail
-overnight, having reported success.
+fine" — and the gap between those is where a long run fails overnight, having
+reported success on the way in.
 
 ## How we would know this is wrong
 

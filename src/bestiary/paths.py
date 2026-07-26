@@ -5,8 +5,8 @@ Those encode how deep a file happens to sit in the tree, so they break the
 moment the file moves -- which is exactly what happened during the refactor
 that created this module. Import the constant instead.
 
-Anything that runs unattended (the research loop) must also never depend on
-the current working directory. `RUNS` below is absolute for that reason:
+Nothing here may depend on the current working directory either, since a
+session can be started from anywhere. `RUNS` below is absolute for that reason:
 `Path("runs")` silently wrote to the wrong place when a script was launched
 from anywhere other than the repo root.
 """
