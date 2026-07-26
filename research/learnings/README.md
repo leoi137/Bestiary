@@ -98,6 +98,31 @@ wrong is a belief, not a finding.
 Link related lessons inline by filename so the folder becomes a graph rather
 than a list.
 
+## Retiring one that turned out wrong
+
+The **"How we would know this is wrong"** section is not decoration — it is a
+live trigger, the same way a decision's revisit trigger is. When a later run
+observes the falsifier, the lesson is retired **by supersession**:
+
+1. Write a **new numbered learning** saying what was observed, why the old
+   mechanism was wrong or incomplete, and what replaces it.
+2. Add one line to the old file, directly under its title:
+   `> **Superseded by [NNN](NNN-slug.md), YYYY-MM-DD.**` Nothing else in the
+   old file changes.
+3. Mark it superseded in the index below, and leave it there.
+
+Never edit the old lesson to be right, and never delete it. The wrong version
+staying readable is the evidence that the method catches its own mistakes — a
+folder that quietly self-corrects looks identical to one that was never wrong,
+and neither teaches anything.
+
+## The number rule
+
+**No number in this folder was written by hand.** Every figure comes from a
+run log, a ledger row, a check output, or a short script committed alongside
+the lesson. A learning with invented arithmetic is worse than no learning,
+because it reads exactly like a correct one and will be trusted later.
+
 ## Index
 
 - [001 — A reward tuned on flat ground breaks on terrain](001-flat-reward-breaks-on-terrain.md)
