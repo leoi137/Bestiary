@@ -79,7 +79,6 @@ space and orphan the flat-world checkpoint; a deliberate v-next step.)
 """
 from __future__ import annotations
 
-from pathlib import Path
 
 import numpy as np
 from gymnasium import utils

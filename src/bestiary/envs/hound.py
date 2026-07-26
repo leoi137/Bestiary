@@ -151,7 +151,6 @@ TERRAIN (Hound-Desert-v0)
 """
 from __future__ import annotations
 
-from pathlib import Path
 
 import numpy as np
 from gymnasium import utils

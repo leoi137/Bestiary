@@ -32,7 +32,7 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt  # noqa: E402
 import mujoco  # noqa: E402
 import numpy as np  # noqa: E402
-from matplotlib.patches import Arc, Circle, FancyArrowPatch  # noqa: E402
+from matplotlib.patches import Circle  # noqa: E402
 
 from bestiary import paths
 from bestiary.robots.hound.build import SPEC
