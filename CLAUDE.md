@@ -33,6 +33,11 @@ These are repeated from `../CLAUDE.md` on purpose, so they survive a clone.
 4. **The machine is shared.** Another long-running workload uses this GPU and
    these cores. Never assume you have the machine — the ceilings above are
    roughly half of what exists, deliberately.
+5. **Git touches only these two repositories.** Every `git` invocation must
+   target `Bestiary/` or `Scriptorium/`. Never run git against any other
+   repository on this machine, never change global git config, and never
+   commit from a directory you have not confirmed is one of the two. There is
+   no task here that requires otherwise.
 
 ## Commit discipline
 
@@ -112,6 +117,15 @@ python -m bestiary.train.watch --run hound_v1 --latest
 # Validate a robot (the regression oracle — run this after ANY physics change)
 python -m bestiary.robots.hound.check      # 38 assertions
 python -m bestiary.robots.spyder.check     # shell is decorative, physics unchanged
+
+# Guards — the lessons this project already paid for, as assertions.
+# --fast runs in well under a second, so it gates every training launch.
+python -m bestiary.guards --fast && python -m bestiary.train.train ...
+python -m bestiary.guards                  # everything, ~11 s
+python -m bestiary.guards --json           # machine-readable
+
+# How well calibrated our predictions have been
+python -m bestiary.record.calibration
 
 # Lint — REQUIRED after any refactor. Catches the bug class the robot checks
 # structurally cannot see (see research/learnings/006).
@@ -193,8 +207,22 @@ from the repo root.
 - `research/ledger.jsonl` — **append-only**, one row per finished run. Never
   rewrite this file; an appending process cannot lose what is already there,
   a rewriting one can lose all of it on a crash.
+- `research/calibration.jsonl` — one row per prediction, with its stated
+  probability and its outcome. Append-only. Scored by
+  `python -m bestiary.record.calibration`.
+- `research/nulls.jsonl` — one line per dead end already paid for, with the
+  condition that would make it worth retrying. Append-only.
+- `research/anomalies.jsonl` — one line per surprising thing noticed and not
+  explained. Append-only, `status` may change.
+- `src/bestiary/guards/` — the lessons that became assertions. **Any learning
+  that can be expressed as a check must also become a guard**, and the
+  learning's front matter names it. Prose depends on someone reading it at the
+  right moment; a guard depends on nothing.
 - `docs/lessons/` — the curriculum. One idea per page, explained from scratch,
   with the equation worked on a real number from this repo.
+
+`research/MEMORY.md` explains how these fit together as one system. Read it
+before adding a new kind of artifact.
 
 Three rules make this a record rather than a diary:
 
