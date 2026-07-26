@@ -38,3 +38,9 @@ it can be wrong, and being wrong on paper is how the diagnosis improves.
   — written 2026-07-25 while `hound_desert_v0` was still running. Its primary
   prediction (a plateau, a crouching survivor rather than a walker) was
   largely borne out; see `../ledger.jsonl`.
+- [002 — PD position targets: does changing the action space unstick the hound?](002-pd-position-targets.md)
+  — prediction committed before the run started. Called 55% that
+  `ep_rew_mean` would clear 1096; it finished at 1099.63.
+- [003 — PD made the plateau 5× cheaper, not higher](003-pd-result-cheaper-not-higher.md)
+  — scores 002. PD reached the same band in 5× fewer samples and held it far
+  more reliably, but did not raise the ceiling.
