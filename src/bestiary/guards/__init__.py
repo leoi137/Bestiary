@@ -64,9 +64,29 @@ def _registry() -> tuple[Guard, ...]:
     Importing this package must stay free of heavy imports: the loop reads
     `REGISTRY` to decide what to run before it has decided to run anything.
     """
-    from bestiary.guards import checkpoint_width, ledger_schema, metric_liveness, standing
+    from bestiary.guards import (
+        checkpoint_width,
+        disk,
+        ledger_schema,
+        metric_liveness,
+        privacy,
+        standing,
+    )
 
     return (
+        # First, and first for a reason: the only irreversible failure here.
+        Guard(
+            name="privacy",
+            enforces="the public/private boundary",
+            cost="fast",
+            run=privacy.run,
+        ),
+        Guard(
+            name="disk",
+            enforces="SYSTEM.md retention policy",
+            cost="fast",
+            run=disk.run,
+        ),
         Guard(
             name="ledger-schema",
             enforces="learnings/007",
