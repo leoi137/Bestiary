@@ -69,3 +69,12 @@ MUJOCO_LOG.TXT
 # only survive a hard kill mid-test.
 .tmp_check_checkpoint_width/
 .tmp_check_retire/
+
+# core.hooksPath points git at .githooks/, so that directory is tracked and
+# ships with a clone -- which is right for pre-push, and wrong for this one
+# file. The commit-message hook installed there exists to strip AI-attribution
+# trailers, and it can only do that by naming the vendor it is stripping.
+# Tracking it would publish, in the public repository, the very fact the
+# trailer would have leaked. Installed locally by
+# Scriptorium/loop/autonomous/install-hooks.sh; never committed here.
+.githooks/prepare-commit-msg
