@@ -142,6 +142,15 @@ def arm(env, policy, cmd, episodes: int, seed0: int) -> dict:
     phi_w = [e["mean_phi_w"] for e in eps]
     phi_v = [e["mean_phi_v"] for e in eps]
     return {
+        # Episode length is not decoration: Phi is averaged over the steps that
+        # HAPPENED, so an arm whose episodes die early is averaged over a
+        # different, earlier, and generally easier window than one that runs the
+        # full horizon. Two arms are only comparable when this matches. On the
+        # first full sweep the alpha=0 arm terminated 10/10 at a mean of 367-683
+        # steps while alpha>=0.5 ran 1000/1000, which makes those rows
+        # cross-readable only with this column in view.
+        "steps_mean": float(np.mean([e["steps"] for e in eps])),
+        "steps_min": int(min(e["steps"] for e in eps)),
         "phi_w": float(np.mean(phi_w)),
         "phi_w_sd": float(statistics.pstdev(phi_w)) if len(phi_w) > 1 else 0.0,
         "phi_v": float(np.mean(phi_v)),
@@ -242,14 +251,15 @@ def main() -> None:
           f"ground {TARGET_SPAWN_GROUND[0]:.3f} m -> clearance "
           f"{spawn_z - TARGET_SPAWN_GROUND[0]:.3f} m, HELD CONSTANT across arms\n")
     hdr = (f"{'alpha':>6} {'elev(m)':>8}  {'command':<32} "
-           f"{'Phi_w':>7} {'yaw err':>9} {'Phi_v':>7} {'track':>7} {'crash':>6}")
+           f"{'Phi_w':>7} {'yaw err':>9} {'Phi_v':>7} {'track':>7} {'steps':>7} {'crash':>6}")
     print(hdr)
     print("-" * len(hdr))
     for a in results["arms"]:
         p = a["policy"]
         print(f"{a['alpha']:>6.2f} {a['elevation_m']:>8.3f}  {a['command']:<32} "
               f"{p['phi_w']:>7.4f} {a['policy_yaw_err_rad_s']:>8.3f}  "
-              f"{p['phi_v']:>7.4f} {p['track']:>7.4f} {p['crashes']:>3}/{p['n']}")
+              f"{p['phi_v']:>7.4f} {p['track']:>7.4f} {p['steps_mean']:>7.0f} "
+              f"{p['crashes']:>3}/{p['n']}")
 
     print("\nzero action (policy-free — what the GROUND alone does to Phi_w):")
     print(f"{'alpha':>6}  {'command':<32} {'Phi_w':>7} {'yaw err':>9}")

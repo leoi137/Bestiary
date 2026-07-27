@@ -1,0 +1,466 @@
+{
+  "run": "hound_track_desert_s0",
+  "checkpoint": "ant_sac.zip",
+  "episodes_per_cell": 10,
+  "seed0": 3000,
+  "sigma_w": 0.1,
+  "sigma_v": 0.15,
+  "original_elevation_m": 5.05,
+  "spawn_xy": [
+    0.0,
+    0.0
+  ],
+  "spawn_z_m": 0.3685975568113327,
+  "ground_at_spawn_m": 0.00019155681133270486,
+  "clearance_at_spawn_m": 0.368406,
+  "arms": [
+    {
+      "alpha": 0.0,
+      "elevation_m": 0.0,
+      "ground_at_spawn_m": 0.00019155681133270486,
+      "command": "drive_slow    (vx=0.30, w=0)",
+      "policy": {
+        "steps_mean": 683.3,
+        "steps_min": 644,
+        "phi_w": 0.8488729414985651,
+        "phi_w_sd": 0.013497532905650493,
+        "phi_v": 0.9450727252176294,
+        "track": 0.809449407098459,
+        "crashes": 10,
+        "n": 10
+      },
+      "zero_action": {
+        "steps_mean": 1000.0,
+        "steps_min": 1000,
+        "phi_w": 0.9688218355184693,
+        "phi_w_sd": 0.011477684277965023,
+        "phi_v": 0.16679220576608747,
+        "track": 0.16159040061050747,
+        "crashes": 0,
+        "n": 10
+      },
+      "policy_yaw_err_rad_s": 0.04219390974438865,
+      "zero_yaw_err_rad_s": 0.01793920995274668
+    },
+    {
+      "alpha": 0.0,
+      "elevation_m": 0.0,
+      "ground_at_spawn_m": 0.00019155681133270486,
+      "command": "drive_mid     (vx=0.55, w=0)",
+      "policy": {
+        "steps_mean": 366.8,
+        "steps_min": 348,
+        "phi_w": 0.7628236020104191,
+        "phi_w_sd": 0.013630294933857858,
+        "phi_v": 0.7849209181293002,
+        "track": 0.6070919511465285,
+        "crashes": 10,
+        "n": 10
+      },
+      "zero_action": {
+        "steps_mean": 1000.0,
+        "steps_min": 1000,
+        "phi_w": 0.9688218355184693,
+        "phi_w_sd": 0.011477684277965023,
+        "phi_v": 0.06163964576365426,
+        "track": 0.05971776985211642,
+        "crashes": 0,
+        "n": 10
+      },
+      "policy_yaw_err_rad_s": 0.05576011665396782,
+      "zero_yaw_err_rad_s": 0.01793920995274668
+    },
+    {
+      "alpha": 0.0,
+      "elevation_m": 0.0,
+      "ground_at_spawn_m": 0.00019155681133270486,
+      "command": "drive_fast    (vx=0.80, w=0)",
+      "policy": {
+        "steps_mean": 325.5,
+        "steps_min": 300,
+        "phi_w": 0.6811200071464797,
+        "phi_w_sd": 0.033197528480364606,
+        "phi_v": 0.3118518946436644,
+        "track": 0.21325297494984272,
+        "crashes": 10,
+        "n": 10
+      },
+      "zero_action": {
+        "steps_mean": 1000.0,
+        "steps_min": 1000,
+        "phi_w": 0.9688218355184693,
+        "phi_w_sd": 0.011477684277965023,
+        "phi_v": 0.03124323216375487,
+        "track": 0.03026918281221702,
+        "crashes": 0,
+        "n": 10
+      },
+      "policy_yaw_err_rad_s": 0.06842295356215135,
+      "zero_yaw_err_rad_s": 0.01793920995274668
+    },
+    {
+      "alpha": 0.0,
+      "elevation_m": 0.0,
+      "ground_at_spawn_m": 0.00019155681133270486,
+      "command": "turn          (vx=0.55, w=0.30)",
+      "policy": {
+        "steps_mean": 213.1,
+        "steps_min": 209,
+        "phi_w": 0.25281536003137584,
+        "phi_w_sd": 0.008331175308257848,
+        "phi_v": 0.547913557914232,
+        "track": 0.14776406616009813,
+        "crashes": 10,
+        "n": 10
+      },
+      "zero_action": {
+        "steps_mean": 1000.0,
+        "steps_min": 1000,
+        "phi_w": 0.10129896649004322,
+        "phi_w_sd": 0.0009032038008325594,
+        "phi_v": 0.06163964576365426,
+        "track": 0.006245469662219142,
+        "crashes": 0,
+        "n": 10
+      },
+      "policy_yaw_err_rad_s": 0.17191439353773696,
+      "zero_yaw_err_rad_s": 0.2978551498354075
+    },
+    {
+      "alpha": 0.25,
+      "elevation_m": 1.2625,
+      "ground_at_spawn_m": 0.0001915568113327326,
+      "command": "drive_slow    (vx=0.30, w=0)",
+      "policy": {
+        "steps_mean": 806.5,
+        "steps_min": 743,
+        "phi_w": 0.7302169281812266,
+        "phi_w_sd": 0.03845770101406358,
+        "phi_v": 0.7969983071588208,
+        "track": 0.6104163652024865,
+        "crashes": 9,
+        "n": 10
+      },
+      "zero_action": {
+        "steps_mean": 1000.0,
+        "steps_min": 1000,
+        "phi_w": 0.9689655436696416,
+        "phi_w_sd": 0.010202023242348961,
+        "phi_v": 0.16682012767650725,
+        "track": 0.1616456008173767,
+        "crashes": 0,
+        "n": 10
+      },
+      "policy_yaw_err_rad_s": 0.06078289755709674,
+      "zero_yaw_err_rad_s": 0.01789649172396751
+    },
+    {
+      "alpha": 0.25,
+      "elevation_m": 1.2625,
+      "ground_at_spawn_m": 0.0001915568113327326,
+      "command": "drive_mid     (vx=0.55, w=0)",
+      "policy": {
+        "steps_mean": 775.7,
+        "steps_min": 529,
+        "phi_w": 0.5349273201256396,
+        "phi_w_sd": 0.07700880353490733,
+        "phi_v": 0.5541901323290053,
+        "track": 0.35063370208982453,
+        "crashes": 5,
+        "n": 10
+      },
+      "zero_action": {
+        "steps_mean": 1000.0,
+        "steps_min": 1000,
+        "phi_w": 0.9689655436696416,
+        "phi_w_sd": 0.010202023242348961,
+        "phi_v": 0.06164623143287702,
+        "track": 0.05973402435879906,
+        "crashes": 0,
+        "n": 10
+      },
+      "policy_yaw_err_rad_s": 0.09324231006755197,
+      "zero_yaw_err_rad_s": 0.01789649172396751
+    },
+    {
+      "alpha": 0.25,
+      "elevation_m": 1.2625,
+      "ground_at_spawn_m": 0.0001915568113327326,
+      "command": "drive_fast    (vx=0.80, w=0)",
+      "policy": {
+        "steps_mean": 1000.0,
+        "steps_min": 1000,
+        "phi_w": 0.40993475962638115,
+        "phi_w_sd": 0.017975404837434084,
+        "phi_v": 0.18278714891388173,
+        "track": 0.09793045745931342,
+        "crashes": 0,
+        "n": 10
+      },
+      "zero_action": {
+        "steps_mean": 1000.0,
+        "steps_min": 1000,
+        "phi_w": 0.9689655436696416,
+        "phi_w_sd": 0.010202023242348961,
+        "phi_v": 0.031245641088580616,
+        "track": 0.030276381936347695,
+        "crashes": 0,
+        "n": 10
+      },
+      "policy_yaw_err_rad_s": 0.11997552069287648,
+      "zero_yaw_err_rad_s": 0.01789649172396751
+    },
+    {
+      "alpha": 0.25,
+      "elevation_m": 1.2625,
+      "ground_at_spawn_m": 0.0001915568113327326,
+      "command": "turn          (vx=0.55, w=0.30)",
+      "policy": {
+        "steps_mean": 234.9,
+        "steps_min": 226,
+        "phi_w": 0.225539555422188,
+        "phi_w_sd": 0.014103214213604725,
+        "phi_v": 0.7404045966237682,
+        "track": 0.1672489283174488,
+        "crashes": 10,
+        "n": 10
+      },
+      "zero_action": {
+        "steps_mean": 1000.0,
+        "steps_min": 1000,
+        "phi_w": 0.10097996368473942,
+        "phi_w_sd": 0.0008194118633981397,
+        "phi_v": 0.06164623143287702,
+        "track": 0.006226536411804531,
+        "crashes": 0,
+        "n": 10
+      },
+      "policy_yaw_err_rad_s": 0.18530547904162875,
+      "zero_yaw_err_rad_s": 0.2983781935866611
+    },
+    {
+      "alpha": 0.5,
+      "elevation_m": 2.525,
+      "ground_at_spawn_m": 0.00019155681133270486,
+      "command": "drive_slow    (vx=0.30, w=0)",
+      "policy": {
+        "steps_mean": 1000.0,
+        "steps_min": 1000,
+        "phi_w": 0.6655931757782273,
+        "phi_w_sd": 0.05590702038244542,
+        "phi_v": 0.5472201409887673,
+        "track": 0.37712280266772785,
+        "crashes": 0,
+        "n": 10
+      },
+      "zero_action": {
+        "steps_mean": 1000.0,
+        "steps_min": 1000,
+        "phi_w": 0.9716336258416941,
+        "phi_w_sd": 0.005083489259009399,
+        "phi_v": 0.166705815718557,
+        "track": 0.16198478944088565,
+        "crashes": 0,
+        "n": 10
+      },
+      "policy_yaw_err_rad_s": 0.07088153850357218,
+      "zero_yaw_err_rad_s": 0.01708640299876674
+    },
+    {
+      "alpha": 0.5,
+      "elevation_m": 2.525,
+      "ground_at_spawn_m": 0.00019155681133270486,
+      "command": "drive_mid     (vx=0.55, w=0)",
+      "policy": {
+        "steps_mean": 1000.0,
+        "steps_min": 1000,
+        "phi_w": 0.4389532667034217,
+        "phi_w_sd": 0.09269080914491838,
+        "phi_v": 0.32599889027645795,
+        "track": 0.1701319517483622,
+        "crashes": 0,
+        "n": 10
+      },
+      "zero_action": {
+        "steps_mean": 1000.0,
+        "steps_min": 1000,
+        "phi_w": 0.9716336258416941,
+        "phi_w_sd": 0.005083489259009399,
+        "phi_v": 0.061618815608940114,
+        "track": 0.0598731113357446,
+        "crashes": 0,
+        "n": 10
+      },
+      "policy_yaw_err_rad_s": 0.11305515670740783,
+      "zero_yaw_err_rad_s": 0.01708640299876674
+    },
+    {
+      "alpha": 0.5,
+      "elevation_m": 2.525,
+      "ground_at_spawn_m": 0.00019155681133270486,
+      "command": "drive_fast    (vx=0.80, w=0)",
+      "policy": {
+        "steps_mean": 1000.0,
+        "steps_min": 1000,
+        "phi_w": 0.5967199647753932,
+        "phi_w_sd": 0.05309799538749511,
+        "phi_v": 0.15741517424205878,
+        "track": 0.08570997548185268,
+        "crashes": 0,
+        "n": 10
+      },
+      "zero_action": {
+        "steps_mean": 1000.0,
+        "steps_min": 1000,
+        "phi_w": 0.9716336258416941,
+        "phi_w_sd": 0.005083489259009399,
+        "phi_v": 0.031235591485375813,
+        "track": 0.030350442741908467,
+        "crashes": 0,
+        "n": 10
+      },
+      "policy_yaw_err_rad_s": 0.08220875609611693,
+      "zero_yaw_err_rad_s": 0.01708640299876674
+    },
+    {
+      "alpha": 0.5,
+      "elevation_m": 2.525,
+      "ground_at_spawn_m": 0.00019155681133270486,
+      "command": "turn          (vx=0.55, w=0.30)",
+      "policy": {
+        "steps_mean": 572.1,
+        "steps_min": 250,
+        "phi_w": 0.18789059150136966,
+        "phi_w_sd": 0.01869136492850381,
+        "phi_v": 0.4594378893161769,
+        "track": 0.09670997994949412,
+        "crashes": 7,
+        "n": 10
+      },
+      "zero_action": {
+        "steps_mean": 1000.0,
+        "steps_min": 1000,
+        "phi_w": 0.10112204100958551,
+        "phi_w_sd": 0.0007088379487838412,
+        "phi_v": 0.061618815608940114,
+        "track": 0.006232451210469969,
+        "crashes": 0,
+        "n": 10
+      },
+      "policy_yaw_err_rad_s": 0.20790012677094705,
+      "zero_yaw_err_rad_s": 0.298144946386563
+    },
+    {
+      "alpha": 1.0,
+      "elevation_m": 5.05,
+      "ground_at_spawn_m": 0.00019155681133270486,
+      "command": "drive_slow    (vx=0.30, w=0)",
+      "policy": {
+        "steps_mean": 1000.0,
+        "steps_min": 1000,
+        "phi_w": 0.6051654454814532,
+        "phi_w_sd": 0.057776375704021034,
+        "phi_v": 0.5028076096552246,
+        "track": 0.3176094201447192,
+        "crashes": 0,
+        "n": 10
+      },
+      "zero_action": {
+        "steps_mean": 1000.0,
+        "steps_min": 1000,
+        "phi_w": 0.9698616085757295,
+        "phi_w_sd": 0.005939116881347761,
+        "phi_v": 0.166738318097255,
+        "track": 0.16171987426642248,
+        "crashes": 0,
+        "n": 10
+      },
+      "policy_yaw_err_rad_s": 0.08077380018279506,
+      "zero_yaw_err_rad_s": 0.01762808558338079
+    },
+    {
+      "alpha": 1.0,
+      "elevation_m": 5.05,
+      "ground_at_spawn_m": 0.00019155681133270486,
+      "command": "drive_mid     (vx=0.55, w=0)",
+      "policy": {
+        "steps_mean": 1000.0,
+        "steps_min": 1000,
+        "phi_w": 0.4945134035357325,
+        "phi_w_sd": 0.06711751033070128,
+        "phi_v": 0.23548357707145534,
+        "track": 0.12323042410761813,
+        "crashes": 0,
+        "n": 10
+      },
+      "zero_action": {
+        "steps_mean": 1000.0,
+        "steps_min": 1000,
+        "phi_w": 0.9698616085757295,
+        "phi_w_sd": 0.005939116881347761,
+        "phi_v": 0.06162660491235402,
+        "track": 0.059771229158845494,
+        "crashes": 0,
+        "n": 10
+      },
+      "policy_yaw_err_rad_s": 0.1011034064553686,
+      "zero_yaw_err_rad_s": 0.01762808558338079
+    },
+    {
+      "alpha": 1.0,
+      "elevation_m": 5.05,
+      "ground_at_spawn_m": 0.00019155681133270486,
+      "command": "drive_fast    (vx=0.80, w=0)",
+      "policy": {
+        "steps_mean": 1000.0,
+        "steps_min": 1000,
+        "phi_w": 0.5299974628286208,
+        "phi_w_sd": 0.08099143129587501,
+        "phi_v": 0.12573697370477205,
+        "track": 0.06170523550279192,
+        "crashes": 0,
+        "n": 10
+      },
+      "zero_action": {
+        "steps_mean": 1000.0,
+        "steps_min": 1000,
+        "phi_w": 0.9698616085757295,
+        "phi_w_sd": 0.005939116881347761,
+        "phi_v": 0.03123844159844948,
+        "track": 0.030297766295595586,
+        "crashes": 0,
+        "n": 10
+      },
+      "policy_yaw_err_rad_s": 0.09417013779152117,
+      "zero_yaw_err_rad_s": 0.01762808558338079
+    },
+    {
+      "alpha": 1.0,
+      "elevation_m": 5.05,
+      "ground_at_spawn_m": 0.00019155681133270486,
+      "command": "turn          (vx=0.55, w=0.30)",
+      "policy": {
+        "steps_mean": 1000.0,
+        "steps_min": 1000,
+        "phi_w": 0.15277600329028065,
+        "phi_w_sd": 0.0037886520884105393,
+        "phi_v": 0.18391837893785162,
+        "track": 0.03613547636096576,
+        "crashes": 0,
+        "n": 10
+      },
+      "zero_action": {
+        "steps_mean": 1000.0,
+        "steps_min": 1000,
+        "phi_w": 0.10099811700740795,
+        "phi_w_sd": 0.0009727947686615166,
+        "phi_v": 0.06162660491235402,
+        "track": 0.006225506214609594,
+        "crashes": 0,
+        "n": 10
+      },
+      "policy_yaw_err_rad_s": 0.23548950232784072,
+      "zero_yaw_err_rad_s": 0.29834836502771817
+    }
+  ]
+}
