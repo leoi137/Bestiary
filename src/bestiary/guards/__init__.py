@@ -74,6 +74,7 @@ def _registry() -> tuple[Guard, ...]:
         privacy,
         reward_spec,
         standing,
+        terrain_spec,
     )
 
     return (
@@ -119,6 +120,16 @@ def _registry() -> tuple[Guard, ...]:
             enforces="learnings/004",
             cost="fast",
             run=reward_spec.run,
+        ),
+        # The third leg of the same contract. checkpoint-width asserts a run
+        # records its OBSERVATION, reward-spec its REWARD, this one its GROUND
+        # — the input that changes without raising, without editing a weight,
+        # and without leaving anything in the source to find later.
+        Guard(
+            name="terrain-spec",
+            enforces="anomalies.jsonl 2026-07-27, learnings/001",
+            cost="fast",
+            run=terrain_spec.run,
         ),
         Guard(
             name="eval-sampling",
