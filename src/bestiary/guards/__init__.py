@@ -76,6 +76,7 @@ def _registry() -> tuple[Guard, ...]:
         spawn_pad,
         standing,
         terrain_spec,
+        tracking_frame,
     )
 
     return (
@@ -140,6 +141,16 @@ def _registry() -> tuple[Guard, ...]:
             enforces="anomalies.jsonl 2026-07-27, learnings/001",
             cost="fast",
             run=terrain_spec.run,
+        ),
+        # Fast, and it has to be: it gates the launch of the very runs it
+        # protects. A world-frame regression is only visible in training logs
+        # to someone already suspecting it, so catching it after the fact costs
+        # a whole run.
+        Guard(
+            name="tracking-frame",
+            enforces="docs/theory/command-tracking-reward.md §1, §2, failure mode 6",
+            cost="fast",
+            run=tracking_frame.run,
         ),
         Guard(
             name="eval-sampling",
