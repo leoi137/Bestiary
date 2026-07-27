@@ -50,6 +50,7 @@ which gets re-sorted as the set grows.
 ## Reading order
 
 1. [001 — What a reward function is, and how ours told the robot to stand still](001-what-a-reward-function-is.md)
+2. [002 — Why one training run is not a result](002-why-one-seed-is-not-a-result.md)
 
 ### Planned, roughly in the order they will be needed
 
@@ -63,3 +64,9 @@ which gets re-sorted as the set grows.
 - Why parallel environments change everything
 
 Each lands when the project needs it to decide something, not before.
+
+**The planned list is unchanged at 8.** Lesson 002 was not on it — it was the
+idea the cycle that wrote it was built around, which the rule prefers over
+taking the next queued item. Worth stating plainly rather than letting the
+count sit there looking unworked: the queue above has not been drawn down yet,
+and the next cycle that touches no new idea takes item 1 off the top.
