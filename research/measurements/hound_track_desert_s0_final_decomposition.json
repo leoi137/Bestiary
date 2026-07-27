@@ -1,0 +1,238 @@
+{
+  "run": "hound_track_desert_s0",
+  "checkpoint": "ant_sac.zip",
+  "episodes_per_cell": 20,
+  "seed0": 1000,
+  "trained": {
+    "cells": {
+      "(0.5, 0.0, 0.0)": {
+        "command": [
+          0.5,
+          0.0,
+          0.0
+        ],
+        "return": 60.101061718882384,
+        "steps": 1000.0,
+        "crashes": 0,
+        "reward_track": 146.85043563603952,
+        "reward_ctrl": -78.87133342409135,
+        "reward_contact": -7.878040493065823,
+        "reward_termination": 0.0
+      },
+      "(0.8, 0.0, 0.0)": {
+        "command": [
+          0.8,
+          0.0,
+          0.0
+        ],
+        "return": -20.21252953939057,
+        "steps": 1000.0,
+        "crashes": 0,
+        "reward_track": 58.996281740009394,
+        "reward_ctrl": -71.29102213621141,
+        "reward_contact": -7.9177891431885765,
+        "reward_termination": 0.0
+      },
+      "(-0.3, 0.0, 0.0)": {
+        "command": [
+          -0.3,
+          0.0,
+          0.0
+        ],
+        "return": 40.26872022378076,
+        "steps": 1000.0,
+        "crashes": 0,
+        "reward_track": 97.37015146201466,
+        "reward_ctrl": -50.40578743946552,
+        "reward_contact": -6.695643798768406,
+        "reward_termination": 0.0
+      },
+      "(0.5, 0.0, 0.4)": {
+        "command": [
+          0.5,
+          0.0,
+          0.4
+        ],
+        "return": -42.9613858505986,
+        "steps": 713.05,
+        "crashes": 7,
+        "reward_track": 22.919930762540623,
+        "reward_ctrl": -56.730479928731924,
+        "reward_contact": -5.650836684407318,
+        "reward_termination": -3.5
+      },
+      "(0.5, 0.0, -0.4)": {
+        "command": [
+          0.5,
+          0.0,
+          -0.4
+        ],
+        "return": -47.04808611121526,
+        "steps": 1000.0,
+        "crashes": 0,
+        "reward_track": 21.72326166361234,
+        "reward_ctrl": -60.15622597312927,
+        "reward_contact": -8.615121801698335,
+        "reward_termination": 0.0
+      },
+      "(0.0, 0.0, 0.45)": {
+        "command": [
+          0.0,
+          0.0,
+          0.45
+        ],
+        "return": -28.998651230824112,
+        "steps": 1000.0,
+        "crashes": 0,
+        "reward_track": 54.70266749376007,
+        "reward_ctrl": -76.11364702320098,
+        "reward_contact": -7.587671701383225,
+        "reward_termination": 0.0
+      },
+      "(0.0, 0.0, 0.0)": {
+        "command": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "return": 755.1000824006435,
+        "steps": 1000.0,
+        "crashes": 0,
+        "reward_track": 902.3245926697516,
+        "reward_ctrl": -140.60589621973037,
+        "reward_contact": -6.618614049378332,
+        "reward_termination": 0.0
+      }
+    },
+    "drive_grid_return": -6.4751451315609,
+    "drive_grid_steps": 952.1750000000001,
+    "drive_grid_crashes": 7,
+    "drive_grid_reward_track": 67.09378812632943,
+    "drive_grid_reward_ctrl": -65.59474932080508,
+    "drive_grid_reward_contact": -7.390850603751947,
+    "drive_grid_reward_termination": -0.5833333333333334
+  },
+  "zero_action": {
+    "cells": {
+      "(0.5, 0.0, 0.0)": {
+        "command": [
+          0.5,
+          0.0,
+          0.0
+        ],
+        "return": 61.408900888466555,
+        "steps": 1000.0,
+        "crashes": 0,
+        "reward_track": 70.69058907965209,
+        "reward_ctrl": 0.0,
+        "reward_contact": -9.28168819118552,
+        "reward_termination": 0.0
+      },
+      "(0.8, 0.0, 0.0)": {
+        "command": [
+          0.8,
+          0.0,
+          0.0
+        ],
+        "return": 21.046235591775893,
+        "steps": 1000.0,
+        "crashes": 0,
+        "reward_track": 30.32792378296142,
+        "reward_ctrl": 0.0,
+        "reward_contact": -9.28168819118552,
+        "reward_termination": 0.0
+      },
+      "(-0.3, 0.0, 0.0)": {
+        "command": [
+          -0.3,
+          0.0,
+          0.0
+        ],
+        "return": 226.3848792168307,
+        "steps": 1000.0,
+        "crashes": 0,
+        "reward_track": 235.66656740801622,
+        "reward_ctrl": 0.0,
+        "reward_contact": -9.28168819118552,
+        "reward_termination": 0.0
+      },
+      "(0.5, 0.0, 0.4)": {
+        "command": [
+          0.5,
+          0.0,
+          0.4
+        ],
+        "return": -4.971922054109595,
+        "steps": 1000.0,
+        "crashes": 0,
+        "reward_track": 4.309766137075925,
+        "reward_ctrl": 0.0,
+        "reward_contact": -9.28168819118552,
+        "reward_termination": 0.0
+      },
+      "(0.5, 0.0, -0.4)": {
+        "command": [
+          0.5,
+          0.0,
+          -0.4
+        ],
+        "return": -4.971079176367299,
+        "steps": 1000.0,
+        "crashes": 0,
+        "reward_track": 4.310609014818219,
+        "reward_ctrl": 0.0,
+        "reward_contact": -9.28168819118552,
+        "reward_termination": 0.0
+      },
+      "(0.0, 0.0, 0.45)": {
+        "command": [
+          0.0,
+          0.0,
+          0.45
+        ],
+        "return": 35.45878770133086,
+        "steps": 1000.0,
+        "crashes": 0,
+        "reward_track": 44.74047589251638,
+        "reward_ctrl": 0.0,
+        "reward_contact": -9.28168819118552,
+        "reward_termination": 0.0
+      },
+      "(0.0, 0.0, 0.0)": {
+        "command": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "return": 909.3543320506367,
+        "steps": 1000.0,
+        "crashes": 0,
+        "reward_track": 918.6360202418224,
+        "reward_ctrl": 0.0,
+        "reward_contact": -9.28168819118552,
+        "reward_termination": 0.0
+      }
+    },
+    "drive_grid_return": 55.72596702798785,
+    "drive_grid_steps": 1000.0,
+    "drive_grid_crashes": 0,
+    "drive_grid_reward_track": 65.00765521917337,
+    "drive_grid_reward_ctrl": 0.0,
+    "drive_grid_reward_contact": -9.281688191185522,
+    "drive_grid_reward_termination": 0.0
+  },
+  "gap_to_zero_action": -62.20111215954875,
+  "gap_contribution": {
+    "reward_track": 2.086132907156056,
+    "reward_ctrl": -65.59474932080508,
+    "reward_contact": 1.890837587433575,
+    "reward_termination": -0.5833333333333334
+  },
+  "gap_contribution_share": {
+    "reward_track": -0.03353851458162079,
+    "reward_ctrl": 1.0545591074409006,
+    "reward_contact": -0.030398774584343258,
+    "reward_termination": 0.009378181725063954
+  },
+  "residual_check": 2.842170943040401e-14
+}
