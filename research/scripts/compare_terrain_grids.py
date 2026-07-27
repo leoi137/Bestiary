@@ -18,13 +18,41 @@ It does not hold, and the reason is three lines up in `generate.py`:
 
     phase = rng.uniform(0.0, 2.0 * np.pi, (n, n))
 
-The spectral synthesis draws an (n, n) array of random phases. Change `n` and
-every phase in every layer is redrawn from a different position in the stream.
-The seed is held fixed and the terrain is still completely different -- not
-resampled, not refined, REROLLED. Same statistics, different world.
+The phases are **re-indexed, not redrawn** -- an earlier version of this
+docstring said "redrawn" and that is measurably false:
+`default_rng(7).uniform(0, 2pi, (1024, 1024)).ravel()` is bit-identical to the
+first 1024**2 entries of the (2048, 2048) draw. The stream is the same. What
+changes is that `phase` is indexed by **FFT bin** rather than by physical
+frequency, so changing `n` hands every drawn phase to a different wavelength.
+Same numbers, different meanings, different world.
 
-This script measures how different, so the claim rests on a number rather than
-on reading the source and being convinced.
+That distinction is not pedantry: "redrawn" implies any reseeding would do it
+and that nothing could be preserved, whereas "re-indexed" says precisely what a
+real refinement would have to hold fixed -- and a real refinement is
+reachable. Holding the phase-to-frequency map fixed and letting everything else
+change (the `fftfreq` grid, the doubled Nyquist, the band-pass tails, `_warp`
+at the finer CELL) yields correlation **+0.9997**. So this script's low
+correlation is a property of the terrain, not of the instrument.
+
+WHAT THE LOW CORRELATION DOES AND DOES NOT INVALIDATE. The terrain's
+*statistics* survive a grid change nearly intact -- mean slope moves 2.9%, p95
+slope 0.05%, both smaller than the +/-8% spread between seeds. What does not
+survive is the *particular corridor the robot drives*, because
+`HoundEnv.reset_model` never randomizes trunk xy: every episode starts at
+exactly (0, 0) and integrates one fixed path through one realization. Along
++x the first obstacle above 0.25 m moves from 13.80 m to 10.83 m.
+
+So the invalidation is scoped, and the scope was measured rather than assumed:
+
+    zero-action control   955.58 +/- 1.36 (1024)  vs  955.34 +/- 0.29 (2048)
+    greedy policy         930.9 (1024)            vs  800.2 (2048), sd ~450
+
+The **zero-action baseline does not move at all** -- the do-nothing policy
+never leaves a spawn pad that is exactly h = 0 out to 2.50 m at every seed and
+every grid, peaking at 2.18 m radius. Only numbers a *moving* policy produced
+are at risk. An earlier version of this note claimed every existing number
+stops being a comparator; that was over-claimed and the measurement above is
+what corrected it.
 
     venv/bin/python research/scripts/compare_terrain_grids.py
 
@@ -131,10 +159,14 @@ def main() -> int:
     verdict = "SAME TERRAIN, REFINED" if corr > 0.5 else "A DIFFERENT TERRAIN"
     print(f"  verdict: {verdict}")
     if corr <= 0.5:
-        print("    Changing GRID rerolls generate.py's (n, n) phase array, so every")
-        print("    spectral layer is redrawn. The seed is fixed and the world still")
-        print("    changes. Any policy comparison across this regen is an instrument")
-        print("    change, and the zero-action baseline must be re-measured with it.")
+        print("    generate.py indexes its phase array by FFT BIN, not by physical")
+        print("    frequency, so changing GRID hands every drawn phase to a different")
+        print("    wavelength. The phases are re-indexed, not redrawn: the seed is")
+        print("    fixed, the stream is identical, and the world still changes.")
+        print("    Scope, measured rather than assumed: the ZERO-ACTION baseline is")
+        print("    unaffected (955.34 vs 955.58) because it never leaves the exactly")
+        print("    flat spawn pad. Only numbers a MOVING policy produced need")
+        print("    re-measuring -- see research/learnings/009.")
     return 0
 
 
