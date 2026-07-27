@@ -38,17 +38,57 @@ WHAT IT ASSERTS
 """
 from __future__ import annotations
 
+import json
+
 import numpy as np
 
+from bestiary import paths
 from bestiary.guards import Finding
 
 # Section 2's derived bounds, restated as the inequalities they came from.
 # These are the CONCLUSIONS of the derivation, so a guard may assert them; the
 # derivation itself lives in the theory note and is not duplicated here.
-MAX_STANDING_TAKE_EASIEST_DRIVE = 0.16   # standing under (0.3, 0, 0), cap ~0.15
-MAX_UNSTEERED_YAW_FACTOR = 0.45          # Phi(0.127/sigma_w) <= 0.45
-UNSTEERED_YAW_DRIFT = 0.127              # rad/s, measured, research/measurements/
-STANDING_DRIFT = 0.04                    # m/s, reconciled floor (Section 2)
+#
+# THE NOISE CONSTANTS ARE READ FROM THE MEASUREMENT FILE, BY ARM NAME, AND THAT
+# IS THE WHOLE POINT. The first version of this guard hardcoded 0.127 rad/s as
+# "the" yaw drift and used it in BOTH inequalities. 0.127 is the yaw of the
+# `wheel_0.3` arm -- a machine that is DRIVING but not steering. The standing
+# machine is the `wheel_0` arm and yaws at 0.01823, seven times less.
+#
+# The consequence was not a rounding error. Assertion 5 computed
+# Phi(0.34/0.15) * Phi(0.127/0.10) = 0.0624 against a 0.16 cap and passed by
+# 2.6x, while the quantity it claimed to be bounding -- a real standing machine
+# under the easiest drive command -- is Phi(0.3354/0.15) * Phi(0.01855/0.10) =
+# 0.1611, which is OVER that cap. A guard written to make a derivation
+# permanent passed comfortably on a number the derivation never contained.
+# Section 2 uses 0.968 for that factor, which is Phi(0.0182/0.10): the note had
+# it right and the guard did not.
+#
+# Reading by arm name makes the substitution impossible rather than merely
+# fixed. An arm that disappears from the file raises here instead of silently
+# falling back to a plausible constant.
+_NOISE = json.loads(
+    (paths.RESEARCH / "measurements" / "tracking_noise.json").read_text()
+)
+_STANDING = _NOISE["arms"]["wheel_0"]        # zero wheel command: NOT driving
+_DRIVING = _NOISE["arms"]["wheel_0.3"]       # driving, unsteered
+
+STANDING_YAW_DRIFT = _STANDING["yaw"]["std"]        # 0.01823 rad/s
+STANDING_DRIFT = abs(_STANDING["linear"]["mean_vx"])  # 0.03553 m/s, the creep
+UNSTEERED_DRIVING_YAW = _DRIVING["yaw"]["std"]      # 0.12695 rad/s
+
+MAX_UNSTEERED_YAW_FACTOR = 0.45          # Phi(0.127/sigma_w) <= 0.45, Section 2
+
+# Section 2 aimed at 0.15 for this cap and reports its own chosen sigma_v
+# binding it "at equality" at 0.158; with this repo's measured creep and
+# standing yaw it lands at 0.1611. So sigma_v = 0.15 sits AT the cap by
+# construction -- the note calls it "the rounded top" of the [0.12, 0.146]
+# window -- and this bound exists to catch a WIDENING, not to re-litigate the
+# choice. 0.17 leaves ~5% over the measured value: sigma_v = 0.16 already
+# scores 0.179 and is caught, which is correct, because anything above 0.15 is
+# outside the derived window.
+MAX_STANDING_TAKE_EASIEST_DRIVE = 0.17
+MIN_DRIVE_COMMAND = 0.3                  # = 2 * sigma_v, Section 3
 
 
 def run() -> list[Finding]:
@@ -135,24 +175,36 @@ def run() -> list[Finding]:
     ))
 
     # --- 5. The freeride inequalities sigma was derived from still hold ------
-    # Standing (drifting backwards) under the EASIEST drive command.
-    standing_err = 0.3 + STANDING_DRIFT
-    standing_take = float(kernel(standing_err / SIGMA_V)) * float(
-        kernel(UNSTEERED_YAW_DRIFT / SIGMA_W)
-    )
+    # Standing (drifting backwards) under the EASIEST drive command. Both
+    # factors use the STANDING arm, because the machine being bounded is
+    # standing -- see the note on _STANDING above for what using the driving
+    # arm's yaw here did.
+    standing_err = MIN_DRIVE_COMMAND + STANDING_DRIFT
+    phi_v_standing = float(kernel(standing_err / SIGMA_V))
+    phi_w_standing = float(kernel(STANDING_YAW_DRIFT / SIGMA_W))
+    standing_take = phi_v_standing * phi_w_standing
     out.append(Finding(
         "standing cannot freeride the easiest drive command",
         standing_take <= MAX_STANDING_TAKE_EASIEST_DRIVE,
-        f"a standing machine under (0.3, 0, 0) takes {standing_take:.4f}/step "
-        f"at sigma_v={SIGMA_V}, cap {MAX_STANDING_TAKE_EASIEST_DRIVE}",
+        f"a standing machine under ({MIN_DRIVE_COMMAND}, 0, 0) takes "
+        f"{standing_take:.4f}/step = Phi_v {phi_v_standing:.4f} x Phi_w "
+        f"{phi_w_standing:.4f}, at sigma_v={SIGMA_V} sigma_w={SIGMA_W}, "
+        f"cap {MAX_STANDING_TAKE_EASIEST_DRIVE}. Both factors use the STANDING "
+        f"arm (creep {STANDING_DRIFT:.5f} m/s, yaw {STANDING_YAW_DRIFT:.5f} "
+        f"rad/s); the driving arm's yaw {UNSTEERED_DRIVING_YAW:.5f} would give "
+        f"{phi_v_standing * float(kernel(UNSTEERED_DRIVING_YAW / SIGMA_W)):.4f} "
+        f"and bound nothing",
     ))
 
-    unsteered_yaw_factor = float(kernel(UNSTEERED_YAW_DRIFT / SIGMA_W))
+    # This one genuinely IS about a driving machine, so it genuinely does use
+    # the driving arm. The two assertions sitting next to each other with
+    # different constants is the point.
+    unsteered_yaw_factor = float(kernel(UNSTEERED_DRIVING_YAW / SIGMA_W))
     out.append(Finding(
         "at least half the reward rides on active yaw stabilization",
         unsteered_yaw_factor <= MAX_UNSTEERED_YAW_FACTOR,
-        f"an unsteered machine drifting {UNSTEERED_YAW_DRIFT} rad/s scores "
-        f"Phi_w={unsteered_yaw_factor:.4f} at sigma_w={SIGMA_W}, "
+        f"an unsteered but DRIVING machine yawing {UNSTEERED_DRIVING_YAW:.5f} "
+        f"rad/s scores Phi_w={unsteered_yaw_factor:.4f} at sigma_w={SIGMA_W}, "
         f"cap {MAX_UNSTEERED_YAW_FACTOR}; a steered one scores "
         f"{float(kernel(0.03 / SIGMA_W)):.4f}",
     ))
