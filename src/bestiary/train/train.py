@@ -240,6 +240,75 @@ def _record_or_verify_obs_spec(config: dict[str, Any], run_paths: dict[str, Path
     print(f"[config] obs spec {spec.hash} matches the recorded spec")
 
 
+def _record_or_verify_reward_spec(config: dict[str, Any], run_paths: dict[str, Path],
+                                  env: gym.Env) -> None:
+    """Pin the reward this run trained under — or refuse to resume if it moved.
+
+    The observation half of this got written first because it fails loudly:
+    change the width and `SAC.load()` raises. The reward half fails silently,
+    which is worse. `research/anomalies.jsonl` records the damage already done
+    — three hound runs at two different `ctrl_cost_weight` values, two of them
+    compared against each other in the record, with nothing anywhere saying so.
+
+    Resuming across a reward change is `learnings/002` exactly: the replay
+    buffer is full of transitions labelled with rewards that will never be paid
+    again, and the critic has been fitted to them. That run destroyed a working
+    gait in a few thousand steps and never recovered.
+
+    Envs that do not declare a reward spec are skipped rather than guessed at,
+    for the same reason legacy runs carry no obs spec: back-filling provenance
+    from today's code is the false-provenance failure this exists to prevent.
+    """
+    spec = getattr(env.unwrapped, "_reward_spec", None)
+    if spec is None:
+        return
+
+    recorded = config.get("reward_spec")
+
+    if recorded is None:
+        config["reward_spec"] = spec.to_record()
+        run_paths["config"].write_text(json.dumps(config, indent=2) + "\n")
+        print(f"[config] pinned reward spec {spec.hash} "
+              f"(shape {spec.shape_hash}, {len(spec.terms)} terms)\n"
+              f"{spec.describe()}")
+        return
+
+    if recorded.get("hash") == spec.hash:
+        print(f"[config] reward spec {spec.hash} matches the recorded spec")
+        return
+
+    # Both cases raise. They are separated because the remedies differ and a
+    # single "the reward changed" message sends people looking in the wrong
+    # place -- learnings/004 is precisely that these are different failures.
+    shape_moved = recorded.get("shape_hash") != spec.shape_hash
+    if shape_moved:
+        detail = (
+            f"The reward's TERMS changed, not just its weights.\n"
+            f"  recorded shape: {recorded.get('shape_hash')} "
+            f"{[t['name'] for t in recorded.get('terms', [])]}\n"
+            f"  current shape:  {spec.shape_hash} {[t.name for t in spec.terms]}\n"
+            f"This reward pays for a different thing than the one in the replay "
+            f"buffer. The two runs are not comparable in kind and no relabelling "
+            f"fixes it (learnings/004). Start a NEW run name."
+        )
+    else:
+        detail = (
+            f"The reward's WEIGHTS changed; its terms did not.\n"
+            f"  recorded: {recorded.get('hash')} {recorded.get('terms')}\n"
+            f"  current:  {spec.hash} "
+            f"{[(t.name, t.weight) for t in spec.terms]}\n"
+            f"Every transition in the replay buffer is labelled with a reward "
+            f"that will never be paid again, and the critic is fitted to them. "
+            f"Start a NEW run name."
+        )
+
+    raise RuntimeError(
+        f"reward spec changed since this run started.\n{detail}\n"
+        f"Warm-starting across a reward change destroyed a working gait in a "
+        f"few thousand steps once already (learnings/002, nulls.jsonl row 1)."
+    )
+
+
 def _build_model(env: gym.Env, run_paths: dict[str, Path], seed: int | None) -> tuple[SAC, bool]:
     """Resume from runs/<name>/ant_sac.zip if present, else fresh agent."""
     if run_paths["model"].exists():
@@ -304,9 +373,11 @@ def main() -> None:
     seed = config["seed"]
 
     train_env = _make_env(env_id, wrapper_name, wrapper_kwargs, seed)
-    # Before a single step is taken: pin the observation spec on a fresh run,
-    # and on a resume refuse to continue if it has moved. See the function.
+    # Before a single step is taken: pin what this run trains against on a
+    # fresh run, and on a resume refuse to continue if either half has moved.
+    # The observation is the loud failure, the reward is the silent one.
     _record_or_verify_obs_spec(config, run_paths, train_env)
+    _record_or_verify_reward_spec(config, run_paths, train_env)
 
     model, is_resume = _build_model(train_env, run_paths, seed)
 
