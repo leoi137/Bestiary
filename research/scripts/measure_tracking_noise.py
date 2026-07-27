@@ -24,9 +24,25 @@ is not a convention, it is the statement *unfixable noise costs the policy 10%
 of the tracking term and no more*. Any other multiple is a different sentence
 about how much the terrain is allowed to cost.
 
+PERSISTENCE, AND WHY IT WAS ADDED LATE. For its first day this script only
+printed. That satisfies the number rule's letter — the values are recomputable
+on demand — and fails its purpose: no reader of the record ever encountered
+them, no guard could check a reward's sigma against the floor it was derived
+from, and when the cycle that commissioned the measurement was killed, the only
+surviving copy of the four numbers was a commit message. `--persist` writes
+both canonical arms to `research/measurements/tracking_noise.json` so a sigma
+and the measurement behind it can be put side by side.
+
+The persisted record deliberately stores the RAW statistics (rms, std, p95) and
+labels the kernel used for anything derived from them. sigma = 3 * floor is a
+CAUCHY statement; under a Gaussian the same multiple means something three
+orders of magnitude different in the tail, and `research/anomalies.jsonl`
+records that the repo currently says both in different places.
+
 Usage:
     venv/bin/python -m bestiary.research.scripts.measure_tracking_noise   # not importable; run by path
     venv/bin/python research/scripts/measure_tracking_noise.py --episodes 20
+    venv/bin/python research/scripts/measure_tracking_noise.py --persist
 """
 from __future__ import annotations
 
@@ -34,6 +50,20 @@ import argparse
 import json
 
 import numpy as np
+
+from bestiary import paths
+
+# The two arms the reward design actually needs, and why both are canonical:
+# standing is the floor a tolerance may not be tighter than, and the moving arm
+# is the ripple an UNCONTROLLED machine already produces, which a tolerance must
+# be tighter than or the reward pays for not controlling. One without the other
+# is half the constraint.
+_CANONICAL_ARMS = (0.0, 0.3)
+
+# The kernel every derived quantity in this file assumes. Recorded explicitly in
+# the persisted JSON because the 3x rule is kernel-specific and the repo has
+# said "Gaussian" elsewhere; see research/anomalies.jsonl.
+_KERNEL = "cauchy: Phi(u) = 1/(1+u^2)"
 
 # Phi(1/3) — what an error exactly at the noise floor scores under the Cauchy
 # kernel. Computed, not asserted, because it is the justification for the 3x.
@@ -119,6 +149,47 @@ def measure(env_id: str, episodes: int, seed0: int, wheel: float = 0.0) -> dict:
     }
 
 
+def persist(env_id: str, episodes: int, seed0: int) -> int:
+    """Measure both canonical arms and write them where the record can find them.
+
+    Writes `research/measurements/tracking_noise.json`. The file is overwritten
+    rather than appended: unlike the ledger this is a MEASUREMENT of a fixed
+    terrain, not a history of events, so a second run on unchanged ground should
+    reproduce it exactly rather than accumulate near-duplicate rows. If the
+    terrain changes the numbers must change with it, which is the point — and a
+    stale copy sitting beside a fresh one would be worse than either.
+    """
+    out_dir = paths.RESEARCH / "measurements"
+    out_dir.mkdir(parents=True, exist_ok=True)
+    out_path = out_dir / "tracking_noise.json"
+
+    arms = {}
+    for wheel in _CANONICAL_ARMS:
+        result = measure(env_id, episodes, seed0, wheel)
+        arms[f"wheel_{wheel:g}"] = result
+        lin, yaw = result["linear"], result["yaw"]
+        print(f"  wheel={wheel:<4g} planar rms {lin['rms_planar_speed']:.4f} m/s   "
+              f"yaw std {yaw['std']:.4f} rad/s   "
+              f"mean ep len {np.mean(result['episode_lengths']):.0f}")
+
+    record = {
+        "kernel": _KERNEL,
+        "floor_score_under_kernel": round(_FLOOR_SCORE, 4),
+        "tolerance_rule": "sigma = 3 * floor, i.e. unfixable noise costs 10% of the term",
+        "terrain_grid": 1024,
+        "terrain_note": (
+            "GRID=1024, 7.812 cm cells. These numbers are terrain-specific and a "
+            "regen invalidates them -- research/scripts/compare_terrain_grids.py "
+            "measures a correlation of +0.061 between GRID=1024 and GRID=2048 at "
+            "the same seed, so a regenerated desert is a different desert."
+        ),
+        "arms": arms,
+    }
+    out_path.write_text(json.dumps(record, indent=2) + "\n")
+    print(f"\nwrote {out_path.relative_to(paths.REPO_ROOT)}")
+    return 0
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--env", default="HoundPDDesert-v0")
@@ -127,7 +198,13 @@ def main() -> int:
     parser.add_argument("--wheel", type=float, default=0.0,
                         help="constant wheel command applied to all four wheels")
     parser.add_argument("--json", action="store_true")
+    parser.add_argument("--persist", action="store_true",
+                        help="measure BOTH canonical arms and write "
+                             "research/measurements/tracking_noise.json")
     args = parser.parse_args()
+
+    if args.persist:
+        return persist(args.env, args.episodes, args.seed0)
 
     result = measure(args.env, args.episodes, args.seed0, args.wheel)
     if args.json:

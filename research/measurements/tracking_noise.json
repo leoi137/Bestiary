@@ -1,0 +1,143 @@
+{
+  "kernel": "cauchy: Phi(u) = 1/(1+u^2)",
+  "floor_score_under_kernel": 0.9,
+  "tolerance_rule": "sigma = 3 * floor, i.e. unfixable noise costs 10% of the term",
+  "terrain_grid": 1024,
+  "terrain_note": "GRID=1024, 7.812 cm cells. These numbers are terrain-specific and a regen invalidates them -- research/scripts/compare_terrain_grids.py measures a correlation of +0.061 between GRID=1024 and GRID=2048 at the same seed, so a regenerated desert is a different desert.",
+  "arms": {
+    "wheel_0": {
+      "env_id": "HoundPDDesert-v0",
+      "wheel_command": 0.0,
+      "episodes": 20,
+      "seeds": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        16,
+        17,
+        18,
+        19
+      ],
+      "steps_total": 20000,
+      "episode_lengths": [
+        1000,
+        1000,
+        1000,
+        1000,
+        1000,
+        1000,
+        1000,
+        1000,
+        1000,
+        1000,
+        1000,
+        1000,
+        1000,
+        1000,
+        1000,
+        1000,
+        1000,
+        1000,
+        1000,
+        1000
+      ],
+      "linear": {
+        "mean_vx": -0.03553,
+        "std_vx": 0.00333,
+        "rms_planar_speed": 0.03608,
+        "p95_planar_speed": 0.03999
+      },
+      "yaw": {
+        "mean": 0.00019,
+        "std": 0.01823,
+        "rms": 0.01823,
+        "p95_abs": 0.0296
+      },
+      "derived": {
+        "floor_score_under_cauchy": 0.9,
+        "sigma_v_from_rms": 0.1082,
+        "sigma_omega_from_std": 0.0547
+      }
+    },
+    "wheel_0.3": {
+      "env_id": "HoundPDDesert-v0",
+      "wheel_command": 0.3,
+      "episodes": 20,
+      "seeds": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        16,
+        17,
+        18,
+        19
+      ],
+      "steps_total": 14336,
+      "episode_lengths": [
+        1000,
+        227,
+        171,
+        1000,
+        1000,
+        172,
+        1000,
+        184,
+        1000,
+        1000,
+        1000,
+        170,
+        1000,
+        1000,
+        1000,
+        177,
+        1000,
+        235,
+        1000,
+        1000
+      ],
+      "linear": {
+        "mean_vx": 0.15437,
+        "std_vx": 0.30036,
+        "rms_planar_speed": 0.34486,
+        "p95_planar_speed": 0.8709
+      },
+      "yaw": {
+        "mean": 0.00052,
+        "std": 0.12695,
+        "rms": 0.12695,
+        "p95_abs": 0.17989
+      },
+      "derived": {
+        "floor_score_under_cauchy": 0.9,
+        "sigma_v_from_rms": 1.0346,
+        "sigma_omega_from_std": 0.3809
+      }
+    }
+  }
+}
