@@ -71,6 +71,7 @@ def _registry() -> tuple[Guard, ...]:
         ledger_schema,
         metric_liveness,
         privacy,
+        reward_spec,
         standing,
     )
 
@@ -99,6 +100,15 @@ def _registry() -> tuple[Guard, ...]:
             enforces="learnings/003",
             cost="fast",
             run=checkpoint_width.run,
+        ),
+        # Paired with checkpoint-width on purpose: that one asserts a run
+        # records the OBSERVATION it trained against, this one the REWARD.
+        # Both halves of the contract, or neither is provenance.
+        Guard(
+            name="reward-spec",
+            enforces="learnings/004",
+            cost="fast",
+            run=reward_spec.run,
         ),
         Guard(
             name="eval-sampling",
