@@ -39,9 +39,23 @@ the theory and the implementation stay tied together.
 - `sac.md` — Soft Actor-Critic: the entropy term, what `ent_coef` collapsing
   early actually indicates, and why the critic cannot be warm-started across
   a reward change (see learning 002).
-- `heightfields.md` — how MuJoCo stores terrain, why cell size relative to
-  wheel radius matters, and where the hound's passive backward creep comes
-  from.
+- `heightfields.md` — how MuJoCo stores terrain, and where the hound's passive
+  backward creep comes from. **Rewrite the brief before writing it.** This
+  entry used to read "why cell size relative to wheel radius matters", which
+  assumed the answer — and `research/learnings/009` measured that answer to be
+  wrong. Halving the cell to 3.91 cm changes the creep by 1 mm in 1763. The
+  note still needs writing; it just cannot start from the cell-size story.
 
 The remaining three are unwritten by design. Each lands when the project
 needs it to decide something, not before.
+
+## Written
+
+- ~~`command-tracking-reward.md`~~ — **written 2026-07-27**.
+  [The full derivation](command-tracking-reward.md) of the reward meant to
+  replace the one that paid the hound for existing: the Cauchy kernel and why
+  the two channels multiply rather than add, σ_v and σ_w derived from this
+  robot's measured noise floor against a two-sided inequality, the command
+  distribution, and the termination penalty from `K = c/(1−γ)`.
+  **Designed, not yet implemented or validated** — no run has trained under
+  it, and its predicted separations are predictions, not results.
