@@ -40,8 +40,16 @@ from bestiary import paths
 
 import bestiary.envs  # noqa: F401 -- registers Spyder-v0 with Gymnasium
 from bestiary.rewards import WRAPPERS
+from bestiary.terrain import TerrainSpec
 
 DEFAULT_ENV = "Ant-v5"
+
+# `config.get("terrain_spec")` returns None both for a key that is absent and
+# for one recorded as null, and those are different facts: "nothing is known
+# about this run's ground" versus "this run is verified to be on a flat world".
+# A sentinel is the cheapest way to keep them apart. See
+# `_record_or_verify_terrain_spec`.
+_UNRECORDED = object()
 
 # --- Hyperparameters (the spec) --------------------------------------------
 LEARNING_RATE = 3e-4
@@ -309,6 +317,148 @@ def _record_or_verify_reward_spec(config: dict[str, Any], run_paths: dict[str, P
     )
 
 
+def _record_or_verify_terrain_spec(config: dict[str, Any], run_paths: dict[str, Path],
+                                   env: gym.Env) -> None:
+    """Pin the ground this run trained on — or refuse to resume if it moved.
+
+    The third input to a run's dynamics, and the last one to get this
+    treatment. `research/anomalies.jsonl` (2026-07-27): the heightfield had no
+    hash, no `config.json` field and no guard, while the observation and the
+    reward had all three.
+
+    A terrain swap is the quietest of the three failures. Changing the
+    observation makes `SAC.load()` raise; changing the reward at least leaves a
+    weight to notice in the source. Changing the ground leaves nothing: the
+    checkpoint loads, the widths match, the reward is untouched, and every
+    number the run produces is measured against a world the previous numbers
+    never saw. `research/scripts/compare_terrain_grids.py` put a figure on it —
+    the GRID=2048 regen that was on the table correlates with the committed
+    terrain at **+0.0610**, because `generate.py` indexes its `(n, n)` phase
+    array by FFT bin, so changing `n` hands every phase to a different
+    wavelength even though the RNG stream is bit-identical.
+
+    THREE STATES, NOT TWO
+
+    The key is written even when there is no terrain, and `null` is a real
+    answer meaning "this model has no heightfield":
+
+        absent   this run predates the terrain record (or its env is not
+                 MuJoCo), so nothing can be said about its ground
+        null     determined: flat world, no heightfield
+        object   determined: this heightfield
+
+    A flat env is therefore not merely exempt, it is *asserted flat* — so
+    repointing `Hound-v0` at a desert XML mid-run raises rather than passing
+    for want of anything to compare. Recording only the terrain case would have
+    made "flat" and "unknown" the same value, and they are not.
+
+    Legacy runs stay legacy: back-filling a hash from today's asset would state
+    that `hound_pd_desert_s1` trained on the terrain that happens to be checked
+    out right now, which is the false provenance this whole mechanism exists to
+    prevent.
+    """
+    model = getattr(env.unwrapped, "model", None)
+    if model is None:
+        # Not MuJoCo, so there is no compiled ground to measure. Say so rather
+        # than writing `null`, which would claim the world is flat.
+        print(f"[config] {type(env.unwrapped).__name__} exposes no MuJoCo model; "
+              f"terrain is not recorded for this run")
+        return
+
+    spec = TerrainSpec.from_model(model)
+    # `.get()` cannot tell an absent key from a recorded `null`, and that is the
+    # whole distinction between "predates the record" and "verified flat".
+    recorded = config["terrain_spec"] if "terrain_spec" in config else _UNRECORDED
+
+    if recorded is _UNRECORDED:
+        config["terrain_spec"] = None if spec is None else spec.to_record()
+        run_paths["config"].write_text(json.dumps(config, indent=2) + "\n")
+        if spec is None:
+            print("[config] pinned terrain: none (flat world, no heightfield)")
+        else:
+            print(f"[config] pinned terrain {spec.hash} "
+                  f"(field {spec.field_hash})\n{spec.describe()}")
+        return
+
+    if recorded is None and spec is None:
+        print("[config] terrain: still a flat world, as recorded")
+        return
+
+    if recorded is None:
+        raise RuntimeError(
+            f"this run was started on a FLAT world and the env now has terrain.\n"
+            f"  recorded: no heightfield\n"
+            f"  current:  {spec.hash} (field {spec.field_hash})\n{spec.describe()}\n"
+            f"Every transition in the replay buffer was collected on level "
+            f"ground, and the critic is fitted to them. `learnings/001` is "
+            f"this move going wrong: the same reward that paid 7.05 per step "
+            f"for forward progress on the flat world paid 0.29 on the desert, "
+            f"flipping the payoff-to-effort ratio from 8.7:1 to 0.51:1 and "
+            f"making standing still the better policy. Start a NEW run name."
+        )
+
+    if spec is None:
+        raise RuntimeError(
+            f"this run was started on terrain and the env is now a FLAT world.\n"
+            f"  recorded: {recorded.get('hash')} (field {recorded.get('field_hash')}) "
+            f"{recorded.get('nrow')}x{recorded.get('ncol')} from "
+            f"{recorded.get('source')!r}\n"
+            f"  current:  no heightfield\n"
+            f"The model lost its floor — most likely a `*_desert.xml` was "
+            f"regenerated without its <hfield>, or --env resolved to the flat "
+            f"twin. Restore the world; do not resume onto different ground."
+        )
+
+    if recorded.get("hash") == spec.hash:
+        print(f"[config] terrain {spec.hash} matches the recorded ground")
+        return
+
+    # Both cases raise. They are separated because the remedies point at
+    # different files, and one message saying "the terrain changed" sends
+    # people to regenerate an asset when the actual edit was one number in an
+    # XML — the same reasoning that splits reward hash from reward shape_hash.
+    if recorded.get("field_hash") != spec.field_hash:
+        detail = (
+            f"The height SAMPLES changed. This is a different terrain.\n"
+            f"  recorded: field {recorded.get('field_hash')} "
+            f"{recorded.get('nrow')}x{recorded.get('ncol')} "
+            f"sha256 {recorded.get('data_sha256')}\n"
+            f"  current:  field {spec.field_hash} {spec.nrow}x{spec.ncol} "
+            f"sha256 {spec.data_sha256}\n"
+            f"`assets/terrain/desert_hfield.bin` is not the file this run "
+            f"trained on. Another seed changes the world, and so does another "
+            f"GRID: research/scripts/compare_terrain_grids.py measured the "
+            f"1024 -> 2048 regen at correlation +0.0610 with the committed "
+            f"terrain — a different world with the same statistics. Restore "
+            f"the asset (`git checkout`), or start a NEW run name and "
+            f"re-measure every number a MOVING policy produced against it."
+        )
+    else:
+        detail = (
+            f"The same height samples, placed differently in the world.\n"
+            f"  recorded: {recorded.get('hash')} extent "
+            f"{recorded.get('x_half_extent_m')} x {recorded.get('y_half_extent_m')} m, "
+            f"z_span {recorded.get('z_span_m')} m, base {recorded.get('z_base_m')}, "
+            f"pos {recorded.get('pos_m')}, quat {recorded.get('quat')}\n"
+            f"  current:  {spec.hash} extent "
+            f"{spec.x_half_extent_m} x {spec.y_half_extent_m} m, "
+            f"z_span {spec.z_span_m} m, base {spec.z_base_m}, "
+            f"pos {list(spec.pos_m)}, quat {list(spec.quat)}\n"
+            f"A `<hfield size=...>` or floor-geom attribute was edited in a "
+            f"`*_desert.xml`. The elevation span multiplies every slope in the "
+            f"world, so this is a dynamics change even though the .bin is "
+            f"untouched. It is a one-line revert."
+        )
+
+    raise RuntimeError(
+        f"the terrain changed since this run started.\n{detail}\n"
+        f"Resuming would train against ground the replay buffer has never "
+        f"seen: every stored transition, and the critic fitted to them, "
+        f"describes a world that no longer exists. The run would not be "
+        f"comparable in kind to itself, let alone to any ledger row beside it."
+    )
+
+
 def _build_model(env: gym.Env, run_paths: dict[str, Path], seed: int | None) -> tuple[SAC, bool]:
     """Resume from runs/<name>/ant_sac.zip if present, else fresh agent."""
     if run_paths["model"].exists():
@@ -374,10 +524,13 @@ def main() -> None:
 
     train_env = _make_env(env_id, wrapper_name, wrapper_kwargs, seed)
     # Before a single step is taken: pin what this run trains against on a
-    # fresh run, and on a resume refuse to continue if either half has moved.
-    # The observation is the loud failure, the reward is the silent one.
+    # fresh run, and on a resume refuse to continue if any of the three has
+    # moved. The observation is the loud failure (SAC.load raises), the reward
+    # is the silent one, and the terrain is the silent one that leaves no trace
+    # in the source at all.
     _record_or_verify_obs_spec(config, run_paths, train_env)
     _record_or_verify_reward_spec(config, run_paths, train_env)
+    _record_or_verify_terrain_spec(config, run_paths, train_env)
 
     model, is_resume = _build_model(train_env, run_paths, seed)
 
