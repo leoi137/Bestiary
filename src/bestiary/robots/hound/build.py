@@ -117,13 +117,47 @@ cylinder, noslip_iterations up to 10, iterations=200, elliptic friction cones
 (above), which cut the fall rate under noisy resets from 8/15 to 0/15, plus
 the env's 5 mm spawn clearance.
 
-Living with it is defensible — 5 cm/s is 2% of the speed this machine drives
-at, and it is a force a policy holding station simply has to counter, which
-is true of a real wheeled robot on a slope too. The real fix is a finer
-heightfield: regenerating terrain/generate.py at GRID=2048 would put four cells
-under each wheel. That changes an asset the spider shares (its 0.5 m legs and
-point feet never noticed the 7.82 cm cells), so it is a deliberate follow-up,
-not a silent edit.
+Living with it is defensible — it is a force a policy holding station simply
+has to counter, which is true of a real wheeled robot on a slope too.
+
+CORRECTION, 2026-07-27 — THE CELL-SIZE STORY ABOVE IS WRONG, AND SO IS ITS
+MAGNITUDE. Left standing rather than deleted, because the reasoning is worth
+seeing: it is careful, specific, cites a real MuJoCo implementation detail,
+and is still wrong. Full version in research/learnings/009.
+
+This paragraph used to continue "The real fix is a finer heightfield:
+regenerating terrain/generate.py at GRID=2048 would put four cells under each
+wheel." Measured, 20 zero-action episodes per arm at one seed
+(research/scripts/creep_vs_grid.py):
+
+    GRID=1024   7.812 cm cells   -1.7761 +/- 0.0276 m per episode
+    GRID=2048   3.906 cm cells   -1.7641 +/- 0.0066 m per episode
+    paired difference            +11.99 +/- 26.18 mm  = 0.675% of the creep
+
+Removing the creep needs +1776 mm. Halving the cell buys +12 mm.
+
+The straddling mechanism was never available where the creep is generated.
+terrain/generate.py blends the composed field to exactly zero inside a 2.5 m
+radius, so the pad measures max|h| = 0.000e+00 and peak-to-peak = 0.000e+00
+over 3212 cells, while every contact point across all 40 episodes landed
+within 2.034 m. On exactly flat ground every prism normal is +z at ANY cell
+size — four cells under a wheel are four cells of the same plane as one.
+guards/spawn_pad.py now asserts that flatness, because the finding rests on it.
+
+The magnitude was wrong too: the drift is -3.55 cm/s, not ~5 cm/s
+(research/measurements/tracking_noise.json). 5 cm/s is not a rounding, it is
+impossible beside the measured 0.0361 m/s rms planar speed — an rms speed
+cannot be smaller than the magnitude of the mean velocity.
+
+What survives: the hfield-versus-plane experiment above is real and still
+implicates the heightfield COLLIDER. What died is the step from "the collider
+does it" to "the collider does it VIA CELL SIZE" — an extra claim that
+inherited the experiment's credibility without ever being measured. The creep
+is unexplained again; do not replace one unmeasured mechanism with another.
+
+(GRID=2048 is separately expensive: the regenerated desert correlates with the
+committed one at only +0.061, so it is a different terrain rather than a
+sharper one. See research/scripts/compare_terrain_grids.py.)
 """
 from __future__ import annotations
 
