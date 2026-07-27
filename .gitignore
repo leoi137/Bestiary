@@ -64,3 +64,8 @@ assets/*/blockout_crouch/
 
 # MuJoCo writes this next to the cwd on any GL/context failure.
 MUJOCO_LOG.TXT
+
+# Fixture trees for the check_* oracles. Removed in a finally block, so these
+# only survive a hard kill mid-test.
+.tmp_check_checkpoint_width/
+.tmp_check_retire/
