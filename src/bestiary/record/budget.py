@@ -8,11 +8,10 @@ firing.
 
 Two facts make the sizing possible rather than guesswork:
 
-* **The operator arms the loop for a bounded stretch** — "overnight", "7 days" —
-  and `loop/autonomous/loop-control.sh` writes that deadline to
-  `Scriptorium/loop/autonomous/armed_until`. A run must not be launched that
-  cannot finish before the window closes, or the window ends with a half-trained
-  policy and no ledger row.
+* **The operator arms the loop for a bounded stretch** — "overnight", "7 days".
+  That deadline is supplied by the caller through `$ROBOTICS_ARMED_UNTIL` (see
+  below), and a run must not be launched that cannot finish before the window
+  closes, or the window ends with a half-trained policy and no ledger row.
 * **Throughput is measured, not assumed.** Every finished run records its own
   `fps` in the ledger, per env. `HoundDesert-v0` ran at 129 steps/s and
   `HoundPDDesert-v0` at 108, so the same step budget is a 16% longer run on the
@@ -21,20 +20,31 @@ Two facts make the sizing possible rather than guesswork:
     venv/bin/python -m bestiary.record.budget                       # what is left
     venv/bin/python -m bestiary.record.budget --env HoundDesert-v0  # and what fits
 
-This module reads `armed_until` but never writes it. Arming and disarming are
-the operator's, through `loop-control.sh`.
+## Where the deadline comes from
+
+`$ROBOTICS_ARMED_UNTIL` is either a Unix epoch or a path to a file containing
+one. Unset means unbounded. It is an environment variable rather than a path
+this module knows, deliberately: the scheduling machinery lives outside this
+repository, and code here must not encode where. Passing it in keeps this
+module testable, keeps the boundary intact, and means a different scheduler
+needs no change here.
+
+This module only reads the deadline. Arming and disarming belong to the
+operator.
 """
 from __future__ import annotations
 
 import argparse
 import json
+import os
 import time
+from pathlib import Path
 
 from bestiary import paths
 
-# Scriptorium is a sibling of Bestiary. Resolved from paths.REPO_ROOT rather
-# than a __file__ chain, per the paths invariant.
-ARMED_UNTIL = paths.REPO_ROOT.parent / "Scriptorium" / "loop" / "autonomous" / "armed_until"
+# Supplied by the caller: an epoch, or a path to a file holding one. Unset means
+# no window. Never a path hardcoded here -- see "Where the deadline comes from".
+ARMED_UNTIL_ENV = "ROBOTICS_ARMED_UNTIL"
 
 # Leave room for the cycle that harvests the run: rolling 20 deterministic
 # episodes for the ledger row, the refutation pass, and the commits. Measured
@@ -51,17 +61,39 @@ MIN_USEFUL_S = 45 * 60
 FALLBACK_FPS = 108
 
 
-def window_remaining_s() -> float | None:
-    """Seconds until the operator's arming window closes, or None if unbounded."""
-    if not ARMED_UNTIL.exists():
-        return None
-    raw = ARMED_UNTIL.read_text().strip()
+def window_remaining_s(armed_until: str | None = None) -> float | None:
+    """Seconds until the arming window closes, or None if unbounded."""
+    raw = armed_until if armed_until is not None else os.environ.get(ARMED_UNTIL_ENV)
     if not raw:
+        return None
+
+    # A bare number is the deadline. Anything else is a path to one.
+    try:
+        return float(raw) - time.time()
+    except ValueError:
+        pass
+
+    candidate = Path(raw)
+    if not candidate.exists():
+        # NOT an error: the caller passes this path unconditionally and the file
+        # exists only while a window is set, so "absent" is how "no window" is
+        # spelled. The absence is reported in the output rather than swallowed,
+        # so a mistyped path reads as "unbounded (no file at X)" instead of
+        # silently becoming an unbounded run.
+        return None
+
+    body = candidate.read_text().strip()
+    if not body:
         raise ValueError(
-            f"{ARMED_UNTIL} exists but is empty -- a window with no deadline is "
-            f"neither armed nor bounded. Re-arm with loop-control.sh."
+            f"{candidate} exists but is empty -- a window with no deadline is "
+            f"neither armed nor bounded. Re-arm rather than guessing."
         )
-    return float(raw) - time.time()
+    try:
+        return float(body) - time.time()
+    except ValueError:
+        raise ValueError(
+            f"{candidate} holds {body!r}, which is not a Unix epoch"
+        ) from None
 
 
 def measured_fps(env_id: str) -> tuple[int, str]:
@@ -80,9 +112,10 @@ def measured_fps(env_id: str) -> tuple[int, str]:
     return FALLBACK_FPS, f"no ledger row for {env_id} — fallback"
 
 
-def plan(env_id: str | None = None, ceiling_s: float | None = None) -> dict:
+def plan(env_id: str | None = None, ceiling_s: float | None = None,
+         armed_until: str | None = None) -> dict:
     """What a cycle needs to decide a step budget."""
-    remaining = window_remaining_s()
+    remaining = window_remaining_s(armed_until)
 
     # The usable stretch is the window minus what harvesting will need.
     if remaining is None:
@@ -94,7 +127,9 @@ def plan(env_id: str | None = None, ceiling_s: float | None = None) -> dict:
         if ceiling_s is not None and ceiling_s < usable:
             usable, bound = ceiling_s, "operator ceiling"
 
+    source = armed_until if armed_until is not None else os.environ.get(ARMED_UNTIL_ENV)
     result = {
+        "window_source": source,
         "window_remaining_s": None if remaining is None else round(remaining),
         "window_expired": remaining is not None and remaining <= 0,
         "harvest_reserve_s": HARVEST_RESERVE_S,
@@ -120,7 +155,9 @@ def plan(env_id: str | None = None, ceiling_s: float | None = None) -> dict:
 def _format(p: dict) -> str:
     lines = []
     if p["window_remaining_s"] is None:
-        lines.append("arming window: none set — unbounded (operator has not given a duration)")
+        src = p.get("window_source")
+        where = f"no file at {src}" if src else f"no ${ARMED_UNTIL_ENV}"
+        lines.append(f"arming window: none set — unbounded ({where})")
     elif p["window_expired"]:
         lines.append("arming window: EXPIRED — preflight must halt this cycle")
     else:
@@ -143,10 +180,13 @@ def main() -> int:
     parser.add_argument("--env", help="size a run for this env id")
     parser.add_argument("--ceiling-hours", type=float,
                         help="an explicit ceiling, if tighter than the window")
+    parser.add_argument("--armed-until",
+                        help=f"epoch or file holding one; defaults to ${ARMED_UNTIL_ENV}")
     parser.add_argument("--json", action="store_true")
     args = parser.parse_args()
 
-    p = plan(args.env, args.ceiling_hours * 3600 if args.ceiling_hours else None)
+    p = plan(args.env, args.ceiling_hours * 3600 if args.ceiling_hours else None,
+             args.armed_until)
     print(json.dumps(p, indent=2) if args.json else _format(p))
     return 0
 
