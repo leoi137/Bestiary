@@ -173,6 +173,7 @@ because it reads exactly like a correct one and will be trusted later.
 - [008 — The best checkpoint is the luckiest episode, not the best policy](008-best-checkpoint-is-the-luckiest-episode.md)
 - [009 — The creep is real, the cell-size explanation for it was never measured](009-the-cell-size-story-was-never-measured.md)
 - [010 — We compared two seeds through the checkpoint we had already proven not to trust](010-we-compared-two-lucky-draws.md)
+- [011 — The crash count was 0.9% of the gap](011-the-crash-count-was-one-percent-of-the-gap.md)
 
 > Lessons 001–005 predate the writing standard above. They are correct but
 > terse. Rewrite one to the new standard whenever a run touches its subject —
