@@ -197,6 +197,7 @@ from gymnasium.spaces import Box
 
 from bestiary import paths
 from bestiary.envs.obs_spec import ObsSpec, ObsTerm
+from bestiary.envs.reward_spec import RewardSpec, RewardTerm
 from bestiary.robots.hound.build import SPEC
 from bestiary.terrain import HeightField, ground_height_at
 
@@ -393,6 +394,30 @@ class HoundEnv(MujocoEnv, utils.EzPickle):
         )
         self.observation_space = Box(
             low=-np.inf, high=np.inf, shape=(self._obs_spec.width,), dtype=np.float64
+        )
+
+        # Declare the REWARD once, in the order and with the signs `step`
+        # actually applies, so a run records what it was paid for. Until this
+        # existed, `config.json` carried the observation and not the reward,
+        # and three hound runs sit in the record at two different
+        # `ctrl_cost_weight` values with nothing anywhere saying which was
+        # which (research/anomalies.jsonl).
+        #
+        # Costs carry NEGATIVE weights here even though the constructor takes
+        # them positive and `step` subtracts them. The record should read the
+        # way the sum reads or nobody can check it by eye.
+        self._reward_spec = RewardSpec(
+            env=type(self).__name__,
+            terms=(
+                RewardTerm("forward_velocity", self._forward_reward_weight,
+                           "dx/dt of the trunk, m/s — UNBOUNDED ABOVE"),
+                RewardTerm("healthy", self._healthy_reward,
+                           "alive bonus, paid every step the health check holds"),
+                RewardTerm("ctrl_cost", -self._ctrl_cost_weight,
+                           "-w * sum(action^2)"),
+                RewardTerm("contact_cost", -self._contact_cost_weight,
+                           "-w * sum(clipped external contact forces^2)"),
+            ),
         )
 
         # The standing stance ships in the model as keyframe 0 (robots/hound/build.py

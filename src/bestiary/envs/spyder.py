@@ -87,6 +87,7 @@ from gymnasium.spaces import Box
 
 from bestiary import paths
 from bestiary.envs.obs_spec import ObsSpec, ObsTerm
+from bestiary.envs.reward_spec import RewardSpec, RewardTerm
 from bestiary.terrain import HeightField, ground_height_at
 
 SPYDER_XML = str(paths.SPYDER_XML)
@@ -195,6 +196,26 @@ class SpyderEnv(MujocoEnv, utils.EzPickle):
         )
         self.observation_space = Box(
             low=-np.inf, high=np.inf, shape=(self._obs_spec.width,), dtype=np.float64
+        )
+
+        # Same declaration the hound carries, and for the same reason: a run
+        # must record what it was paid for. Spyder is the robot the record has
+        # the most to say about and the least provenance for — spyder_walk_v3
+        # and spyder_desert_v0 trained under this shape at ctrl_cost_weight 0.1,
+        # which is the value CORE_PLAN's hand-computed 1.18 margin does NOT
+        # assume, and nothing on disk says so.
+        self._reward_spec = RewardSpec(
+            env=type(self).__name__,
+            terms=(
+                RewardTerm("forward_velocity", self._forward_reward_weight,
+                           "dx/dt of the torso, m/s — UNBOUNDED ABOVE"),
+                RewardTerm("healthy", self._healthy_reward,
+                           "alive bonus, paid every step the health check holds"),
+                RewardTerm("ctrl_cost", -self._ctrl_cost_weight,
+                           "-w * sum(action^2)"),
+                RewardTerm("contact_cost", -self._contact_cost_weight,
+                           "-w * sum(clipped external contact forces^2)"),
+            ),
         )
 
         # Terrain support (see module docstring). If the model carries a
