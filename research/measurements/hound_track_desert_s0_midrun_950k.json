@@ -1,0 +1,261 @@
+{
+  "env": "HoundPDTrackDesert-v0",
+  "episodes_per_cell": 20,
+  "seed0": 1000,
+  "zero_action": {
+    "cells": {
+      "(0.5, 0.0, 0.0)": {
+        "command": [
+          0.5,
+          0.0,
+          0.0
+        ],
+        "mean": 61.408900888466555,
+        "sd": 0.821375428072903,
+        "mean_track": 0.07069058907965207,
+        "mean_phi_v": 0.07284392401993982,
+        "mean_phi_w": 0.9704561561303118,
+        "achieved_vx": -0.03514346245329437,
+        "commanded_vx": 0.5,
+        "crashes": 0,
+        "episodes": 20
+      },
+      "(0.8, 0.0, 0.0)": {
+        "command": [
+          0.8,
+          0.0,
+          0.0
+        ],
+        "mean": 21.046235591775893,
+        "sd": 0.5341655975181884,
+        "mean_track": 0.030327923782961414,
+        "mean_phi_v": 0.03125157330060245,
+        "mean_phi_w": 0.9704561561303118,
+        "achieved_vx": -0.03514346245329437,
+        "commanded_vx": 0.8,
+        "crashes": 0,
+        "episodes": 20
+      },
+      "(-0.3, 0.0, 0.0)": {
+        "command": [
+          -0.3,
+          0.0,
+          0.0
+        ],
+        "mean": 226.3848792168307,
+        "sd": 2.3835266921083917,
+        "mean_track": 0.2356665674080162,
+        "mean_phi_v": 0.2428330137344891,
+        "mean_phi_w": 0.9704561561303118,
+        "achieved_vx": -0.03514346245329437,
+        "commanded_vx": -0.3,
+        "crashes": 0,
+        "episodes": 20
+      },
+      "(0.5, 0.0, 0.4)": {
+        "command": [
+          0.5,
+          0.0,
+          0.4
+        ],
+        "mean": -4.971922054109595,
+        "sd": 0.36976057999859474,
+        "mean_track": 0.004309766137075925,
+        "mean_phi_v": 0.07284392401993982,
+        "mean_phi_w": 0.059167020766092836,
+        "achieved_vx": -0.03514346245329437,
+        "commanded_vx": 0.5,
+        "crashes": 0,
+        "episodes": 20
+      },
+      "(0.5, 0.0, -0.4)": {
+        "command": [
+          0.5,
+          0.0,
+          -0.4
+        ],
+        "mean": -4.971079176367299,
+        "sd": 0.3768187816166492,
+        "mean_track": 0.004310609014818221,
+        "mean_phi_v": 0.07284392401993982,
+        "mean_phi_w": 0.05917465424047939,
+        "achieved_vx": -0.03514346245329437,
+        "commanded_vx": 0.5,
+        "crashes": 0,
+        "episodes": 20
+      },
+      "(0.0, 0.0, 0.45)": {
+        "command": [
+          0.0,
+          0.0,
+          0.45
+        ],
+        "mean": 35.45878770133086,
+        "sd": 0.42626932404196183,
+        "mean_track": 0.044740475892516375,
+        "mean_phi_v": 0.946489097151573,
+        "mean_phi_w": 0.04727713773992619,
+        "achieved_vx": -0.03514346245329437,
+        "commanded_vx": 0.0,
+        "crashes": 0,
+        "episodes": 20
+      },
+      "(0.0, 0.0, 0.0)": {
+        "command": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "mean": 909.3543320506367,
+        "sd": 8.231957721346987,
+        "mean_track": 0.9186360202418223,
+        "mean_phi_v": 0.946489097151573,
+        "mean_phi_w": 0.9704561561303118,
+        "achieved_vx": -0.03514346245329437,
+        "commanded_vx": 0.0,
+        "crashes": 0,
+        "episodes": 20
+      }
+    },
+    "drive_grid_mean": 55.72596702798785,
+    "drive_grid_track": 0.06500765521917337,
+    "stop_cell_mean": 909.3543320506367,
+    "command_gain": 9.110484723392882e-18,
+    "crashes": 0
+  },
+  "run": "hound_track_desert_s0",
+  "checkpoint": "ant_sac_best.zip",
+  "trained": {
+    "cells": {
+      "(0.5, 0.0, 0.0)": {
+        "command": [
+          0.5,
+          0.0,
+          0.0
+        ],
+        "mean": 12.728003676590209,
+        "sd": 19.850689512801072,
+        "mean_track": 0.1779988022186767,
+        "mean_phi_v": 0.3160722590014041,
+        "mean_phi_w": 0.5182902491250163,
+        "achieved_vx": 0.23540015956926624,
+        "commanded_vx": 0.5,
+        "crashes": 13,
+        "episodes": 20
+      },
+      "(0.8, 0.0, 0.0)": {
+        "command": [
+          0.8,
+          0.0,
+          0.0
+        ],
+        "mean": -9.492434114282513,
+        "sd": 10.809088527645743,
+        "mean_track": 0.1270846304132717,
+        "mean_phi_v": 0.342575053013333,
+        "mean_phi_w": 0.25568971111718286,
+        "achieved_vx": 0.5619381057266869,
+        "commanded_vx": 0.8,
+        "crashes": 20,
+        "episodes": 20
+      },
+      "(-0.3, 0.0, 0.0)": {
+        "command": [
+          -0.3,
+          0.0,
+          0.0
+        ],
+        "mean": 95.6468002444497,
+        "sd": 4.0059460621309055,
+        "mean_track": 0.15475908539240213,
+        "mean_phi_v": 0.3913615865780248,
+        "mean_phi_w": 0.39184193788414556,
+        "achieved_vx": -0.09206369944298552,
+        "commanded_vx": -0.3,
+        "crashes": 0,
+        "episodes": 20
+      },
+      "(0.5, 0.0, 0.4)": {
+        "command": [
+          0.5,
+          0.0,
+          0.4
+        ],
+        "mean": -35.457975479516634,
+        "sd": 8.163748747462213,
+        "mean_track": 0.03192337223267963,
+        "mean_phi_v": 0.31608019046556074,
+        "mean_phi_w": 0.09316531911250496,
+        "achieved_vx": 0.2514505831898137,
+        "commanded_vx": 0.5,
+        "crashes": 18,
+        "episodes": 20
+      },
+      "(0.5, 0.0, -0.4)": {
+        "command": [
+          0.5,
+          0.0,
+          -0.4
+        ],
+        "mean": -58.995463114655216,
+        "sd": 2.969138201409813,
+        "mean_track": 0.02265486376149444,
+        "mean_phi_v": 0.1841603753373236,
+        "mean_phi_w": 0.10002066538831855,
+        "achieved_vx": 0.1927652367915839,
+        "commanded_vx": 0.5,
+        "crashes": 18,
+        "episodes": 20
+      },
+      "(0.0, 0.0, 0.45)": {
+        "command": [
+          0.0,
+          0.0,
+          0.45
+        ],
+        "mean": -29.59368588636712,
+        "sd": 6.555120004730592,
+        "mean_track": 0.05829205318813261,
+        "mean_phi_v": 0.5507941716529933,
+        "mean_phi_w": 0.11186561045603571,
+        "achieved_vx": 0.12449815636119685,
+        "commanded_vx": 0.0,
+        "crashes": 2,
+        "episodes": 20
+      },
+      "(0.0, 0.0, 0.0)": {
+        "command": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "mean": 526.2749414049741,
+        "sd": 6.6255568528459765,
+        "mean_track": 0.6688932060311773,
+        "mean_phi_v": 0.9086897347144447,
+        "mean_phi_w": 0.7240638464365372,
+        "achieved_vx": 0.022277542678638643,
+        "commanded_vx": 0.0,
+        "crashes": 0,
+        "episodes": 20
+      }
+    },
+    "drive_grid_mean": -4.1941257789635955,
+    "drive_grid_track": 0.09545213453444285,
+    "stop_cell_mean": 526.2749414049741,
+    "command_gain": 0.48235418457916773,
+    "crashes": 71
+  },
+  "drive_grid_ratio": -0.07526340057691838,
+  "stop_cell_ratio": 0.5787347383260378,
+  "_provenance": {
+    "measured": "2026-07-27, cycle 007, while the run was still training",
+    "checkpoint": "ant_sac_best.zip, sha256 42b8ef1d15cb83637ec19fc7bf3284d5ebedff60891a6ab67babfe3b2faa8e0d",
+    "checkpoint_step": 950000,
+    "checkpoint_step_evidence": "mtime 10:27:12 matches runs/hound_track_desert_s0/videos/eval_step_000950000.mp4; the 1,000,000 eval at 10:34 did not overwrite it, so 950k held the best single-episode return of 264.96",
+    "run_step_at_measurement": 1072371,
+    "why_best_and_not_sac": "ant_sac.zip does not exist until the run ends, so _best is the ONLY checkpoint available mid-run. learnings/008 and /010 say not to trust it; the pre-registered gate is at 800k and the run was already past it, so measuring later would only be more generous. The final harvest measures BOTH checkpoints at 1.5M.",
+    "contamination": "measured concurrently with training, which cost the run ~35% instantaneous throughput (48-102 steps/s against a 110 baseline) for the duration",
+    "command": "venv/bin/python -m bestiary.record.track_eval --run hound_track_desert_s0 --episodes 20 --json"
+  }
+}
