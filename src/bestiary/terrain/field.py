@@ -24,10 +24,19 @@ class HeightField:
     flat-world rule it generalizes.
     """
 
-    def __init__(self, data: np.ndarray, size: np.ndarray, pos: np.ndarray):
+    def __init__(self, data: np.ndarray, size: np.ndarray, pos: np.ndarray,
+                 *, hid: int, geom_id: int):
         self.data = data          # (nrow, ncol), MuJoCo-normalized to [0, 1]
         self.size = size          # (x half-extent, y half-extent, z span, base)
         self.pos = pos            # world position of the hfield geom
+        # Which hfield asset and which geom the three arrays above came from.
+        # The height lookup does not need them; `terrain/spec.py` does, to
+        # IDENTIFY the ground rather than sample it. They are carried here
+        # rather than re-derived there so that "which geom is the floor?" has
+        # exactly one answer in this repository — two searches are two chances
+        # to disagree about which surface a run was standing on.
+        self.hid = hid
+        self.geom_id = geom_id
 
     @classmethod
     def from_model(cls, model) -> "HeightField | None":
@@ -43,6 +52,8 @@ class HeightField:
             data=model.hfield_data.reshape(nrow, ncol),
             size=model.hfield_size[hid].copy(),
             pos=model.geom_pos[geom_ids[0]].copy(),
+            hid=hid,
+            geom_id=int(geom_ids[0]),
         )
 
     def height_at(self, x: float, y: float) -> float:
