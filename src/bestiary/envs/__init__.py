@@ -64,6 +64,20 @@ if "HoundPDDesert-v0" not in registry:
         max_episode_steps=1000,
     )
 
+if "HoundPDTrackDesert-v0" not in registry:
+    register(
+        id="HoundPDTrackDesert-v0",
+        # SAME robot, SAME model XML and SAME 169-wide observation as
+        # HoundPDDesert-v0 — only the reward differs, and the three
+        # command_reserved slots stop being zero. A different env CLASS rather
+        # than a kwarg because the reward is structurally different, not
+        # retuned: `research/learnings/004` is the record of what it costs to
+        # treat those two as the same kind of change.
+        entry_point="bestiary.envs.hound_track:HoundTrackEnv",
+        kwargs={"xml_file": str(paths.HOUND_PD_DESERT_XML)},
+        max_episode_steps=1000,
+    )
+
 if "SpyderDesert-v0" not in registry:
     register(
         id="SpyderDesert-v0",
