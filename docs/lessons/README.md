@@ -51,6 +51,7 @@ which gets re-sorted as the set grows.
 
 1. [001 — What a reward function is, and how ours told the robot to stand still](001-what-a-reward-function-is.md)
 2. [002 — Why one training run is not a result](002-why-one-seed-is-not-a-result.md)
+3. [003 — Why two rewards should be multiplied, not added](003-add-or-multiply.md)
 
 ### Planned, roughly in the order they will be needed
 
