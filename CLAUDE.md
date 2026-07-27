@@ -106,6 +106,7 @@ src/bestiary/          the importable library
   robots/<name>/       build.py (MJCF generator), check.py (assertions), CARD.md
 concepts/anvil/        Blender concept art (ANVIL siege walker) — not RL
 research/              learnings/, decisions/, episodes/, ledger.jsonl, CORE_PLAN.md
+  scripts/             arithmetic behind a learning, so a number is computed not asserted
 docs/lessons/          the curriculum: one idea per page, from scratch
 docs/theory/           the deep notes: math written when it is load-bearing
 assets/                GENERATED output — model XMLs, meshes, terrain, figures
@@ -138,6 +139,22 @@ venv/bin/python -m bestiary.guards --json           # machine-readable
 # How well calibrated our predictions have been
 venv/bin/python -m bestiary.record.calibration
 
+# Measure a policy the way the do-nothing control is measured: N deterministic
+# episodes, same seeds both arms, reported with spread and crash count.
+# NEVER judge a policy from *_best.zip alone -- see research/learnings/008.
+venv/bin/python -m bestiary.record.greedy_eval --run hound_v1
+venv/bin/python -m bestiary.record.greedy_eval --run hound_v1 --episodes 20 --json
+
+# Write a finished run into the ledger. Every number is computed from the run's
+# own event files and checkpoints; the verdict and notes are yours.
+venv/bin/python -m bestiary.record.ledger --run hound_v1                    # dry run
+venv/bin/python -m bestiary.record.ledger --run hound_v1 --verdict improved \
+    --notes "..." --append
+
+# How much wall-clock is left and how many steps fit, at throughput measured
+# per-env from the ledger. $ROBOTICS_ARMED_UNTIL is supplied by the caller.
+venv/bin/python -m bestiary.record.budget --env HoundDesert-v0
+
 # Lint — REQUIRED after any refactor. Catches the bug class the robot checks
 # structurally cannot see (see research/learnings/006).
 venv/bin/python -m ruff check --select F src/ concepts/
@@ -169,7 +186,15 @@ conflicting `--env`/`--wrapper`/`--seed` on the CLI. Changing env or reward
 semantics mid-run would contaminate a replay buffer filled under different
 dynamics. Resume vs. fresh is decided purely by whether `config.json` exists.
 
-**The observation width is a one-way door.** The actor's first layer is
+**The observation width is a one-way door — and it is now instrumented.**
+`envs/obs_spec.py` declares each env's terms once; the width and `_get_obs`
+both derive from it, `_get_obs` raises rather than warns on a mismatch, and the
+spec hashes. `train.py` pins that hash into `config.json` and **refuses a resume
+whose observation moved**; `checkpoint-width` asserts it too. The hash changes on
+a reorder, a rename, or a re-split at identical width — the changes that load
+cleanly and silently feed the policy a permuted world.
+
+The actor's first layer is
 `Linear(obs, 256)`, so changing the observation list makes every existing
 checkpoint fail to load — not degrade, *fail*. Spyder is at 113 today and
 `research/CORE_PLAN.md` locks it at 141 with reserved command and height
