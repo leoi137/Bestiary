@@ -68,6 +68,7 @@ from pathlib import Path
 import numpy as np
 
 from bestiary import paths
+from bestiary.guards.eval_sampling import MIN_EVAL_EPISODES, N_FIELD
 from bestiary.guards.ledger_schema import BASE_FIELDS, FIELDS_FROM_ROW_3, VERDICTS
 
 # Episodes rolled to characterise the finished policy. 20, matching
@@ -312,6 +313,24 @@ def validate(row: dict) -> None:
         raise ValueError(f"verdict {row['verdict']!r} not in {sorted(VERDICTS)}")
     if row["seeds"] == 1 and row["provisional"] is not True:
         raise ValueError("a single-seed row must be marked provisional (the seed rule)")
+
+    # Refuse a row the eval-sampling guard would reject, for the same reason
+    # the schema fields are checked above -- but this one is urgent rather than
+    # tidy. `guards --fast` gates EVERY training launch, and it reads the whole
+    # ledger, so appending one under-sampled row does not just record a weak
+    # number: it turns the launch gate red permanently, and the ledger is
+    # append-only, so the row cannot be taken back out. Catching it here costs
+    # two lines; catching it afterwards costs the ability to train.
+    n = row.get(N_FIELD)
+    if not isinstance(n, int) or n < MIN_EVAL_EPISODES:
+        raise ValueError(
+            f"{N_FIELD}={n!r}: a ledger row needs at least {MIN_EVAL_EPISODES} "
+            f"evaluation episodes (learnings/008 -- a crash rate over fewer than "
+            f"that is not a rate). Re-run without a reduced --episodes."
+        )
+    rate = row["eval_crash_rate"]
+    if not 0.0 <= float(rate) <= 1.0:
+        raise ValueError(f"eval_crash_rate={rate!r} is not a proportion in [0, 1]")
 
     existing = {json.loads(ln)["run"]
                 for ln in paths.LEDGER.read_text().splitlines() if ln.strip()}
