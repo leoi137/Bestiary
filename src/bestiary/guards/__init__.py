@@ -71,6 +71,7 @@ def _registry() -> tuple[Guard, ...]:
         ledger_schema,
         memory,
         metric_liveness,
+        nulls,
         privacy,
         reward_spec,
         spawn_pad,
@@ -157,6 +158,16 @@ def _registry() -> tuple[Guard, ...]:
             enforces="learnings/008",
             cost="fast",
             run=eval_sampling.run,
+        ),
+        # Fast, and it gates launches for the same reason reward-spec does:
+        # the failure it prevents is spending GPU-hours re-entering a dead end
+        # this project already paid for. It reads two JSONL files and the
+        # config.json of each run — no physics, no torch.
+        Guard(
+            name="nulls",
+            enforces="research/nulls.jsonl, anomalies.jsonl 2026-07-26",
+            cost="fast",
+            run=nulls.run,
         ),
         Guard(
             name="metric-liveness",

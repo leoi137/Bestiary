@@ -25,6 +25,14 @@ DOCS = REPO_ROOT / "docs"
 LEDGER = RESEARCH / "ledger.jsonl"  # append-only, one row per finished run
 RETIRED = RESEARCH / "retired_runs.jsonl"  # append-only, one row per orphaned run
 
+# One row per recorded dead end. This constant did not exist until 2026-07-27,
+# and its absence was the whole problem: `anomalies.jsonl` recorded that nothing
+# in src/ referenced nulls.jsonl -- no path, no schema, no reader -- so the
+# hound re-entered row 2's dead end twice, for ~10.7 GPU-hours, with every guard
+# green. A record only a human reads is not a guard, and this loop is designed
+# to run without one.
+NULLS = RESEARCH / "nulls.jsonl"
+
 # --- Model XMLs -------------------------------------------------------------
 # MuJoCo resolves <mesh file="meshes/..."> and <hfield file="terrain/..."> as
 # paths RELATIVE TO THE XML'S OWN DIRECTORY. Every model below therefore has
