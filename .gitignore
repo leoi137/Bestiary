@@ -71,10 +71,8 @@ MUJOCO_LOG.TXT
 .tmp_check_retire/
 
 # core.hooksPath points git at .githooks/, so that directory is tracked and
-# ships with a clone -- which is right for pre-push, and wrong for this one
-# file. The commit-message hook installed there exists to strip AI-attribution
-# trailers, and it can only do that by naming the vendor it is stripping.
-# Tracking it would publish, in the public repository, the very fact the
-# trailer would have leaked. Installed locally by
-# Scriptorium/loop/autonomous/install-hooks.sh; never committed here.
+# ships with a clone. That is right for pre-push and wrong for this one file:
+# it enforces a local commit-message convention, which is a property of this
+# working copy rather than of the project, so it is installed per-machine and
+# not carried to anyone else's clone.
 .githooks/prepare-commit-msg
