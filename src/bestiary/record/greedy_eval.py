@@ -34,6 +34,10 @@ Why greedy rather than stochastic: `learnings/007` records that a peak eval
 score hides an unreliable policy, so the honest summary of a policy is the mean
 of many deterministic episodes plus their spread — never a best-of. Both are
 reported; the spread is the part that matters.
+
+This is also where the ledger's `eval_crash_rate` is computed. `record/ledger.py`
+reads `crash_rate` off the trained arm rather than re-deriving it, so the
+definition of a crash lives in exactly one place: `Arm.crashes`.
 """
 from __future__ import annotations
 
@@ -71,6 +75,13 @@ class Arm:
     label: str
     returns: list[float]
     lengths: list[int]
+    # Per-episode `terminated` exactly as the env reported it. NOT inferred
+    # from `lengths` -- see `crashes` for why that distinction is the whole
+    # point of this field.
+    terminated: list[bool]
+    # The truncation horizon the episodes were rolled under, carried so a
+    # consumer never has to look it up a second way and get a different answer.
+    max_episode_steps: int
 
     @property
     def mean(self) -> float:
@@ -88,6 +99,39 @@ class Arm:
     @property
     def best(self) -> float:
         return float(np.max(self.returns))
+
+    @property
+    def crashes(self) -> int:
+        """Episodes the env ended early because the robot became unhealthy.
+
+        Counted from the env's own `terminated` flag, never from
+        `length < max_episode_steps`. The two agree today, and that agreement
+        is a property of the current envs rather than of the metric: every env
+        here returns `truncated=False` from `step` and lets the `TimeLimit`
+        wrapper supply the horizon, so going unhealthy is the only way to stop
+        short. `_rollout` asserts that rather than assuming it.
+
+        The proxy is wrong in both directions the moment that changes:
+
+        * An env that truncates on its own -- a goal reached, a boundary
+          crossed, a curriculum stage passed -- produces episodes shorter than
+          the cap that are not crashes. The proxy publishes them as crashes.
+        * A robot that goes unhealthy on the *last* step is reported by
+          `TimeLimit` as `terminated=True` **and** `truncated=True`, with a
+          length exactly equal to the cap. That is a crash, and the proxy
+          scores it as a clean episode.
+
+        The second one is live today, not hypothetical: `TimeLimit.step` sets
+        `truncated` without clearing `terminated`, so the flags genuinely
+        co-occur. It is rare, and a rate that is quietly wrong only rarely is
+        the kind that survives into the record.
+        """
+        return sum(1 for t in self.terminated if t)
+
+    @property
+    def crash_rate(self) -> float:
+        """`crashes` as a proportion of episodes rolled."""
+        return self.crashes / len(self.terminated) if self.terminated else 0.0
 
 
 def _run_dir(run: str) -> Path:
@@ -116,10 +160,18 @@ def _rollout(env_id: str, model, episodes: int, seed0: int) -> Arm:
     import bestiary.envs  # noqa: F401  — importing registers the env ids
 
     env = gym.make(env_id)
+    cap = env.spec.max_episode_steps if env.spec else None
+    if not cap:
+        raise ValueError(
+            f"{env_id} declares no max_episode_steps, so an episode that stopped "
+            f"short cannot be distinguished from one that ran to the horizon and "
+            f"a crash rate cannot be defined. Register the env with one."
+        )
     try:
         zero = np.zeros(env.action_space.shape, dtype=env.action_space.dtype)
         returns: list[float] = []
         lengths: list[int] = []
+        terminations: list[bool] = []
         for episode in range(episodes):
             obs, _ = env.reset(seed=seed0 + episode)
             total, steps = 0.0, 0
@@ -133,9 +185,30 @@ def _rollout(env_id: str, model, episodes: int, seed0: int) -> Arm:
                 steps += 1
                 if terminated or truncated:
                     break
+
+            # The assumption the crash rate used to rest on, now checked rather
+            # than trusted. `lengths` is read as a crash proxy in this repo's
+            # notes and episodes, and it is only a valid one while termination
+            # is the sole way to stop short of the cap. An env that starts
+            # truncating on its own would turn every such episode into a
+            # phantom crash in a published ledger row, and nothing would say so.
+            if not terminated and steps < cap:
+                raise RuntimeError(
+                    f"{env_id} episode {episode} ended at step {steps} of {cap} "
+                    f"with terminated=False, truncated={truncated}: the env "
+                    f"truncated on its own. crash_rate counts terminations and "
+                    f"is still right, but episode LENGTH is no longer a crash "
+                    f"proxy -- decide what this truncation means before any "
+                    f"number derived from lengths enters the record."
+                )
+
             returns.append(total)
             lengths.append(steps)
-        return Arm("zero-action" if model is None else "greedy", returns, lengths)
+            terminations.append(bool(terminated))
+        return Arm(
+            "zero-action" if model is None else "greedy",
+            returns, lengths, terminations, int(cap),
+        )
     finally:
         env.close()
 
@@ -170,10 +243,12 @@ def compare(run: str, episodes: int = EPISODES, seed0: int = SEED0,
         "trained": asdict(trained) | {
             "mean": trained.mean, "std": trained.std,
             "worst": trained.worst, "best": trained.best,
+            "crashes": trained.crashes, "crash_rate": trained.crash_rate,
         },
         "standing": asdict(standing) | {
             "mean": standing.mean, "std": standing.std,
             "worst": standing.worst, "best": standing.best,
+            "crashes": standing.crashes, "crash_rate": standing.crash_rate,
         },
         "ratio_mean": ratio,
         "ratio_worst_case": (trained.worst / standing.mean) if standing.mean else float("inf"),
@@ -196,8 +271,12 @@ def _format(result: dict) -> str:
         f"  ratio (worst greedy)     x{result['ratio_worst_case']:.3f}",
         f"  episodes below standing  {result['episodes_where_standing_wins']}"
         f" of {result['episodes']}",
+        # Terminations, not short lengths -- see Arm.crashes.
+        f"  greedy crashes           {t['crashes']} of {result['episodes']}"
+        f"  (rate {t['crash_rate']:.4f}, cap {t['max_episode_steps']} steps)",
         f"  per-episode greedy       {[round(v, 1) for v in t['returns']]}",
         f"  per-episode lengths      {t['lengths']}",
+        f"  per-episode terminated   {[int(x) for x in t['terminated']]}",
     ]
     return "\n".join(lines)
 
