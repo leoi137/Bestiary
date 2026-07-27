@@ -256,6 +256,7 @@
     "run_step_at_measurement": 1072371,
     "why_best_and_not_sac": "ant_sac.zip does not exist until the run ends, so _best is the ONLY checkpoint available mid-run. learnings/008 and /010 say not to trust it; the pre-registered gate is at 800k and the run was already past it, so measuring later would only be more generous. The final harvest measures BOTH checkpoints at 1.5M.",
     "contamination": "measured concurrently with training, which cost the run ~35% instantaneous throughput (48-102 steps/s against a 110 baseline) for the duration",
-    "command": "venv/bin/python -m bestiary.record.track_eval --run hound_track_desert_s0 --episodes 20 --json"
+    "command": "venv/bin/python -m bestiary.record.track_eval --run hound_track_desert_s0 --episodes 20 --json",
+    "checkpoint_no_longer_exists": "IRRETRIEVABLE. ant_sac_best.zip was overwritten at 11:07:01 by the 1.3M-ish eval (new sha256 28657a7d3414027c7e5985f20689e66c67275f35dc3d2e610123ad7d0a4e2f50, best single-episode return 264.96 -> 497.31). The hash recorded above was verified unchanged immediately before and after the measurement, and that was not enough: the overwrite came later, while the refutation was still running. A mid-run _best measurement is therefore not reproducible in principle -- the artifact is gone. Recorded rather than hidden."
   }
 }
