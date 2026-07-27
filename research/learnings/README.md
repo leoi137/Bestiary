@@ -170,6 +170,8 @@ because it reads exactly like a correct one and will be trusted later.
 - [005 — The standing check caught it again, on a different robot, from scratch](005-standing-check-caught-it-on-a-second-robot.md)
 - [006 — Our regression oracle covered the robot, not the trainer](006-the-oracle-only-covered-the-robot.md)
 - [007 — A peak score hides an unreliable policy](007-peak-score-hides-an-unreliable-policy.md)
+- [008 — The best checkpoint is the luckiest episode, not the best policy](008-best-checkpoint-is-the-luckiest-episode.md)
+- [009 — The creep is real, the cell-size explanation for it was never measured](009-the-cell-size-story-was-never-measured.md)
 
 > Lessons 001–005 predate the writing standard above. They are correct but
 > terse. Rewrite one to the new standard whenever a run touches its subject —

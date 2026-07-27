@@ -73,6 +73,7 @@ def _registry() -> tuple[Guard, ...]:
         metric_liveness,
         privacy,
         reward_spec,
+        spawn_pad,
         standing,
         terrain_spec,
     )
@@ -99,6 +100,15 @@ def _registry() -> tuple[Guard, ...]:
             enforces="budget condition 8",
             cost="fast",
             run=memory.run,
+        ),
+        # Slow tier: it synthesizes two full terrains, which is ~2 s. The
+        # finding it protects (learnings/009) changes only when someone edits
+        # terrain/generate.py, so it does not need to gate every launch.
+        Guard(
+            name="spawn-pad",
+            enforces="learnings/009",
+            cost="slow",
+            run=spawn_pad.run,
         ),
         Guard(
             name="ledger-schema",
