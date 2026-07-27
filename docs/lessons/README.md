@@ -51,13 +51,16 @@ which gets re-sorted as the set grows.
 
 1. [001 — What a reward function is, and how ours told the robot to stand still](001-what-a-reward-function-is.md)
 2. [002 — Why one training run is not a result](002-why-one-seed-is-not-a-result.md)
-3. [003 — Why two rewards should be multiplied, not added](003-add-or-multiply.md)
+3. [004 — Why changing the reward poisons the replay buffer](004-why-a-reward-change-poisons-the-buffer.md)
+4. [003 — Why two rewards should be multiplied, not added](003-add-or-multiply.md)
+
+Note the reading order is not the file order: 004 explains the machinery that
+003's reward change had to be built around, so it reads first.
 
 ### Planned, roughly in the order they will be needed
 
 - What a policy is, and why it is a neural network
 - Actor and critic: why one network is not enough
-- What the replay buffer holds, and why changing the reward poisons it
 - Entropy, and what `ent_coef` collapsing to 0.008 actually meant
 - Torque control versus PD position targets
 - What an observation is, and why its width is a one-way door
@@ -66,8 +69,13 @@ which gets re-sorted as the set grows.
 
 Each lands when the project needs it to decide something, not before.
 
-**The planned list is unchanged at 8.** Lesson 002 was not on it — it was the
-idea the cycle that wrote it was built around, which the rule prefers over
-taking the next queued item. Worth stating plainly rather than letting the
-count sit there looking unworked: the queue above has not been drawn down yet,
-and the next cycle that touches no new idea takes item 1 off the top.
+**The planned list is down to 7**, from 8. Cycle 006 took *"What the replay
+buffer holds, and why changing the reward poisons it"* off it — the first time
+the queue has been drawn down rather than added around. It was the right item
+by both tests the rule offers: it was next-in-line *and* it was the idea the
+cycle was built around, because the tracking reward had to ship as a new env id
+trained from scratch precisely so the buffer would not be poisoned.
+
+The title lost its "and" on the way in. The queued phrasing named two things,
+and the one-idea rule at the top of this file says that is two lessons; what
+the buffer holds is the setup, and the poisoning is the idea.
