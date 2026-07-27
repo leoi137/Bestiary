@@ -11,6 +11,15 @@ big that problem actually is, then replaces the reward with one whose only
 positive term is a product of two tolerance kernels against a sampled velocity
 command — and launches the first run under it.
 
+> ## ⚠️ Read the refutation section at the bottom before quoting anything here
+>
+> An independent refuter killed two of this episode's four claims **after** the
+> Diagnosis section below was written, and the section is left standing as
+> written rather than quietly corrected. The **91.55-point two-seed spread is
+> a checkpoint-selection artifact** and the **±41.8 standard error argument is
+> wrong**. `research/learnings/010` is the correction. The claim that survives
+> is the narrow one: the PD hound beats doing nothing.
+
 ## Diagnosis
 
 Two seeds now exist on the PD arm, which is the first time any arm in this
@@ -142,3 +151,95 @@ hedged toward the middle on that basis.
 Claim C is the counterweight and the reason the Brier score got worse (0.079 →
 0.142) in a cycle that went 4/4: a 20% call landing true is a bad prediction,
 not a good one. The 0–40% band now reads over-confident across four claims.
+
+---
+
+## Refutation — what an independent check killed
+
+The Diagnosis section above was written before the refutation and is left
+exactly as written. Two of its claims did not survive.
+
+### Killed: the 91.55-point two-seed spread
+
+It compared two `ant_sac_best.zip` files. `research/learnings/008`, written two
+cycles earlier by this same loop, establishes that this checkpoint is selected
+by `argmax` over **one-episode** evaluations — the luckiest episode, not the
+better policy. Running the identical instrument on the identical 60 seeds
+against the checkpoints *not* selected by argmax:
+
+| checkpoint | seed 0 | seed 1 | spread | clears 1.18? |
+|---|---|---|---|---|
+| `ant_sac_best.zip` | 1049.10 | 1140.65 | **+91.55** | seed 1 only |
+| `ant_sac.zip` | 1089.05 | 1082.18 | **−6.87** | **neither** |
+
+Paired over the same seeds, the final-checkpoint difference is **−6.87 ± 44.19**
+(t = −0.16, 95% CI [−93.49, +79.75]). The sign flips, the magnitude collapses,
+and the 1.18 clearance disappears. **Checkpoint selection alone moved the
+quantity by 98.42 points**, more than the spread itself.
+
+The arithmetic is unambiguous: one extra crash in 60 episodes moves the mean by
+(283.54 − 1170.20)/60 = **−14.78** points, so 91.55 points is **6.2 crashes'
+worth** — and the crash difference under `_best.zip` was exactly 6 (8 vs 2).
+The medians differ by 5.5 points and would never have suggested a seed effect.
+
+Full treatment in `research/learnings/010`. `record/greedy_eval.py` now
+measures both checkpoints by default.
+
+### Killed: the ±41.8 standard-error argument
+
+The Diagnosis explains episode 004's 1078.2 versus today's 1049.10 as ordinary
+sampling error, citing a ±41.8 standard error. That is wrong, and wrong in the
+direction that makes an unexplained gap look explained. Measuring the **same
+checkpoint** on two disjoint 60-episode blocks (seeds 0–59 and 100–159) gives
+**1049.10 vs 1045.76** — a **3.34**-point gap, not 29. Block-to-block
+reproducibility of this instrument is 2–3 points, because the block mean is
+essentially determined by the crash count and both blocks drew 8.
+
+So the 29-point gap is **not** covered by sampling error, and because episode
+004 never recorded which seeds it used, 1078.2 cannot be re-derived from the
+record at all. This is now an open anomaly, not a resolved question.
+
+### Survived
+
+**"The PD hound beats doing nothing"** is robust: ratio 1.1947 pooled over 120
+episodes, bootstrap 95% CI [1.1619, 1.2189], and it survives the median
+(1.2245), conditioning on non-crashed episodes (1.2246), a fresh seed block
+(1.1957), and the unselected checkpoint (1.1325).
+
+**"Clears 1.18" does not survive** as anything more than a point estimate:
+bootstrap P(ratio < 1.18) = 0.294 at n=60 and 0.163 at n=120. And the 1.18
+threshold is applied by `guards/standing.py` to the ledger's
+`final_ep_rew_mean`, where `hound_pd_desert_s1` reads ×1.10 and **fails** —
+so the Diagnosis silently swapped in a different numerator, which
+`greedy_eval`'s own docstring says would change published verdicts and needs an
+operator.
+
+**The zero-action baseline survived cleanly**, reproduced independently to
+within 1.7 return points on every cell. Two reporting corrections: the
+±116.59 is a per-episode SD, not an uncertainty on the mean (the SE is
+**±15.05**); and the drive-grid mean is **60.4% one cell** — dropping
+(−0.3, 0, 0) takes it from 55.73 to **21.78**.
+
+**The 5× contact-cost finding survived** at 4.92×, but is incomplete: it
+explains only 65% of §5's drive-grid error. The other 35% is a second,
+independent mistake — §5 applies the DRIVE-*distribution* expectation to the
+eval *grid*, whose mean track is 44% higher. And fixing contact moves §5's
+standing prediction **up** from 87 to 124: the note under-predicted the
+standing floor rather than over-predicting it.
+
+### A guard shipped this cycle was found broken by the same check
+
+`guards/tracking_frame.py` assertion 5 bounds a *standing* machine's freeride,
+and used the yaw drift of the **driving** arm (0.127 rad/s) instead of the
+standing arm (0.01823). It therefore computed 0.0624 against a 0.16 cap and
+passed by 2.6×, while the quantity it claimed to bound is **0.1612** — over
+that cap. The theory note's §2 uses 0.968 for that factor, which is the
+standing figure; the note had it right and the guard did not. Both constants
+are now read from `tracking_noise.json` by arm name, so the substitution is
+impossible rather than merely corrected.
+
+### The one-sentence version
+
+This cycle wrote a teaching lesson about not trusting an argmax-selected
+checkpoint, and then, eight commits later, compared two seeds through exactly
+that artifact.
