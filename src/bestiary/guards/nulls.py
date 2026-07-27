@@ -45,7 +45,6 @@ from __future__ import annotations
 
 import json
 import re
-from typing import Any
 
 from bestiary import paths
 from bestiary.guards import Finding
