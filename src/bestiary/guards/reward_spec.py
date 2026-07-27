@@ -40,7 +40,8 @@ from bestiary.guards import Finding
 # The four env ids this repo registers. Listed rather than discovered from the
 # gym registry because the assertion is "every env WE ship declares a reward":
 # a registry walk would also pass vacuously on the day someone deletes an env.
-ENV_IDS = ("Spyder-v0", "SpyderDesert-v0", "HoundDesert-v0", "HoundPDDesert-v0")
+ENV_IDS = ("Spyder-v0", "SpyderDesert-v0", "HoundDesert-v0", "HoundPDDesert-v0",
+           "HoundPDTrackDesert-v0")
 
 
 def _check_envs() -> list[Finding]:
@@ -116,9 +117,26 @@ def _check_runs() -> list[Finding]:
             bad.append(f"{run}: reward_spec present but carries no terms")
             continue
 
+        # Reconstruct EVERYTHING the digest covers, not just names and weights.
+        # A term's `params` and the spec's `cmd_dist` are hashed, so dropping
+        # them here does not make the check lenient -- it makes it WRONG, and
+        # it fails an honest run. That is exactly what happened the first time
+        # a spec used them: hound_track_desert_s0 recorded e374eb2def4e6fc9 and
+        # rebuilt to 0bbbbe97918d78f0, and this guard reported the live run's
+        # config.json as hand-edited when nothing had touched it.
+        #
+        # `params` round-trips through JSON as a dict; `_param_payload` sorts
+        # by key before digesting, so the dict's ordering cannot matter.
         rebuilt = RewardSpec(
             env=run,
-            terms=tuple(RewardTerm(t["name"], t["weight"]) for t in terms),
+            cmd_dist=spec_record.get("cmd_dist", ""),
+            terms=tuple(
+                RewardTerm(
+                    t["name"], t["weight"],
+                    params=tuple(t.get("params", {}).items()),
+                )
+                for t in terms
+            ),
         )
         if rebuilt.hash != spec_record.get("hash"):
             bad.append(
