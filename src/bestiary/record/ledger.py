@@ -35,6 +35,28 @@ on the best checkpoint, with `best_eval_episodes` recording N — which is what 
 A field quietly changing meaning is exactly the drift this project exists to
 prevent, so it is stated here, in the row's own notes, and enforced by a guard
 rather than remembered.
+
+## The two stability fields, defined
+
+`learnings/007` asked for these two and did not define them tightly, so both
+definitions are pinned here and both are recorded on the row alongside the
+window or sample that produced them.
+
+**`mean_eval_after_converge`** — the mean of `eval/mean_reward` from step
+400,000 onward, an absolute cutoff, identical for every run. Verified against
+the record: it reproduces both numbers `learnings/007` published. See
+`CONVERGE_AFTER_STEPS`, which shows what the fractional reading returns instead
+and why that reading is biased in the wrong direction.
+
+**`eval_crash_rate`** — the fraction of N deterministic episodes on the run's
+**final** checkpoint that the env `terminated` early, i.e. the robot became
+unhealthy. Two details do real work. It is counted from the env's `terminated`
+flag rather than from `length < 1000`, because those differ (`greedy_eval`'s
+`Arm.crashes` sets out how); and it is measured on `ant_sac.zip` rather than
+`ant_sac_best.zip`, because the best checkpoint is selected partly for not
+having crashed and so cannot honestly report a crash rate.
+
+The oracle for both is `record/check_ledger_fields.py`.
 """
 from __future__ import annotations
 
@@ -54,11 +76,41 @@ from bestiary.guards.ledger_schema import BASE_FIELDS, FIELDS_FROM_ROW_3, VERDIC
 # the time (research/scripts/learning_008_math.py).
 EVAL_EPISODES = 20
 
-# "After converge" means the last 60% of training. Taken from ledger row 2,
-# which reported "mean eval after 400k" on a 1M-step run. Not a principled
-# convergence test -- it is the convention already in the record, made explicit
-# and applied identically to every row so the numbers stay comparable.
-CONVERGE_FRACTION = 0.4
+# "After converge" means "from step 400,000 onward", an ABSOLUTE cutoff.
+#
+# This constant is checked against the record rather than chosen: it is the
+# cutoff that reproduces both published numbers in `learnings/007`, which is
+# where the field comes from. That learning's table reports "mean eval after
+# 400k" as 887.5 for hound_desert_v0 (3.75M steps) and 1113.1 for
+# hound_pd_desert_v0 (1.0M steps). Recomputed from the runs' own event files:
+#
+#     cutoff = 400,000 absolute -> 887.53 and 1113.14   <- matches the record
+#     cutoff = 40% of run steps -> 1013.94 and 1113.14
+#
+# An earlier version of this module read the convention as a *fraction* (0.4),
+# which is right only for the 1M-step run, where 40% happens to land on 400k.
+# On the 3.75M-step torque run the fractional window starts at 1.5M and returns
+# 1013.94 -- 126 points above the published 887.5. That error is not neutral:
+# it discards the run's early, more frequent crashes and so flatters precisely
+# the unstable policy that `learnings/007` exists to stop the ledger from
+# rewarding. A fraction also makes the window a different absolute region of
+# training for every run length, which is the comparability failure that same
+# learning names in "never compare peaks across runs of different length".
+#
+# So: absolute, identical for every row, and recorded ON the row as
+# `mean_eval_after_converge_from_step` so a later reader never has to guess
+# which window produced the number.
+#
+# It is a convention, not a convergence test. Nothing detects convergence here;
+# 400k is where the record drew the line, and the honest thing is to draw it in
+# the same place every time and say where it is.
+CONVERGE_AFTER_STEPS = 400_000
+
+# Below this, a mean over the converged window is a mean over too few draws to
+# be a summary of anything. `eval/mean_reward` is a ONE-episode draw
+# (learnings/008), and these policies are bimodal, so a handful of points can
+# miss the failure mode entirely -- the same argument as EVAL_EPISODES above.
+MIN_CONVERGED_EVAL_POINTS = 5
 
 # env_id prefix -> robot, so the field is derived rather than typed by hand.
 ROBOTS = (
@@ -111,8 +163,33 @@ def _require(scalars: dict[str, list], tag: str) -> list:
     return scalars[tag]
 
 
+def after_converge(evals: list, after_step: int = CONVERGE_AFTER_STEPS) -> list[float]:
+    """The `eval/mean_reward` values from `after_step` onward.
+
+    Split out and named so the one judgement call in this module -- where the
+    converged window starts -- is a function with an oracle rather than three
+    lines buried in `summarize`. See `CONVERGE_AFTER_STEPS`.
+
+    Each value is a single-episode draw (learnings/008). That is fine here and
+    fatal for a maximum: averaging many one-episode draws is an unbiased
+    estimate of the policy's mixture, crashes included, whereas taking the max
+    over them estimates only its best mode. This field exists to be the honest
+    counterpart to `best_eval_return`, so the small sample per point is the
+    point, not a defect -- provided there are enough points.
+    """
+    values = [e.value for e in evals if e.step >= after_step]
+    if len(values) < MIN_CONVERGED_EVAL_POINTS:
+        raise ValueError(
+            f"only {len(values)} eval point(s) at or after step {after_step:,} "
+            f"(need {MIN_CONVERGED_EVAL_POINTS}); the run is too short, or "
+            f"evaluated too rarely, to summarise honestly. Last eval step was "
+            f"{int(evals[-1].step) if evals else 'n/a'}."
+        )
+    return values
+
+
 def summarize(run: str, episodes: int = EVAL_EPISODES,
-              converge_fraction: float = CONVERGE_FRACTION) -> dict:
+              converge_after_steps: int = CONVERGE_AFTER_STEPS) -> dict:
     """Every ledger field for a finished run, computed from its own artifacts."""
     from bestiary.record import greedy_eval
 
@@ -135,27 +212,24 @@ def summarize(run: str, episodes: int = EVAL_EPISODES,
     # a run stopped and resumed would report the last window rather than the run.
     fps = int(round(steps / wall_s)) if wall_s else 0
 
-    cutoff = converge_fraction * steps
-    after = [e.value for e in evals if e.step >= cutoff]
-    if not after:
-        raise ValueError(
-            f"no eval points after step {cutoff:.0f} ({converge_fraction:.0%} of "
-            f"{steps}); the run is too short to summarise honestly"
-        )
+    after = after_converge(evals, converge_after_steps)
 
     # The finished policy, measured the way learnings/008 requires: N
     # deterministic episodes, reported as a mean with its n, never as a peak.
     best = greedy_eval.compare(run, episodes=episodes)
     latest = greedy_eval.compare(run, episodes=episodes, latest=True)
 
-    import gymnasium as gym
-
-    import bestiary.envs  # noqa: F401  — registers the ids
-
-    max_steps = gym.spec(env_id).max_episode_steps
-    if not max_steps:
-        raise ValueError(f"{env_id} declares no max_episode_steps; cannot define a crash")
-    crashes = sum(1 for n in latest["trained"]["lengths"] if n < max_steps)
+    # `eval_crash_rate` describes the policy the run ENDED with, so it is
+    # measured on ant_sac.zip (`latest`), not on ant_sac_best.zip. Measuring it
+    # on the best checkpoint would be circular: learnings/008 shows that
+    # checkpoint is selected as the argmax of single-episode draws, so it is
+    # chosen partly *for* not having crashed. Its crash rate is biased low by
+    # construction, and a reliability number that flatters unreliable policies
+    # is the exact defect learnings/007 was written about.
+    #
+    # Not recomputed here -- `greedy_eval.Arm.crashes` owns the definition of a
+    # crash, and counts terminations rather than short episodes.
+    crash_rate = latest["trained"]["crash_rate"]
 
     seeds = 1  # one run, one seed. A multi-seed row is written by hand from several.
     row = {
@@ -183,7 +257,19 @@ def summarize(run: str, episodes: int = EVAL_EPISODES,
                            if "train/ent_coef" in scalars else None),
 
         "mean_eval_after_converge": round(float(np.mean(after)), 2),
-        "eval_crash_rate": round(crashes / episodes, 4),
+        # The window and the sample size that produced the number above, on the
+        # row itself. Same reason eval-sampling makes `best_eval_return` carry
+        # `best_eval_episodes`: a summary statistic whose window is implicit
+        # cannot be compared against anything later.
+        "mean_eval_after_converge_from_step": converge_after_steps,
+        "mean_eval_after_converge_points": len(after),
+        "mean_eval_after_converge_sd": round(float(np.std(after, ddof=1)), 2)
+                                       if len(after) > 1 else 0.0,
+
+        "eval_crash_rate": round(float(crash_rate), 4),
+        "eval_crash_rate_episodes": episodes,
+        "eval_crash_rate_checkpoint": "ant_sac.zip",
+
         "seeds": seeds,
         "provisional": seeds < 3,
 
@@ -204,10 +290,11 @@ def summarize(run: str, episodes: int = EVAL_EPISODES,
     row["_measured"] = {
         "latest_mean": round(float(latest["trained"]["mean"]), 2),
         "latest_sd": round(float(latest["trained"]["std"]), 2),
+        "latest_crashes": latest["trained"]["crashes"],
+        "best_ckpt_crash_rate": round(float(best["trained"]["crash_rate"]), 4),
         "standing_mean": round(float(best["standing"]["mean"]), 2),
         "ratio_vs_standing": round(float(best["ratio_mean"]), 3),
-        "eval_points_after_converge": len(after),
-        "max_episode_steps": max_steps,
+        "max_episode_steps": latest["trained"]["max_episode_steps"],
     }
     return row
 
