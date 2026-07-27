@@ -11,6 +11,21 @@ shape error with no hint that an env edit three days ago caused it.
 This reads the shapes out of the checkpoint's `data` member, which is plain
 JSON inside the zip, so no torch import and no GPU. Comparing against a live
 `gym.make()` costs one MuJoCo model load per distinct env id.
+
+## Runs whose door was already walked through
+
+Some checkpoints are permanently, correctly dead: the observation moved, or the
+env id no longer exists. Re-reporting them as fresh failures forever is worse
+than useless, because `guards --fast` gates every training launch — one
+historical orphan would block all future work, and the pressure would be to
+stop running the guard rather than to fix anything.
+
+So an orphan is **declared** in `research/retired_runs.jsonl`
+(`python -m bestiary.record.retire`), and this guard then asserts the stronger
+pair: every undeclared run loads, **and every declared orphan really is dead**.
+A declaration that becomes loadable again is a FAIL, not a pass — which is what
+stops the file being a way to mute the guard. See `record/retire.py` for the
+writer, which refuses to retire anything that still loads.
 """
 from __future__ import annotations
 
@@ -65,6 +80,18 @@ def _checkpoint_shapes(zip_path) -> tuple[int, int]:
     )
 
 
+def _retired() -> dict[str, dict]:
+    """run name -> its declaration row, from `research/retired_runs.jsonl`.
+
+    Deliberately the WRITER's parser, imported rather than reimplemented. Two
+    parsers for one record file is the bug class where reader and writer
+    quietly disagree about what a row means and nothing ever surfaces it.
+    """
+    from bestiary.record.retire import read_rows
+
+    return read_rows()
+
+
 def run() -> list[Finding]:
     if not paths.RUNS.exists():
         return [Finding("runs/ exists", True, "no runs yet — nothing to check")]
@@ -72,6 +99,11 @@ def run() -> list[Finding]:
     findings: list[Finding] = []
     checked = 0
     unpinned: list[str] = []
+
+    try:
+        retired = _retired()
+    except ValueError as exc:
+        return [Finding("retired_runs.jsonl parses", False, str(exc))]
 
     for run_dir in sorted(p for p in paths.RUNS.iterdir() if p.is_dir()):
         config_path = run_dir / "config.json"
@@ -84,12 +116,22 @@ def run() -> list[Finding]:
             findings.append(Finding(f"{run_dir.name}: config is readable", False, str(exc)))
             continue
 
+        is_retired = run_dir.name in retired
+
         try:
             want_obs, want_act = _env_shapes(env_id)
         except Exception as exc:  # a missing asset or an unregistered id
+            # A declared orphan whose env genuinely will not build is the
+            # declaration coming true, so it passes — and says so loudly enough
+            # that nobody mistakes it for a healthy run.
             findings.append(
-                Finding(f"{run_dir.name}: env {env_id} builds", False,
-                        f"{type(exc).__name__}: {exc}")
+                Finding(
+                    f"{run_dir.name}: env {env_id} builds",
+                    is_retired,
+                    f"{type(exc).__name__}: {exc}"
+                    + (f"  <- retired {retired[run_dir.name].get('retired_at')}, "
+                       "as declared" if is_retired else ""),
+                )
             )
             continue
 
@@ -98,6 +140,7 @@ def run() -> list[Finding]:
         # cleanly, feeding the policy a permuted world — so compare the
         # recorded spec hash too, when the run has one.
         recorded_spec = config.get("obs_spec")
+        spec_matches: bool | None = None  # None = this run predates the spec record
         if recorded_spec is None:
             # Not a failure: these runs predate the spec record. Counted and
             # named rather than skipped, because a silent skip is how a guard
@@ -113,19 +156,21 @@ def run() -> list[Finding]:
                 )
                 live = None
             if live is not None:
-                same = recorded_spec.get("hash") == live.hash
-                findings.append(
-                    Finding(
-                        f"{run_dir.name}: obs spec still matches what it recorded",
-                        same,
-                        f"recorded {recorded_spec.get('hash')} "
-                        f"(width {recorded_spec.get('width')}) vs live {live.hash} "
-                        f"(width {live.width})"
-                        + ("" if same else
-                           "  <- the observation list changed under this run"),
+                spec_matches = recorded_spec.get("hash") == live.hash
+                if not is_retired:
+                    findings.append(
+                        Finding(
+                            f"{run_dir.name}: obs spec still matches what it recorded",
+                            spec_matches,
+                            f"recorded {recorded_spec.get('hash')} "
+                            f"(width {recorded_spec.get('width')}) vs live {live.hash} "
+                            f"(width {live.width})"
+                            + ("" if spec_matches else
+                               "  <- the observation list changed under this run"),
+                        )
                     )
-                )
 
+        loads: dict[str, bool] = {}
         for name in CHECKPOINTS:
             zip_path = run_dir / name
             if not zip_path.exists():
@@ -141,6 +186,9 @@ def run() -> list[Finding]:
                 continue
 
             ok = (got_obs, got_act) == (want_obs, want_act)
+            loads[name] = ok
+            if is_retired:
+                continue  # judged together, below
             findings.append(
                 Finding(
                     f"{run_dir.name}/{name} loads into {env_id}",
@@ -150,8 +198,80 @@ def run() -> list[Finding]:
                 )
             )
 
+        if is_retired:
+            # One assertion for the whole run, and it is the INVERSE of the
+            # live-run one: the declaration says this is dead, so the guard
+            # checks that it really is. A retired run that loads cleanly AND
+            # whose spec still matches is a stale declaration — which is the
+            # check that stops this file becoming a way to mute the guard.
+            # "Dead" is either width incompatibility or a moved spec hash: a
+            # reorder at identical width loads fine and feeds the policy a
+            # permuted world, which orphans it just as completely.
+            dead_by_width = any(not ok for ok in loads.values())
+            dead_by_spec = spec_matches is False
+            row = retired[run_dir.name]
+            head = (
+                f"retired {row.get('retired_at')} by {row.get('retired_by')}; "
+                f"env {env_id} is {want_obs}obs/{want_act}act; checkpoints "
+                + (", ".join(f"{n}={'loads' if ok else 'dead'}"
+                             for n, ok in sorted(loads.items())) or "(none readable)")
+                + ("; spec unpinned" if spec_matches is None
+                   else f"; spec {'matches' if spec_matches else 'moved'}")
+            )
+
+            if not loads:
+                # Nothing was read, so nothing was judged. This is emphatically
+                # NOT "it loads" — saying so would send a 3am operator to delete
+                # the one surviving record that learning 003 bit us, on the
+                # strength of a load that never happened. record.retire refuses
+                # to create such a row, so reaching this state means the .zip
+                # files went missing after the fact, and they ARE the run.
+                # No remedy here mentions removing the declaration, even to
+                # forbid it: the fix is on disk, and a scanned instruction is
+                # read by its verbs. `check_checkpoint_width` asserts the word
+                # is absent.
+                why = (
+                    "  <- NO readable checkpoint on disk, so deadness could not be "
+                    "verified. Restore this run's .zip files; they ARE the run, and "
+                    f"its line in {paths.RETIRED.name} must stay — record.retire "
+                    "will refuse to re-create it."
+                )
+            elif dead_by_width or dead_by_spec:
+                why = ""
+            else:
+                why = (
+                    "  <- it LOADS and "
+                    + ("its spec matches" if spec_matches is True
+                       else "it has no recorded spec to contradict that")
+                    + f": this retirement is STALE, delete its line from "
+                      f"{paths.RETIRED.name}"
+                )
+
+            findings.append(
+                Finding(
+                    f"{run_dir.name}: orphaned as declared ({row.get('reason', '?')})",
+                    bool(loads) and (dead_by_width or dead_by_spec),
+                    head + why,
+                )
+            )
+
     if not checked:
         findings.append(Finding("checkpoints found", True, "none on disk"))
+
+    # `runs/` is gitignored and machine-local, so a clone legitimately has none
+    # of these directories while still carrying the tracked declarations. Absent
+    # is therefore reported, never failed — but it IS reported, because a
+    # retirement naming a run nobody can find is how the file rots into fiction.
+    absent = sorted(r for r in retired if not (paths.RUNS / r).is_dir())
+    if absent:
+        findings.append(
+            Finding(
+                "retired runs are accounted for",
+                True,
+                f"{len(absent)} declared but not on this machine "
+                f"(runs/ is gitignored): {absent}",
+            )
+        )
 
     # Reported, never silent. Every unpinned run is one whose observation could
     # change without any check noticing, and the number should visibly fall to

@@ -23,6 +23,7 @@ RESEARCH = REPO_ROOT / "research"  # learnings, decisions, episodes, ledger
 DOCS = REPO_ROOT / "docs"
 
 LEDGER = RESEARCH / "ledger.jsonl"  # append-only, one row per finished run
+RETIRED = RESEARCH / "retired_runs.jsonl"  # append-only, one row per orphaned run
 
 # --- Model XMLs -------------------------------------------------------------
 # MuJoCo resolves <mesh file="meshes/..."> and <hfield file="terrain/..."> as
