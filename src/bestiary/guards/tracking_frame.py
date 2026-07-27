@@ -89,6 +89,13 @@ MAX_UNSTEERED_YAW_FACTOR = 0.45          # Phi(0.127/sigma_w) <= 0.45, Section 2
 # outside the derived window.
 MAX_STANDING_TAKE_EASIEST_DRIVE = 0.17
 MIN_DRIVE_COMMAND = 0.3                  # = 2 * sigma_v, Section 3
+# Backward drives need a LARGER minimum than forward ones, and the asymmetry is
+# not a preference: the creep is backward, so it cancels part of the error under
+# a backward command and the same |vx| buys standing a much larger take. Solving
+# Phi((|vx| - 0.03553)/0.15) * 0.9678 <= 0.17 for |vx| gives 0.3756, and the
+# nearest round value above it is 0.40 (take 0.1402). 0.35 does NOT clear it
+# (0.1794). Derived from the cap, not chosen.
+MIN_DRIVE_COMMAND_BACKWARD = 0.4
 
 
 def run() -> list[Finding]:
@@ -179,19 +186,59 @@ def run() -> list[Finding]:
     # factors use the STANDING arm, because the machine being bounded is
     # standing -- see the note on _STANDING above for what using the driving
     # arm's yaw here did.
-    standing_err = MIN_DRIVE_COMMAND + STANDING_DRIFT
+    # The floors this assertion reasons about live in the ENV, and a guard that
+    # bounds its own private copy of a constant bounds nothing. Two numbers that
+    # must agree and are written in two files will eventually disagree, and this
+    # guard's whole value is that it fails when they do.
+    from bestiary.envs import hound_track as _ht
+
+    out.append(Finding(
+        "the guard's command floors are the env's command floors",
+        _ht.VX_MIN == MIN_DRIVE_COMMAND
+        and _ht.VX_MIN_BACKWARD == MIN_DRIVE_COMMAND_BACKWARD,
+        f"env samples |vx| >= {_ht.VX_MIN} forward / {_ht.VX_MIN_BACKWARD} backward; "
+        f"this guard asserts against {MIN_DRIVE_COMMAND} / "
+        f"{MIN_DRIVE_COMMAND_BACKWARD}. If these drift apart the freeride bound "
+        f"below is checking a distribution nothing samples from",
+    ))
+
+    # BOTH SIGNS. The creep is BACKWARD (mean_vx = -0.03553), so it adds to the
+    # error under a forward command and SUBTRACTS under a backward one. This
+    # assertion used to compute the forward case only, and the sign it omitted
+    # is the one that is not bounded:
+    #
+    #     forward  (+0.3):  err = 0.3 + 0.03553 = 0.33553 -> take 0.1112  OK
+    #     backward (-0.3):  err = 0.3 - 0.03553 = 0.26447 -> take 0.2356  1.39x OVER
+    #
+    # Measured, not predicted: on the (-0.3, 0, 0) cell of
+    # `hound_track_desert_s0`'s committed decomposition, zero action scores
+    # 0.23567/step of tracking against the trained policy's 0.09737 and returns
+    # 226.38 against 40.27. Backward commands are 16% of the command mass
+    # (P_FORWARD = 0.8 within a drive mass of 0.8), so this is a standing
+    # exploit sitting open on a sixth of training -- the third instance of the
+    # failure this project has already paid for twice, shipped because the
+    # guard against it only ever looked one way.
+    #
+    # The bound is the LARGEST take over the sign, so the smallest error.
+    forward_err = MIN_DRIVE_COMMAND + STANDING_DRIFT
+    backward_err = MIN_DRIVE_COMMAND_BACKWARD - STANDING_DRIFT
+    worst_sign = "forward" if forward_err <= backward_err else "backward"
+    standing_err = min(forward_err, backward_err)
     phi_v_standing = float(kernel(standing_err / SIGMA_V))
     phi_w_standing = float(kernel(STANDING_YAW_DRIFT / SIGMA_W))
     standing_take = phi_v_standing * phi_w_standing
     out.append(Finding(
-        "standing cannot freeride the easiest drive command",
+        "standing cannot freeride the easiest drive command, either sign",
         standing_take <= MAX_STANDING_TAKE_EASIEST_DRIVE,
-        f"a standing machine under ({MIN_DRIVE_COMMAND}, 0, 0) takes "
+        f"worst sign is {worst_sign}: forward err {forward_err:.5f} "
+        f"(cmd {MIN_DRIVE_COMMAND}), backward err {backward_err:.5f} "
+        f"(cmd -{MIN_DRIVE_COMMAND_BACKWARD}); standing takes "
         f"{standing_take:.4f}/step = Phi_v {phi_v_standing:.4f} x Phi_w "
         f"{phi_w_standing:.4f}, at sigma_v={SIGMA_V} sigma_w={SIGMA_W}, "
         f"cap {MAX_STANDING_TAKE_EASIEST_DRIVE}. Both factors use the STANDING "
-        f"arm (creep {STANDING_DRIFT:.5f} m/s, yaw {STANDING_YAW_DRIFT:.5f} "
-        f"rad/s); the driving arm's yaw {UNSTEERED_DRIVING_YAW:.5f} would give "
+        f"arm (creep {STANDING_DRIFT:.5f} m/s BACKWARD, yaw "
+        f"{STANDING_YAW_DRIFT:.5f} rad/s); the driving arm's yaw "
+        f"{UNSTEERED_DRIVING_YAW:.5f} would give "
         f"{phi_v_standing * float(kernel(UNSTEERED_DRIVING_YAW / SIGMA_W)):.4f} "
         f"and bound nothing",
     ))

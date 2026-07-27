@@ -97,6 +97,10 @@ P_STOP = 0.10        # large enough that stopping is learned, small enough that
 P_TURN = 0.10        # turn in place
 # remainder, 0.80, is DRIVE -- the dominant real command
 
+VX_MIN_BACKWARD = 0.4       # backward floor; the creep cancels error going
+                            # backwards, so 2*sigma_v is NOT enough that way.
+                            # Derived from the Section 2 freeride cap — see
+                            # _resample_command and guards/tracking_frame.py.
 VX_MIN, VX_MAX = 0.3, 0.8   # min = 2*sigma_v, keeps every drive command two
                             # kernel widths off the standing point; max is
                             # PROVISIONAL, see the module note below
@@ -224,7 +228,18 @@ class HoundTrackEnv(HoundEnv):
             )
         else:
             sign = 1.0 if rng.uniform() < P_FORWARD else -1.0
-            vx = sign * rng.uniform(VX_MIN, VX_MAX)
+            # The backward floor is HIGHER, and the asymmetry is derived rather
+            # than chosen. The standing creep is backward (-0.03553 m/s), so it
+            # ADDS to the error under a forward command and SUBTRACTS under a
+            # backward one -- the same |vx_cmd| therefore hands a stationary
+            # machine a far larger take going backwards. At the old symmetric
+            # 0.3 floor that take was 0.2356/step against the Section 2 freeride
+            # cap of 0.17, a 1.39x violation, and it was worth more than driving:
+            # on the (-0.3, 0, 0) cell zero action returned 226.38 against the
+            # trained policy's 40.27. Solving the cap for |vx| gives 0.3756;
+            # 0.40 is the nearest round value that clears it (0.1402), and 0.35
+            # does not (0.1794). Asserted by `guards/tracking_frame.py`.
+            vx = sign * rng.uniform(VX_MIN if sign > 0 else VX_MIN_BACKWARD, VX_MAX)
             # v_y is commanded ZERO, always. Nobody has measured whether this
             # wheel configuration can hold a lateral velocity at all, and
             # commanding a channel of unverified controllability injects
