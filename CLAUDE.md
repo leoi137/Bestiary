@@ -151,9 +151,20 @@ venv/bin/python -m bestiary.record.ledger --run hound_v1                    # dr
 venv/bin/python -m bestiary.record.ledger --run hound_v1 --verdict improved \
     --notes "..." --append
 
+# Declare a run's checkpoints permanently orphaned, so checkpoint-width asserts
+# something true instead of re-reporting a known dead run forever. REFUSES to
+# retire anything that still loads -- see the invariant below.
+venv/bin/python -m bestiary.record.retire --run ant12 --reason env-unregistered \
+    --note "..." --append
+
 # How much wall-clock is left and how many steps fit, at throughput measured
 # per-env from the ledger. $ROBOTICS_ARMED_UNTIL is supplied by the caller.
 venv/bin/python -m bestiary.record.budget --env HoundDesert-v0
+
+# Oracles for the retirement gate. The gate is the whole reason a declared
+# orphan cannot be used to mute checkpoint-width, so it gets its own checks.
+venv/bin/python -m bestiary.guards.check_checkpoint_width   # the guard's verdicts
+venv/bin/python -m bestiary.record.check_retire             # the writer's refusals
 
 # Lint — REQUIRED after any refactor. Catches the bug class the robot checks
 # structurally cannot see (see research/learnings/006).
@@ -199,6 +210,18 @@ The actor's first layer is
 checkpoint fail to load — not degrade, *fail*. Spyder is at 113 today and
 `research/CORE_PLAN.md` locks it at 141 with reserved command and height
 slots. Never start a multi-hour run while that width is still unsettled.
+
+**A run is retired only when it is already dead, and the guard checks that.**
+`research/retired_runs.jsonl` turns a permanently orphaned run from a recurring
+FAIL into a recorded fact — necessary, because `guards --fast` gates every
+launch and one historical orphan would otherwise block all future training.
+That makes it a mechanism for turning a red guard green, so it is fenced from
+both sides: `record.retire` **refuses** to write a row for a run that still
+loads and whose obs-spec hash has not moved, measuring every number itself; and
+`checkpoint-width` **fails** on a stale declaration — a retired run that loads
+cleanly with a matching spec is an error telling you to delete its line. The
+net effect is that retiring a healthy run is not a policy violation caught in
+review, it is impossible. Never hand-edit the file.
 
 **Two checkpoints per run.** `<prefix>_sac.zip` (latest, used to resume) and
 `<prefix>_sac_best.zip` (only overwritten when an eval beats the prior best,
@@ -250,6 +273,13 @@ from the repo root.
   condition that would make it worth retrying. Append-only.
 - `research/anomalies.jsonl` — one line per surprising thing noticed and not
   explained. Append-only, `status` may change.
+- `research/retired_runs.jsonl` — one row per run whose checkpoints are
+  permanently orphaned, written only by `record.retire`. Append-only. This is
+  the record that `learnings/003` bit us in the wild, and it is what lets
+  `checkpoint-width` assert *"every declared orphan really is dead"* instead of
+  re-reporting a known dead run as a fresh failure forever. See *A run is
+  retired only when it is already dead* under **Invariants** — a row can only
+  exist for a checkpoint that is genuinely dead.
 - `src/bestiary/guards/` — the lessons that became assertions. **Any learning
   that can be expressed as a check must also become a guard**, and the
   learning's front matter names it. Prose depends on someone reading it at the
