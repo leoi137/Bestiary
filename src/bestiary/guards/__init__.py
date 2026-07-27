@@ -72,6 +72,7 @@ def _registry() -> tuple[Guard, ...]:
         memory,
         metric_liveness,
         nulls,
+        parked_detector,
         privacy,
         reward_spec,
         spawn_pad,
@@ -163,6 +164,16 @@ def _registry() -> tuple[Guard, ...]:
         # the failure it prevents is spending GPU-hours re-entering a dead end
         # this project already paid for. It reads two JSONL files and the
         # config.json of each run — no physics, no torch.
+        # Fast: reads one committed JSON. It asserts a property of our own
+        # DETECTOR, not of a policy -- learnings/011 was written because a
+        # failure mode was named from a threshold nobody had checked against
+        # the null policy it exists to catch.
+        Guard(
+            name="parked-detector",
+            enforces="learnings/011",
+            cost="fast",
+            run=parked_detector.run,
+        ),
         Guard(
             name="nulls",
             enforces="research/nulls.jsonl, anomalies.jsonl 2026-07-26",

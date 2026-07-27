@@ -325,6 +325,28 @@ Two flags for the hashing machinery, both real holes:
    Cheapest: the existing eval with per-command-type decomposition added.
    Pre-registered levers (decide now, not mid-run): p_stop → 0.05 or
    min |v_cmd| → 0.4.
+
+   > **Corrected 2026-07-27 (cycle 007).** "DRIVE slices" above was ambiguous
+   > and one reading of it makes this detector useless. `track_eval`'s
+   > `drive_grid_*` averages **all six** non-stop cells, and one of those —
+   > `(0.0, 0.0, 0.45)`, a pure turn — commands v_x = 0, where a standing
+   > machine scores Φ_v ≈ 0.95 for correctly not moving forward. Over those six
+   > cells **zero action itself reads Φ_v = 0.2399**, above this 0.15 threshold:
+   > the do-nothing policy passes the do-nothing detector.
+   >
+   > **The denominator is the five cells with nonzero commanded speed**, where
+   > zero action reads **0.0985** and 0.15 separates with a margin of +0.0515.
+   > `calibration.jsonl` row 13 already used the five-cell definition; this note
+   > and `track_eval` did not. Enforced by `guards/parked_detector.py`.
+   >
+   > **The pre-registered levers are also withdrawn**, not by preference but by
+   > measurement: `hound_track_desert_s0` was *not* parked (Φ_v = 0.1981 against
+   > zero action's 0.0985, command gain 0.1935 against 0.0), so failure mode 1
+   > never fired. Its return was negative because control cost is 105.5% of the
+   > gap to zero action and the termination penalty 0.9% —
+   > `research/learnings/011`. Both levers push *more* driving at a machine
+   > whose problem is that driving does not pay, and would make the return more
+   > negative.
 2. **Yaw-freeride plateau.** "Match speed, ignore heading" earns 0.345 vs
    0.87 — a plateau SAC can sit on. Detect: Φ_w under ω_cmd = ±0.4 eval cells
    specifically; also variance of the steering-relevant action channels. If
