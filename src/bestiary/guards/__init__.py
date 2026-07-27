@@ -69,6 +69,7 @@ def _registry() -> tuple[Guard, ...]:
         disk,
         eval_sampling,
         ledger_schema,
+        memory,
         metric_liveness,
         privacy,
         reward_spec,
@@ -88,6 +89,15 @@ def _registry() -> tuple[Guard, ...]:
             enforces="SYSTEM.md retention policy",
             cost="fast",
             run=disk.run,
+        ),
+        # Fast on purpose: it reads /proc/meminfo and one systemctl property,
+        # and it must gate every launch. A machine that is already full is the
+        # one state where starting a run costs more than skipping it.
+        Guard(
+            name="memory",
+            enforces="budget condition 8",
+            cost="fast",
+            run=memory.run,
         ),
         Guard(
             name="ledger-schema",
