@@ -189,6 +189,15 @@ def summarize(run: str, episodes: int = EVAL_EPISODES,
 
         "obs_spec_hash": (config.get("obs_spec") or {}).get("hash"),
 
+        # What this row's numbers were paid for. `reward_shape_hash` is the one
+        # that decides whether two rows may be compared at all: it is invariant
+        # to retuning and moves the moment the reward starts paying for a
+        # different thing. Rows 1-2 carry null for both, which is the honest
+        # value -- nothing recorded their reward, and back-filling it from
+        # today's code would invent provenance (see envs/reward_spec.py).
+        "reward_spec_hash": (config.get("reward_spec") or {}).get("hash"),
+        "reward_shape_hash": (config.get("reward_spec") or {}).get("shape_hash"),
+
         "verdict": None,   # filled by the caller — a judgement, not a measurement
         "notes": "",
     }
