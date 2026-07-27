@@ -53,15 +53,17 @@ which gets re-sorted as the set grows.
 2. [002 — Why one training run is not a result](002-why-one-seed-is-not-a-result.md)
 3. [004 — Why changing the reward poisons the replay buffer](004-why-a-reward-change-poisons-the-buffer.md)
 4. [003 — Why two rewards should be multiplied, not added](003-add-or-multiply.md)
+5. [005 — What `ent_coef` really measures](005-what-ent-coef-really-measures.md)
 
 Note the reading order is not the file order: 004 explains the machinery that
-003's reward change had to be built around, so it reads first.
+003's reward change had to be built around, so it reads first. 005 reads last
+of the current set because it is the first one that needs a reward change to
+already be understood — it compares the entropy dynamics *across* two rewards.
 
 ### Planned, roughly in the order they will be needed
 
 - What a policy is, and why it is a neural network
 - Actor and critic: why one network is not enough
-- Entropy, and what `ent_coef` collapsing to 0.008 actually meant
 - Torque control versus PD position targets
 - What an observation is, and why its width is a one-way door
 - Discounting: what γ = 0.99 is really saying about the future
@@ -69,13 +71,23 @@ Note the reading order is not the file order: 004 explains the machinery that
 
 Each lands when the project needs it to decide something, not before.
 
-**The planned list is down to 7**, from 8. Cycle 006 took *"What the replay
-buffer holds, and why changing the reward poisons it"* off it — the first time
-the queue has been drawn down rather than added around. It was the right item
-by both tests the rule offers: it was next-in-line *and* it was the idea the
-cycle was built around, because the tracking reward had to ship as a new env id
-trained from scratch precisely so the buffer would not be poisoned.
+**The planned list is down to 6**, from 7, and from 8 the cycle before. Cycle
+007 took *"Entropy, and what `ent_coef` collapsing to 0.008 actually meant"*
+off it, on the same both-tests basis cycle 006 used: it was on the list *and*
+it was the idea the cycle actually touched, because `hound_track_desert_s0`
+drove `ent_coef` to 1.76e−4 — about 100× below the 0.0184 the old-reward run
+held — and that collapse is an open row in `research/anomalies.jsonl`.
 
-The title lost its "and" on the way in. The queued phrasing named two things,
-and the one-idea rule at the top of this file says that is two lessons; what
-the buffer holds is the setup, and the poisoning is the idea.
+Two consecutive draw-downs is the first time this queue has shrunk twice in a
+row.
+
+The queued title carried a wrong number and a wrong reading, and both were
+fixed on the way in. The number: 0.008 appears in no run's log — the
+old-reward run's floor is 1.03e−2 and the tracking run's is 1.76e−4
+(`research/scripts/entropy_lesson_math.py`). The reading: the queue phrased
+the collapse as the thing to explain, but α falling means the policy was
+*more* random than the target, not less, so the lesson is what the coefficient
+measures rather than what one collapse meant.
+
+Cycle 006's note on titles still applies: the queued phrasing named two things
+and the one-idea rule says that is two lessons.
