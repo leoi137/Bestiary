@@ -101,7 +101,8 @@ src/bestiary/          the importable library
   paths.py             EVERY path in the project resolves from here
   envs/                gym envs; importing registers the four env ids
   rewards/             reward-shaping wrappers, selected by --wrapper
-  terrain/             generate.py writes heightfields; field.py reads them back
+  terrain/             generate.py writes heightfields; field.py reads them
+                       back; spec.py hashes the compiled one for provenance
   train/               train.py, watch.py
   robots/<name>/       build.py (MJCF generator), check.py (assertions), CARD.md
 concepts/anvil/        Blender concept art (ANVIL siege walker) — not RL
@@ -166,6 +167,14 @@ venv/bin/python -m bestiary.record.budget --env HoundDesert-v0
 venv/bin/python -m bestiary.guards.check_checkpoint_width   # the guard's verdicts
 venv/bin/python -m bestiary.record.check_retire             # the writer's refusals
 
+# Oracle for the terrain record. Checks that the digest moves when the ground
+# moves and not when the asset is merely renamed, that the guard fails on a
+# swapped heightfield and on a hand-edited config, and that a run predating the
+# record still passes. Its last section is not hermetic: it reproduces the
+# committed heightfield from generate.build_height_m(seed=7) and shows the
+# GRID=2048 rebuild does not match. ~7 s, writes nothing to assets/.
+venv/bin/python -m bestiary.guards.check_terrain_spec
+
 # Oracle for the ledger's two stability fields. mean_eval_after_converge is an
 # ABSOLUTE cutoff at step 400k (the one that reproduces learnings/007's
 # published 887.5 and 1113.1 — a fraction of run length does not), and
@@ -217,6 +226,30 @@ The actor's first layer is
 checkpoint fail to load — not degrade, *fail*. Spyder is at 113 today and
 `research/CORE_PLAN.md` locks it at 141 with reserved command and height
 slots. Never start a multi-hour run while that width is still unsettled.
+
+**The terrain is the third input to a run's dynamics, and it is pinned like
+the other two.** `terrain/spec.py` hashes the *compiled* heightfield — the
+samples, the grid, the extent, the elevation span, and the floor geom's
+placement — so an edit to `assets/terrain/desert_hfield.bin` and an edit to a
+`<hfield size=...>` in a `*_desert.xml` are both visible. `train.py` pins that
+hash into `config.json` and **refuses a resume whose ground moved**;
+`terrain-spec` asserts it on every run before every launch. Two hashes:
+`field_hash` says *which desert*, `hash` says *which ground* (the same desert
+rescaled moves only the latter).
+
+Terrain-dependence is **derived, never listed**: a world has ground iff
+`HeightField.from_model(model)` is not None, the same test the envs already use
+to decide where z = 0 is. So flat-plane runs (`Spyder-v0`, `Hound-v0`,
+`HoundPD-v0`, `Ant-v5`, `Walker2d-v5`, `Humanoid-v5`) are not exempt — they
+record `"terrain_spec": null` and are *asserted flat*. An absent key means the
+run predates the record; `null` and absent are deliberately different facts.
+
+Why it matters: a terrain swap is the quietest failure of the three. The
+observation raises at `SAC.load()`, the reward at least leaves an edited
+coefficient in git, and the ground leaves nothing at all — every checkpoint
+loads, every guard stays green, and every ledger row silently becomes
+incomparable. The GRID=2048 regen that was proposed correlates with the
+committed terrain at **+0.0610** (`research/scripts/compare_terrain_grids.py`).
 
 **A run is retired only when it is already dead, and the guard checks that.**
 `research/retired_runs.jsonl` turns a permanently orphaned run from a recurring
