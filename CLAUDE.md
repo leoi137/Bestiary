@@ -166,6 +166,13 @@ venv/bin/python -m bestiary.record.budget --env HoundDesert-v0
 venv/bin/python -m bestiary.guards.check_checkpoint_width   # the guard's verdicts
 venv/bin/python -m bestiary.record.check_retire             # the writer's refusals
 
+# Oracle for the ledger's two stability fields. mean_eval_after_converge is an
+# ABSOLUTE cutoff at step 400k (the one that reproduces learnings/007's
+# published 887.5 and 1113.1 — a fraction of run length does not), and
+# eval_crash_rate counts env terminations, never short episode lengths.
+# Hermetic apart from a final pass that recomputes both published numbers.
+venv/bin/python -m bestiary.record.check_ledger_fields
+
 # Lint — REQUIRED after any refactor. Catches the bug class the robot checks
 # structurally cannot see (see research/learnings/006).
 venv/bin/python -m ruff check --select F src/ concepts/
