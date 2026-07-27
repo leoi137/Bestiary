@@ -281,18 +281,68 @@ def _format(result: dict) -> str:
     return "\n".join(lines)
 
 
+def _format_both(best: dict, latest: dict) -> str:
+    """Both checkpoints side by side, plus what choosing between them is worth.
+
+    This exists because `research/learnings/010` happened: two training seeds
+    were compared through their `*_best.zip` files, the 91.55-point gap was
+    read as a property of the seed, and on the unselected `*_sac.zip` the same
+    instrument on the same 60 seeds gave -6.87 with the other seed ahead.
+    `learnings/008` had already established that `*_best.zip` is an argmax over
+    ONE-episode evaluations. Prose did not stop it, so the default output
+    changed instead.
+    """
+    delta = latest["trained"]["mean"] - best["trained"]["mean"]
+    return "\n".join([
+        _format(best),
+        "",
+        _format(latest),
+        "",
+        "  SELECTION DELTA (latest - best)",
+        f"    mean          {delta:+8.1f}",
+        f"    ratio         {latest['ratio_mean'] - best['ratio_mean']:+8.3f}"
+        f"   ({best['ratio_mean']:.3f} -> {latest['ratio_mean']:.3f})",
+        f"    crashes       {best['trained']['crashes']} -> "
+        f"{latest['trained']['crashes']} of {best['episodes']}",
+        "  Quote BOTH or neither. *_best.zip is selected by argmax over "
+        "one-episode",
+        "  evaluations (learnings/008), so a comparison through it alone is a "
+        "comparison",
+        "  of two lucky draws (learnings/010).",
+    ])
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--run", required=True, help="run name under runs/")
     parser.add_argument("--episodes", type=int, default=EPISODES)
     parser.add_argument("--seed0", type=int, default=SEED0)
     parser.add_argument("--latest", action="store_true",
-                        help="use ant_sac.zip instead of ant_sac_best.zip")
+                        help="measure ONLY ant_sac.zip instead of both")
+    # Both checkpoints are measured by DEFAULT, and opting out is explicit.
+    # The cost is one extra pass; the alternative cost is a published
+    # comparison between two argmax-selected artifacts, which is what
+    # learnings/010 records happening.
+    parser.add_argument("--best-only", action="store_true",
+                        help="measure ONLY ant_sac_best.zip; you are asking "
+                             "for a number learnings/008 says is a lucky draw")
     parser.add_argument("--json", action="store_true")
     args = parser.parse_args()
 
-    result = compare(args.run, args.episodes, args.seed0, args.latest)
-    print(json.dumps(result, indent=2) if args.json else _format(result))
+    if args.latest or args.best_only:
+        result = compare(args.run, args.episodes, args.seed0, args.latest)
+        print(json.dumps(result, indent=2) if args.json else _format(result))
+        return 0
+
+    best = compare(args.run, args.episodes, args.seed0, latest=False)
+    latest = compare(args.run, args.episodes, args.seed0, latest=True)
+    if args.json:
+        print(json.dumps({"best": best, "latest": latest,
+                          "selection_delta_mean":
+                              latest["trained"]["mean"] - best["trained"]["mean"]},
+                         indent=2))
+    else:
+        print(_format_both(best, latest))
     return 0
 
 
