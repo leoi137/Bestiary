@@ -133,6 +133,7 @@ def _registry() -> tuple[Guard, ...]:
     from bestiary.guards import (
         checkpoint_width,
         command_independence,
+        decomposition_completeness,
         disk,
         eval_sampling,
         ledger_schema,
@@ -292,6 +293,15 @@ def _registry() -> tuple[Guard, ...]:
             enforces="learnings/015, anomalies.jsonl row 41",
             cost="fast",
             run=command_independence.run,
+        ),
+        # Paired with the two above: they assert the tracking SCORE is honest,
+        # this one that the account of where the return came from is complete.
+        # Fast: pure functions plus committed JSON, no env and no torch.
+        Guard(
+            name="decomposition-completeness",
+            enforces="anomalies.jsonl row 39 (2026-07-28)",
+            cost="fast",
+            run=decomposition_completeness.run,
         ),
         Guard(
             name="metric-liveness",
