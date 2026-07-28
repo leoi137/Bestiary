@@ -47,8 +47,16 @@ nothing collects **0.1597/step on every turn command**. The trained policy's
 best straight-drive cell earned **0.14685/step**. Standing still would have
 out-earned driving, and out-earned the old reward's **0.04474/step** for the
 same free lunch. At k = 0.5 it is 0.01731/step. Across every command that asks
-for motion, the stander's income is **0.00918/step** at k = 0.5 against
-**0.06501/step** under the reward being replaced — a **7.1×** cut.
+for motion, the stander's income is **0.00918/step** at k = 0.5, against
+**0.02571/step** at k = 0.75 on the same draws — the constant alone cuts what
+doing nothing pays by **2.8×**.
+
+Be careful comparing that to the old reward's **0.06501/step**: *that* figure is
+a six-cell drive-grid rate, not a mixture rate, so dividing one by the other is
+not like-for-like. The honest same-commands comparison is the six-cell
+`drive_grid_track`, **0.0652 → 0.01397, a 4.7× cut**. Two averages over two
+different sets of commands is exactly the kind of thing that reads as one number
+if nobody prints both, which is why the script prints both.
 
 ## Where it bites here
 

@@ -156,13 +156,18 @@ for k in (K_FIRST, K_SHIPPED):
           f" turn draws {np.mean([stander_income(c, k) for c in turn]):.5f})")
 print(f"  k = {K_FIRST} pays a do-nothing machine "
       f"{inc[K_FIRST] / inc[K_SHIPPED]:.1f}x what k = {K_SHIPPED} pays it")
+# The like-for-like comparison against the OLD reward is NOT this mixture rate.
+# A mixture rate averages over the command DISTRIBUTION; drive_grid_track
+# averages over six FIXED commands. Dividing one by the other was printed here
+# as a "7.1x cut" and it compares two different denominators over two different
+# command sets. The same-commands number is six-cell against six-cell:
 old_drive = OLD["zero_action"]["drive_grid_track"]
-print(f"  under the OLD reward, six-cell drive grid, measured: "
-      f"{old_drive:.5f} / step")
-print(f"  the shipped k = {K_SHIPPED} cuts that "
-      f"{old_drive / inc[K_SHIPPED]:.1f}x")
-print(f"  the first-written k = {K_FIRST} cuts it only "
-      f"{old_drive / inc[K_FIRST]:.1f}x")
+new_drive = REL["drive_grid_track"]
+print(f"  the SAME SIX COMMANDS under each reward (drive_grid_track):")
+print(f"    old reward {old_drive:.5f} / step -> shipped k = {K_SHIPPED} "
+      f"{new_drive:.5f} / step   = {old_drive / new_drive:.1f}x cut")
+print(f"  do NOT divide {old_drive:.5f} (six fixed commands) by "
+      f"{inc[K_SHIPPED]:.5f} (the mixture) -- different command sets.")
 
 print()
 print("=" * 72)
