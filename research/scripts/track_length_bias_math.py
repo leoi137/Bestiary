@@ -165,5 +165,43 @@ def main() -> None:
                   f"runs the full horizon, so there is no bias to have")
 
 
+    # --- the naive identity, and where it fails ------------------------------
+    #
+    # It is tempting to say bias = 1 / (fraction of the horizon lived). That is
+    # true of the GRID aggregate only by coincidence of weighting; at cell level
+    # it is false, because the episodes that crash also track at a different
+    # RATE than the ones that survive. Printed so nobody has to take it on faith.
+    print("\n--- bias vs 1/(fraction of horizon lived), per crashing cell ---")
+    print(f"{'checkpoint':18s} {'command':18s} {'bias':>8s} {'1/frac':>8s}")
+    for path in (MEASUREMENT,
+                 MEASUREMENT.with_name("track_length_bias_s0_best.json")):
+        if not path.exists():
+            continue
+        dd = json.loads(path.read_text())
+        for key, c in dd["trained"]["cells"].items():
+            if tuple(c["command"]) == STOP_CELL or c["crashes"] == 0:
+                continue
+            cell_bias = c["mean_track"] / c["track_per_horizon"]
+            inv_frac = c["horizon"] / c["mean_steps"]
+            print(f"{dd['checkpoint']:18s} {key:18s} {cell_bias:8.4f} "
+                  f"{inv_frac:8.4f}")
+
+    # --- replication on an independent seed block ----------------------------
+    rep = MEASUREMENT.with_name("track_length_bias_s0_seed5000.json")
+    if rep.exists():
+        rd = json.loads(rep.read_text())
+        rz, rp = rd["zero_action"], rd["trained"]
+        print(f"\n--- replication: {rep.name} "
+              f"(n={rd['episodes_per_cell']}/cell, seed0={rd['seed0']}, "
+              f"{rd['checkpoint']}) ---")
+        print(f"raw ratio        {rp['drive_grid_track'] / rz['drive_grid_track']:.4f}")
+        print("normalised ratio "
+              f"{rp['drive_grid_track_per_horizon'] / rz['drive_grid_track_per_horizon']:.4f}")
+        print(f"policy crashes over the grid: {rp['crashes']}, "
+              f"mean steps {rp['drive_grid_steps']:.1f}")
+    else:
+        print(f"\n{rep.name}: MISSING")
+
+
 if __name__ == "__main__":
     main()
