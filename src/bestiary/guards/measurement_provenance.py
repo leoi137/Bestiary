@@ -91,6 +91,23 @@ def _measurement_jsons() -> list[Path]:
     return sorted(_MEASUREMENTS.glob("*.json"))
 
 
+def _blocks(doc: dict) -> list[dict]:
+    """Every dict in `doc` that names a checkpoint, including nested ones.
+
+    `greedy_eval --json` writes `{"best": {...}, "latest": {...}}` by default,
+    so the checkpoint fields sit one level down and a top-level-only check
+    would skip the file entirely and stay green -- the guard would be blind to
+    exactly the default output shape of one of the two tools it exists to
+    police. Found by the refutation of cycle 011, before this had cost anything.
+
+    One level of nesting is enough for every shape either tool emits today, and
+    a bounded walk cannot recurse into a pathological document.
+    """
+    found = [doc] if "checkpoint" in doc else []
+    found += [v for v in doc.values() if isinstance(v, dict) and "checkpoint" in v]
+    return found
+
+
 def run() -> list[Finding]:
     out: list[Finding] = []
     files = _measurement_jsons()
@@ -113,27 +130,29 @@ def run() -> list[Finding]:
 
     # ---- 1. recorded hashes still hold -------------------------------------
     verified, missing, mismatched = [], [], []
-    for p, d in parsed:
-        digest = d.get("checkpoint_sha256")
-        if not digest:
-            continue
-        frozen = d.get("checkpoint_frozen")
-        if not frozen:
-            mismatched.append(f"{p.name}: records checkpoint_sha256 but no checkpoint_frozen path")
-            continue
-        fp = Path(frozen)
-        if not fp.is_absolute():
-            fp = paths.REPO_ROOT / fp
-        if not fp.exists():
-            missing.append(f"{p.name} -> {frozen}")
-            continue
-        actual = sha256_file(fp)
-        if actual == digest:
-            verified.append(p.name)
-        else:
-            mismatched.append(
-                f"{p.name}: {frozen} now hashes to {actual}, JSON recorded {digest}"
-            )
+    for p, doc in parsed:
+        for d in _blocks(doc) or [doc]:
+            digest = d.get("checkpoint_sha256")
+            if not digest:
+                continue
+            frozen = d.get("checkpoint_frozen")
+            if not frozen:
+                mismatched.append(
+                    f"{p.name}: records checkpoint_sha256 but no checkpoint_frozen path")
+                continue
+            fp = Path(frozen)
+            if not fp.is_absolute():
+                fp = paths.REPO_ROOT / fp
+            if not fp.exists():
+                missing.append(f"{p.name} -> {frozen}")
+                continue
+            actual = sha256_file(fp)
+            if actual == digest:
+                verified.append(p.name)
+            else:
+                mismatched.append(
+                    f"{p.name}: {frozen} now hashes to {actual}, JSON recorded {digest}"
+                )
 
     out.append(Finding(
         "every frozen checkpoint present on this machine still hashes to what its measurement recorded",
@@ -145,16 +164,17 @@ def run() -> list[Finding]:
     ))
 
     # ---- 2. new measurements record identity -------------------------------
-    delinquent = [
-        p.name for p, d in parsed
-        if "checkpoint" in d
-        and not d.get("checkpoint_sha256")
-        and p.name not in _GRANDFATHERED
-    ]
+    naming = [(p, doc) for p, doc in parsed if _blocks(doc)]
+    delinquent = sorted({
+        p.name for p, doc in naming
+        for d in _blocks(doc)
+        if not d.get("checkpoint_sha256") and p.name not in _GRANDFATHERED
+    })
     out.append(Finding(
         "every non-grandfathered measurement naming a checkpoint records its sha256",
         not delinquent,
-        f"{len([1 for _, d in parsed if 'checkpoint' in d])} JSON(s) name a checkpoint; "
+        f"{len(naming)} JSON(s) name a checkpoint (nested blocks walked, so "
+        f"greedy_eval's default {{best, latest}} shape cannot slip through); "
         f"{len(_GRANDFATHERED)} grandfathered (pre-2026-07-28, several of their artifacts "
         f"are permanently gone); {len(delinquent)} delinquent"
         + (f": {', '.join(delinquent)}" if delinquent else ""),

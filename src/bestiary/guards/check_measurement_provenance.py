@@ -215,6 +215,30 @@ def _guard_cases(tmp: Path) -> list[bool]:
                      "a truncated hash that agrees passes",
                      res[trunc_key][1][:190]))
 
+    # REGRESSION, from the refutation of cycle 011. greedy_eval --json writes
+    # {"best": {...}, "latest": {...}} by default, so a top-level-only check
+    # skips the file entirely and stays green -- blind to the default output
+    # shape of one of the two tools this guard exists to police.
+    res = _run_against({"nested.json": {
+        "best": {"checkpoint": "ant_sac_best.zip", "trained": {"mean": 1.0}},
+        "latest": {"checkpoint": "ant_sac.zip", "trained": {"mean": 2.0}},
+        "selection_delta_mean": 1.0,
+    }})
+    out.append(_emit(not res[delinquent_key][0],
+                     "greedy_eval's nested {best, latest} shape with no hashes FAILS",
+                     res[delinquent_key][1][:190] + "  (a top-level-only walk would report "
+                     "'0 JSON(s) name a checkpoint' and pass)"))
+
+    res = _run_against({"nested_ok.json": {
+        "best": {"checkpoint": "ant_sac.zip", "checkpoint_sha256": frozen.sha256,
+                 "checkpoint_frozen": rel},
+        "latest": {"checkpoint": "ant_sac.zip", "checkpoint_sha256": frozen.sha256,
+                   "checkpoint_frozen": rel},
+    }})
+    out.append(_emit(res[hash_key][0] and "2 verified" in res[hash_key][1],
+                     "both blocks of a nested measurement are verified, not just one",
+                     res[hash_key][1][:190]))
+
     # A corrupt JSON must be reported, not skipped into a smaller sample.
     parse_key = next(k for k in res if "parses" in k)
     (meas / "broken.json").write_text("{not json")
