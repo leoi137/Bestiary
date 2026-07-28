@@ -60,6 +60,7 @@ which gets re-sorted as the set grows.
 9. [005 — What `ent_coef` really measures](005-what-ent-coef-really-measures.md)
 10. [011 — Torque control versus PD position targets](011-torque-versus-pd-position-targets.md) — the same 16 numbers mean *how hard to push* in one env and *what angle to be at* in the other; `tau = 90.0 × 0.41973 = 37.776 N·m` is what the servo does for free, and it bought ~5x fewer samples and a slightly *lower* ceiling.
 11. [010 — Why a test can pass without testing anything](010-the-empty-set-says-yes.md) — "every X has property P" is true when there are no X, so 3 of this suite's 111 set-quantified assertions were reporting `PASS` over an empty set; one of them had coverage 0/9 while green.
+12. [012 — When an average hides a single winner](012-when-an-average-hides-a-single-winner.md) — one of six cells was 98.8% of the total gap, so a 5.04x headline becomes 1.05x when it is dropped and undefined when a different one is; always compute leave-one-out before believing an aggregate.
 
 Note the reading order is not the file order: 004 explains the machinery that
 003's reward change had to be built around, so it reads first. 006 reads after
@@ -83,7 +84,30 @@ dynamics *across* two rewards.
 
 Each lands when the project needs it to decide something, not before.
 
-**The planned list is down to 2, and cycle 012's debt is paid.** 011 was taken
+**The planned list is still 2 after 012, and that cycle did not draw it down.**
+*When an average hides a single winner* is not on the list and was written
+anyway, on the basis 007 and 010 used: it is the idea the cycle's work actually
+turned on. The cycle's entire result was a `drive_grid_mean` ratio measured
+against a pre-registered bar, and the question of whether that mean meant
+anything is the only question the week contained — 98.8% of the gap sat in one
+of six cells. Writing *"what an observation is"* off the top of the queue would
+have meant teaching a one-way door from the ledger while the week's real idea
+went unwritten.
+
+That is the weaker of the two justifications and it leaves a debt, recorded
+here as 007's and 010's were: **the next lesson owes the list an item and should
+be taken strictly in queue order.**
+
+Its own correction, in the pattern the number rule keeps producing: the gap
+column was first added up in prose as +94.94, and
+`docs/lessons/scripts/012_leave_one_out.py` — summing the same six cells
+straight out of the measurement JSONs — returns **+94.93**. The prose sum had
+accumulated a rounding error of exactly the kind the leave-one-out table is
+there to expose. The script also refuses to print a ratio whose denominator has
+gone negative, which is why the `(-0.3, 0, 0)` row reads UNDEFINED rather than a
+plausible-looking number.
+
+**The planned list was down to 2 after 011, and cycle 012's debt is paid.** 011 was taken
 strictly in queue order — off the top of the list, on the weaker
 queue-order-only justification rather than the both-tests one, which is exactly
 the justification a cycle uses when the queue is owed. It also earns its place
