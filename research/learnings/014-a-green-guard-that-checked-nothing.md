@@ -136,7 +136,7 @@ The second number is coverage of the *mechanism* rather than the check. Of the
 $$c_{\text{mech}} \;=\; \frac{2}{5} \;=\; 0.40$$
 
 So the claim cycle 011 nearly recorded — that this failure class is now
-*impossible* — required $c_{\text{mech}} = 1$ and had $0.40$. Three research
+*impossible* — requires coverage of exactly 1, and coverage was 0.40. Three research
 scripts still load a mutable checkpoint, and those three wrote the very JSONs
 now grandfathered into the guard. **The covered paths were not the ones with the
 track record of causing the problem.**
