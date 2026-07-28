@@ -65,10 +65,11 @@ Policy minus control, cell by cell:
 | (0.0, 0, 0.45) | −37.18 | 0.040 |
 | **sum** | **+94.93** | control: **0.969** |
 
-**One cell is 93.82 of 94.93 — 98.8 % of the entire gap.** Remove it and the
+**One cell is 93.82 of 94.93 — 98.8 % of the entire gap** (in grid-mean units,
++15.64 of +15.82). Remove it and the
 five-cell means are 4.95 against 4.73: a dead heat. The policy **loses to doing
 nothing in three of the six drive cells**. Dropping any single cell moves the
-headline ratio across 1.05×, 3.15×, 3.78×, 4.43×, 9.69×, and one case where it
+headline ratio across 1.05×, 3.15×, 3.78×, 4.44×, 9.69×, and one case where it
 is undefined because the control's mean goes negative.
 
 A summary statistic that ranges over an order of magnitude when one of six
@@ -81,12 +82,17 @@ asked:
 
 - Commanded 0.5 → achieved **0.271** m/s. Commanded 0.8 → achieved **0.309**.
   Roughly one speed, 55 % of one command and 38 % of the other.
-- **Yaw is not tracked at all.** `Φ_w` is 0.141, 0.178 and 0.040 on the three
-  yaw-commanded cells, against the do-nothing control's 0.969. On the straight
-  cells the policy holds heading *worse* than standing still does.
+- **Yaw is not tracked.** `Φ_w` is 0.141, 0.178 and 0.040 on the three
+  yaw-commanded cells — small in absolute terms, where 1.0 is perfect. Note the
+  control is *also* wrong there (0.019), so the policy is nominally 7–9× it; the
+  comparison that looks damning is not the one that proves the point. On the
+  *straight* cells, where the control scores 0.969, the policy manages 0.330 and
+  0.212 — it holds heading **worse than standing still does**.
 - The gait has a **fixed handedness**: the mirror-image cells (0.5, 0, +0.4)
-  and (0.5, 0, −0.4) differ by **42.3** return points. A policy that tracked
-  yaw would be symmetric under the sign of the yaw command.
+  and (0.5, 0, −0.4) differ by **42.3** return points. A policy that tracked yaw
+  would be symmetric under the sign of the yaw command. **This, not the Φ_w
+  magnitudes, is the evidence that there is no steering** — an asymmetry that
+  large cannot be produced by a policy responding to the yaw command at all.
 
 `command_gain`, the metric written to catch exactly this, read **0.382** and
 raised no objection — because it regresses achieved *forward* velocity on
@@ -94,9 +100,8 @@ commanded, and it is large here only because the machine creeps backward on the
 one backward cell while trotting forward on the rest. It is a sign detector, not
 a magnitude tracker, and it has no yaw counterpart.
 
-Weighted by how often each command actually occurs in training (drive 0.8, turn
-0.1, stop 0.1) rather than by a flat grid, the margin over doing nothing is
-about **12 %**, not 5×. The flat grid gives the stop cell zero weight; the
+Weighted by how often each command actually occurs in training rather than by a
+flat grid, the margin over doing nothing is **+11.8 %**, not 5×. The flat grid gives the stop cell zero weight; the
 objective gives it a tenth. Stop competence **regressed**, 834.19 against 898.24.
 
 ## How the prediction did
@@ -137,8 +142,8 @@ above provisional.
 
 A defect found in the process: the reward decomposition quoted in the table is
 **incomplete**. The instrument hardcodes four reward terms and this reward has
-five, so the terms do not sum to the return — the residual is 0.78 on the
-control arm, **20 % of its baseline**. The previous episode's entire conclusion
+five, so the terms do not sum to the return — the residual is 0.77 on the
+control arm, **20 % of its baseline**, and 1.19 on the policy. The previous episode's entire conclusion
 was a decomposition argument, which is what makes a silently missing term worth
 fixing before the next one is made.
 
