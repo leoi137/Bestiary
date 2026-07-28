@@ -53,12 +53,16 @@ which gets re-sorted as the set grows.
 2. [002 — Why one training run is not a result](002-why-one-seed-is-not-a-result.md)
 3. [004 — Why changing the reward poisons the replay buffer](004-why-a-reward-change-poisons-the-buffer.md)
 4. [003 — Why two rewards should be multiplied, not added](003-add-or-multiply.md)
-5. [005 — What `ent_coef` really measures](005-what-ent-coef-really-measures.md)
+5. [006 — What γ = 0.99 is really saying about the future](006-what-gamma-is-saying-about-the-future.md)
+6. [005 — What `ent_coef` really measures](005-what-ent-coef-really-measures.md)
 
 Note the reading order is not the file order: 004 explains the machinery that
-003's reward change had to be built around, so it reads first. 005 reads last
-of the current set because it is the first one that needs a reward change to
-already be understood — it compares the entropy dynamics *across* two rewards.
+003's reward change had to be built around, so it reads first. 006 reads after
+003 because its worked example is a constant of 003's reward — the termination
+penalty — and it explains why per-step economics are the only economics the
+robot can act on. 005 reads last of the current set because it is the first one
+that needs a reward change to already be understood — it compares the entropy
+dynamics *across* two rewards.
 
 ### Planned, roughly in the order they will be needed
 
@@ -66,23 +70,31 @@ already be understood — it compares the entropy dynamics *across* two rewards.
 - Actor and critic: why one network is not enough
 - Torque control versus PD position targets
 - What an observation is, and why its width is a one-way door
-- Discounting: what γ = 0.99 is really saying about the future
+- ~~Discounting: what γ = 0.99 is really saying about the future~~ → [006](006-what-gamma-is-saying-about-the-future.md)
 - Why parallel environments change everything
 
 Each lands when the project needs it to decide something, not before.
 
-**The planned list is down to 6**, from 7, and from 8 the cycle before. Cycle
-007 took *"Entropy, and what `ent_coef` collapsing to 0.008 actually meant"*
-off it, on the same both-tests basis cycle 006 used: it was on the list *and*
-it was the idea the cycle actually touched, because `hound_track_desert_s0`
-drove `ent_coef` to 1.76e−4 — about 100× below the 0.0184 the old-reward run
-held — and that collapse is an open row in `research/anomalies.jsonl`.
+**The planned list is down to 5**, from 6, from 7, and from 8. Cycle 008 took
+*"Discounting: what γ = 0.99 is really saying about the future"* off it on the
+now-usual both-tests basis: it was on the list *and* it was the idea the cycle
+actually touched, because the cycle was re-deriving reward constants against
+measured per-step rates and `TERMINATION_PENALTY = 10.0` is literally
+`c/(1−γ)`. Cycle 007 took the entropy lesson off on the same test, and cycle
+006 the one before it.
 
-Two consecutive draw-downs is the first time this queue has shrunk twice in a
-row.
+Three consecutive draw-downs. The queue has now shrunk every cycle since the
+rule was written down, which is what the rule was for.
 
-The queued title carried a wrong number and a wrong reading, and both were
-fixed on the way in. The number: 0.008 appears in no run's log — the
+006 also corrected its source on the way in, in the same way 005 did. The
+brief that commissioned it described `c/(1−γ)` as the *income* death destroys;
+the derivation this repo actually shipped
+(`docs/theory/command-tracking-reward.md` §4) sets c to the *loss* an early
+flailing policy escapes by dying. Same series, opposite sign, and only the
+second one explains why the constant exists. The lesson teaches the code.
+
+**On 005 (kept):** the queued title carried a wrong number and a wrong reading,
+and both were fixed on the way in. The number: 0.008 appears in no run's log — the
 old-reward run's floor is 1.03e−2 and the tracking run's is 1.76e−4
 (`research/scripts/entropy_lesson_math.py`). The reading: the queue phrased
 the collapse as the thing to explain, but α falling means the policy was
