@@ -69,6 +69,7 @@ def _registry() -> tuple[Guard, ...]:
         disk,
         eval_sampling,
         ledger_schema,
+        measurement_provenance,
         memory,
         metric_liveness,
         nulls,
@@ -134,6 +135,18 @@ def _registry() -> tuple[Guard, ...]:
             enforces="learnings/004",
             cost="fast",
             run=reward_spec.run,
+        ),
+        # The same contract one level down. The three *-spec guards assert that
+        # a RUN records the world it trained in; this one asserts that a
+        # MEASUREMENT records the weights it was computed from. Both are
+        # provenance, and this is the half that has actually failed in the wild
+        # — twice, once putting a wrong number into a published episode that
+        # three cycles then reasoned from.
+        Guard(
+            name="measurement-provenance",
+            enforces="learnings/013, anomalies.jsonl rows 19/20/23/27",
+            cost="fast",
+            run=measurement_provenance.run,
         ),
         # The third leg of the same contract. checkpoint-width asserts a run
         # records its OBSERVATION, reward-spec its REWARD, this one its GROUND
