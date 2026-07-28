@@ -132,6 +132,7 @@ def _registry() -> tuple[Guard, ...]:
     """
     from bestiary.guards import (
         checkpoint_width,
+        command_independence,
         disk,
         eval_sampling,
         ledger_schema,
@@ -281,6 +282,16 @@ def _registry() -> tuple[Guard, ...]:
             enforces="anomalies.jsonl row 20 (2026-07-27)",
             cost="fast",
             run=track_length_bias.run,
+        ),
+        # Paired with track-length-bias: that one asserts the tracking score is
+        # not flattered by crashing, this one that a winning score was earned by
+        # following the command rather than by one gait run under all of them.
+        # Fast: it reads committed JSON, no env and no torch.
+        Guard(
+            name="command-independence",
+            enforces="learnings/015, anomalies.jsonl row 38",
+            cost="fast",
+            run=command_independence.run,
         ),
         Guard(
             name="metric-liveness",
