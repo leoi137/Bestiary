@@ -1,6 +1,6 @@
 """Guard: a policy that wins the drive grid must move differently for different commands.
 
-Enforces `research/learnings/015` and `research/anomalies.jsonl` row 38.
+Enforces `research/learnings/015` and `research/anomalies.jsonl` row 41.
 
 WHAT WENT WRONG
 
@@ -46,7 +46,7 @@ WHAT THIS GUARD DOES NOT ASSERT
 
 **The yaw half, because the artifact cannot support it.** `track_eval` records
 `achieved_vx` per cell and has no yaw twin — no `achieved_wz` — so there is
-nothing on disk to regress a yaw command against (`anomalies.jsonl` row 38).
+nothing on disk to regress a yaw command against (`anomalies.jsonl` row 41).
 The yaw evidence in learnings/015 is `mean_phi_w` and the mirror-cell
 asymmetry, and both are *reported* below rather than asserted: a threshold on
 Φ_w would be a threshold on terrain and gait as much as on command-following.

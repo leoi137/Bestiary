@@ -112,7 +112,7 @@ def main() -> None:
     print(f"   income above the control arm: "
           f"{inc - zero['drive_grid_reward_track']:+.2f}")
 
-    print("\n7. DECOMPOSITION RESIDUAL — anomalies row 36 (the four reported "
+    print("\n7. DECOMPOSITION RESIDUAL — anomalies row 39 (the four reported "
           "terms do not sum to the return)")
     for name, arm in (("policy", pol), ("zero_action", zero)):
         s = sum(arm[f"drive_grid_reward_{t}"]

@@ -289,7 +289,7 @@ def _registry() -> tuple[Guard, ...]:
         # Fast: it reads committed JSON, no env and no torch.
         Guard(
             name="command-independence",
-            enforces="learnings/015, anomalies.jsonl row 38",
+            enforces="learnings/015, anomalies.jsonl row 41",
             cost="fast",
             run=command_independence.run,
         ),

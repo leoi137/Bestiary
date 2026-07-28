@@ -220,7 +220,7 @@ and **0.127** for this run.
 **Report the yaw axis or state that you cannot.** `track_eval` records
 `achieved_vx` and has no `achieved_wz`, so there is no yaw gain to compute from
 any committed artifact — the yaw evidence here is Φ\_w and the mirror-cell
-asymmetry, and both had to be read by hand. This is `anomalies.jsonl` row 38,
+asymmetry, and both had to be read by hand. This is `anomalies.jsonl` row 41,
 and the guard names the gap rather than papering over it.
 
 **A flat grid mean is not the objective.** `drive_grid_mean` weights six cells
