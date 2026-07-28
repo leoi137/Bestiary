@@ -78,6 +78,25 @@ class Finding:
                 "n counts things examined, so it is None (not set-quantified) or >= 0"
             )
 
+        # Coerce numpy scalars to builtins AT THE BOUNDARY.
+        #
+        # A guard that compares arrays gets `numpy.bool_` back, not `bool`, and
+        # it behaves identically everywhere the suite looks at it: truthy, prints
+        # as True, passes `if finding.ok`. It differs in exactly one place --
+        # `json.dumps` raises `TypeError: Object of type bool is not JSON
+        # serializable`, naming the builtin it is not. So `--json` died while
+        # plain text stayed green, and the machine-readable output the record
+        # depends on was broken for two days without a single failing check.
+        #
+        # Coercing here rather than at the call site is the point: `Finding` is
+        # the one door every assertion in every guard passes through, so no
+        # future guard can reintroduce this by comparing two arrays. Fixing
+        # `tracking_frame.py` alone would have fixed one site and left the class
+        # of bug intact. See research/anomalies.jsonl.
+        object.__setattr__(self, "ok", bool(self.ok))
+        if self.n is not None:
+            object.__setattr__(self, "n", int(self.n))
+
     @property
     def vacuous(self) -> bool:
         """True when this assertion passed while examining nothing.
