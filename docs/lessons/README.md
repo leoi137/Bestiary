@@ -54,13 +54,17 @@ which gets re-sorted as the set grows.
 3. [004 — Why changing the reward poisons the replay buffer](004-why-a-reward-change-poisons-the-buffer.md)
 4. [003 — Why two rewards should be multiplied, not added](003-add-or-multiply.md)
 5. [006 — What γ = 0.99 is really saying about the future](006-what-gamma-is-saying-about-the-future.md)
-6. [005 — What `ent_coef` really measures](005-what-ent-coef-really-measures.md)
+6. [007 — When a tolerance scales with the command, the command cancels](007-a-tolerance-that-cancels-the-command.md) — make the tolerance proportional to the command and a do-nothing machine is paid the same for every command you can give it.
+7. [005 — What `ent_coef` really measures](005-what-ent-coef-really-measures.md)
 
 Note the reading order is not the file order: 004 explains the machinery that
 003's reward change had to be built around, so it reads first. 006 reads after
 003 because its worked example is a constant of 003's reward — the termination
 penalty — and it explains why per-step economics are the only economics the
-robot can act on. 005 reads last of the current set because it is the first one
+robot can act on. 007 reads after 006 because it is the same failure one level
+up — 003 says multiply the two channels, 007 says the *tolerance inside* a
+channel can hand back the free lunch multiplying was meant to remove. 005 reads
+last of the current set because it is the first one
 that needs a reward change to already be understood — it compares the entropy
 dynamics *across* two rewards.
 
@@ -83,8 +87,14 @@ measured per-step rates and `TERMINATION_PENALTY = 10.0` is literally
 `c/(1−γ)`. Cycle 007 took the entropy lesson off on the same test, and cycle
 006 the one before it.
 
-Three consecutive draw-downs. The queue has now shrunk every cycle since the
-rule was written down, which is what the rule was for.
+Three consecutive draw-downs — and 007 did not make it four. **The planned list
+is still at 5.** 007 was not on it: the idea it teaches is the one the work
+actually touched, a reward tolerance that cancelled its own command and very
+nearly trained, so it was written instead of the next queued item. The rule
+permits that — take the touched idea if it is on the list, otherwise the next
+item, and the touched idea wins when it is load-bearing today. The consequence
+is plainly that the queue did not shrink this time. It is a break in the
+draw-down streak, not a draw-down, and the next lesson owes the list an item.
 
 006 also corrected its source on the way in, in the same way 005 did. The
 brief that commissioned it described `c/(1−γ)` as the *income* death destroys;
