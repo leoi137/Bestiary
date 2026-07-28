@@ -149,8 +149,15 @@ class VideoEvalCallback(BaseCallback):
     def _on_training_start(self) -> None:
         self.video_dir.mkdir(parents=True, exist_ok=True)
         if self.best_reward_path.exists():
-            self.best_eval_reward = float(self.best_reward_path.read_text().strip())
-            print(f"[best] previous best eval reward: {self.best_eval_reward:.1f}")
+            # Format is "<score> <step>"; the step was added 2026-07-28 and
+            # older files carry the score alone, so the score is parsed as the
+            # FIRST field rather than as the whole file. Every existing run's
+            # file keeps loading unchanged.
+            fields = self.best_reward_path.read_text().split()
+            self.best_eval_reward = float(fields[0])
+            at = f" (at step {int(fields[1]):,})" if len(fields) > 1 else ""
+            print(f"[best] previous best eval reward: "
+                  f"{self.best_eval_reward:.1f}{at}")
 
     def _on_step(self) -> bool:
         if self.num_timesteps % self.record_every == 0:
@@ -204,7 +211,15 @@ class VideoEvalCallback(BaseCallback):
         if total_reward > self.best_eval_reward:
             self.best_eval_reward = total_reward
             self.model.save(self.best_model_path)
-            self.best_reward_path.write_text(f"{total_reward:.6f}")
+            # The STEP the checkpoint was written at, not just its score.
+            # anomalies.jsonl row 40: cycle 013 had to recover "~1.48M steps"
+            # from file mtimes to discover that its best-vs-final comparison
+            # was confounded with 520k steps of extra training. Without the
+            # step, every _best-derived number in the record is a score whose
+            # training budget is unknown, and mtimes are the only fallback --
+            # which a file copy destroys.
+            self.best_reward_path.write_text(
+                f"{total_reward:.6f} {self.num_timesteps}")
             if self.verbose:
                 print(f"[best]  new best eval reward: {total_reward:.1f}  "
                       f"->  {self.best_model_path}")
