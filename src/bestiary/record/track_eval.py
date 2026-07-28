@@ -90,6 +90,14 @@ EVAL_GRID: tuple[tuple[float, float, float], ...] = (
 STOP_CELL = (0.0, 0.0, 0.0)
 TRACK_ENV = "HoundPDTrackDesert-v0"
 
+# Every env this protocol is defined for. The grid, the paired seeds and the
+# excluded stop cell are properties of the COMMAND SPACE, which these envs
+# share; only the reward that scores a cell differs. So the protocol transfers
+# and the numbers do not — a `drive_grid_mean` is meaningful only against
+# another one measured under the same reward spec, which is why `--env` is
+# recorded in the JSON beside every result rather than assumed by the reader.
+TRACK_ENVS = ("HoundPDTrackDesert-v0", "HoundPDTrackRelDesert-v0")
+
 
 TERMS = ("reward_track", "reward_ctrl", "reward_contact", "reward_termination")
 
@@ -241,14 +249,19 @@ def main() -> None:
                          "what to read")
     ap.add_argument("--action-seed", type=int, default=7000,
                     help="seed for the action sampler under --stochastic")
+    ap.add_argument("--env", default=TRACK_ENV, choices=TRACK_ENVS,
+                    help="which command-tracking env to score under; the "
+                         "default is the original one, so every number already "
+                         "in the record keeps its meaning")
     ap.add_argument("--json", action="store_true")
     args = ap.parse_args()
+    track_env = args.env
 
     import gymnasium as gym
 
     import bestiary.envs  # noqa: F401
 
-    env = gym.make(TRACK_ENV)
+    env = gym.make(track_env)
 
     policy, checkpoint = None, None
     if args.run:
@@ -262,9 +275,9 @@ def main() -> None:
         # spec hash is that a number measured under one objective must not be
         # quoted against another.
         cfg = json.loads((run_dir / "config.json").read_text())
-        if cfg.get("env_id") != TRACK_ENV:
+        if cfg.get("env_id") != track_env:
             raise SystemExit(
-                f"{args.run} trained on {cfg.get('env_id')}, not {TRACK_ENV}. "
+                f"{args.run} trained on {cfg.get('env_id')}, not {track_env}. "
                 "Its policy was trained with zero-filled command slots, so "
                 "evaluating it under nonzero commands feeds it observations off "
                 "its training manifold -- undefined behaviour, not a baseline. "
@@ -274,7 +287,7 @@ def main() -> None:
 
     zero = _arm(env, None, args.episodes, args.seed0)
     result = {
-        "env": TRACK_ENV,
+        "env": track_env,
         "episodes_per_cell": args.episodes,
         "seed0": args.seed0,
         "deterministic": not args.stochastic,
@@ -301,7 +314,7 @@ def main() -> None:
         print(json.dumps(result, indent=2))
         return
 
-    print(f"{TRACK_ENV}   {args.episodes} episodes per cell, seeds "
+    print(f"{track_env}   {args.episodes} episodes per cell, seeds "
           f"{args.seed0}-{args.seed0 + args.episodes - 1}, both arms identical")
     if args.stochastic:
         print(f"  policy arm SAMPLED (deterministic=False), "
