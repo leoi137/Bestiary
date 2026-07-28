@@ -49,13 +49,14 @@ which gets re-sorted as the set grows.
 
 ## Reading order
 
-1. [001 — What a reward function is, and how ours told the robot to stand still](001-what-a-reward-function-is.md)
-2. [002 — Why one training run is not a result](002-why-one-seed-is-not-a-result.md)
-3. [004 — Why changing the reward poisons the replay buffer](004-why-a-reward-change-poisons-the-buffer.md)
-4. [003 — Why two rewards should be multiplied, not added](003-add-or-multiply.md)
-5. [006 — What γ = 0.99 is really saying about the future](006-what-gamma-is-saying-about-the-future.md)
-6. [007 — When a tolerance scales with the command, the command cancels](007-a-tolerance-that-cancels-the-command.md) — make the tolerance proportional to the command and a do-nothing machine is paid the same for every command you can give it.
-7. [005 — What `ent_coef` really measures](005-what-ent-coef-really-measures.md)
+1. [008 — What a policy is, and why it is a neural network](008-what-a-policy-is.md) — a policy is a function from 169 sensed numbers to 16 motor commands; a lookup table for it would be 10⁸⁹ times the atoms in the observable universe.
+2. [001 — What a reward function is, and how ours told the robot to stand still](001-what-a-reward-function-is.md)
+3. [002 — Why one training run is not a result](002-why-one-seed-is-not-a-result.md)
+4. [004 — Why changing the reward poisons the replay buffer](004-why-a-reward-change-poisons-the-buffer.md)
+5. [003 — Why two rewards should be multiplied, not added](003-add-or-multiply.md)
+6. [006 — What γ = 0.99 is really saying about the future](006-what-gamma-is-saying-about-the-future.md)
+7. [007 — When a tolerance scales with the command, the command cancels](007-a-tolerance-that-cancels-the-command.md) — make the tolerance proportional to the command and a do-nothing machine is paid the same for every command you can give it.
+8. [005 — What `ent_coef` really measures](005-what-ent-coef-really-measures.md)
 
 Note the reading order is not the file order: 004 explains the machinery that
 003's reward change had to be built around, so it reads first. 006 reads after
@@ -70,7 +71,7 @@ dynamics *across* two rewards.
 
 ### Planned, roughly in the order they will be needed
 
-- What a policy is, and why it is a neural network
+- ~~What a policy is, and why it is a neural network~~ → [008](008-what-a-policy-is.md)
 - Actor and critic: why one network is not enough
 - Torque control versus PD position targets
 - What an observation is, and why its width is a one-way door
@@ -79,22 +80,32 @@ dynamics *across* two rewards.
 
 Each lands when the project needs it to decide something, not before.
 
-**The planned list is down to 5**, from 6, from 7, and from 8. Cycle 008 took
-*"Discounting: what γ = 0.99 is really saying about the future"* off it on the
-now-usual both-tests basis: it was on the list *and* it was the idea the cycle
+**The planned list is down to 4**, from 5, from 6, from 7, and from 8. Cycle
+009 took *"What a policy is, and why it is a neural network"* off it — the head
+of the queue, and this time the queue is what chose the topic rather than the
+week's surprise. **This is a draw-down.**
+
+Cycle 008 took *"Discounting: what γ = 0.99 is really saying about the future"*
+off on the both-tests basis: it was on the list *and* it was the idea the cycle
 actually touched, because the cycle was re-deriving reward constants against
 measured per-step rates and `TERMINATION_PENALTY = 10.0` is literally
 `c/(1−γ)`. Cycle 007 took the entropy lesson off on the same test, and cycle
 006 the one before it.
 
-Three consecutive draw-downs — and 007 did not make it four. **The planned list
-is still at 5.** 007 was not on it: the idea it teaches is the one the work
-actually touched, a reward tolerance that cancelled its own command and very
-nearly trained, so it was written instead of the next queued item. The rule
-permits that — take the touched idea if it is on the list, otherwise the next
-item, and the touched idea wins when it is load-bearing today. The consequence
-is plainly that the queue did not shrink this time. It is a break in the
-draw-down streak, not a draw-down, and the next lesson owes the list an item.
+007 broke that streak: the idea it teaches — a reward tolerance that cancelled
+its own command — was the one the work actually touched, so it was written
+instead of the next queued item and the queue did not shrink. The rule permits
+that, but it left a debt, recorded here at the time as *"the next lesson owes
+the list an item."* 008 (the lesson file, from cycle 009) is that item paid
+back: it was taken strictly in queue order, off the top.
+
+One honest caveat on it. The both-tests standard was not met — the policy
+network was not the thing this cycle's work turned on, it was simply next. That
+is the weaker of the two justifications, and it is the right one to use when
+the queue is owed. Where it earns its place regardless is the last section: the
+observation width is a one-way door precisely *because* `W₁` is
+`Linear(169, 256)`, and that is a fact the reader has been asked to take on
+trust in three earlier lessons without ever being shown the matrix.
 
 006 also corrected its source on the way in, in the same way 005 did. The
 brief that commissioned it described `c/(1−γ)` as the *income* death destroys;
