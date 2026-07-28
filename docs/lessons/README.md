@@ -58,6 +58,7 @@ which gets re-sorted as the set grows.
 7. [006 — What γ = 0.99 is really saying about the future](006-what-gamma-is-saying-about-the-future.md)
 8. [007 — When a tolerance scales with the command, the command cancels](007-a-tolerance-that-cancels-the-command.md) — make the tolerance proportional to the command and a do-nothing machine is paid the same for every command you can give it.
 9. [005 — What `ent_coef` really measures](005-what-ent-coef-really-measures.md)
+10. [010 — Why a test can pass without testing anything](010-the-empty-set-says-yes.md) — "every X has property P" is true when there are no X, so 3 of this suite's 111 set-quantified assertions were reporting `PASS` over an empty set; one of them had coverage 0/9 while green.
 
 Note the reading order is not the file order: 004 explains the machinery that
 003's reward change had to be built around, so it reads first. 006 reads after
@@ -81,7 +82,23 @@ dynamics *across* two rewards.
 
 Each lands when the project needs it to decide something, not before.
 
-**The planned list is down to 3**, from 4, from 5, from 6, from 7, and from 8.
+**The planned list is still 3 — cycle 012 did not draw it down, and owes it an
+item.** 010 is not on the list and was written anyway, on the same basis 007
+was: it is the idea the cycle's work actually turned on, and it had become
+load-bearing that week rather than merely interesting. The cycle spent itself
+auditing what fraction of the guard suite checks nothing, which is a question
+about quantifiers over empty sets and about nothing else; writing the head of
+the queue instead would have meant teaching torque-versus-PD from the ledger
+while the week's real idea went unwritten.
+
+That is the weaker of the two justifications and it leaves a debt, recorded
+here as 007's was: **the next lesson owes the list an item and should be taken
+strictly in queue order.** Whether *"why a test can pass without testing
+anything"* belongs on the planned list retroactively is not a question this
+cycle gets to answer in its own favour — it went in the reading order, not the
+backlog.
+
+**The planned list was down to 3**, from 4, from 5, from 6, from 7, and from 8.
 Cycle 011 took *"Actor and critic: why one network is not enough"* off it — off
 the top of the queue, and on the **both-tests** basis rather than 009's weaker
 queue-order-only one. The cycle spent itself on a single 5,106,759-byte
