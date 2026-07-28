@@ -84,6 +84,31 @@ def _make_env(env_id: str, wrapper_name: str | None, wrapper_kwargs: dict[str, A
     return env
 
 
+def shaping_metrics(total_reward: float, total_shaping: float, n_shaping: int,
+                    total_idle: float, n_idle: int) -> dict[str, float]:
+    """The shaping-derived eval metrics that were ACTUALLY observed.
+
+    Returns only the keys whose source info key appeared at least once, so a
+    caller that logs `for k, v in result.items()` cannot accidentally emit a
+    metric that means "no wrapper" as the number 0.0. See the callback's
+    docstring for why that distinction cost nine runs of dead instrumentation.
+
+    Kept separate from the callback because the callback renders an episode to
+    MP4, which makes the branch that matters here untestable in a check.
+    """
+    if n_shaping < 0 or n_idle < 0:
+        raise ValueError(
+            f"observation counts cannot be negative: n_shaping={n_shaping}, "
+            f"n_idle={n_idle}"
+        )
+    out: dict[str, float] = {}
+    if n_shaping:
+        out["eval/base_reward"] = total_reward - total_shaping
+    if n_idle:
+        out["eval/mean_idle_legs"] = total_idle / n_idle
+    return out
+
+
 class VideoEvalCallback(BaseCallback):
     """Every `record_every` env-steps, roll one greedy eval episode + save MP4.
 
@@ -94,9 +119,20 @@ class VideoEvalCallback(BaseCallback):
       eval/mean_idle_legs    -- diagnostic: avg # of legs with no recent
                                 ground contact (low = good quadruped gait)
 
-    The last two are only meaningful when a shaping wrapper is active; with
-    no wrapper they degenerate to base_reward == mean_reward and
-    mean_idle_legs == 0.
+    The last two are only meaningful when a shaping wrapper is active, and
+    when one is not they are **not logged at all**. They used to be logged as
+    base_reward == mean_reward and mean_idle_legs == 0.0, because a missing
+    info key was read with `.get(key, 0.0)`. That default is the difference
+    between a metric that says "nothing to report" and one that says "I
+    measured zero", and TensorBoard cannot tell them apart: the series exists,
+    it is populated at every eval, and it is flat forever. Nine runs carry a
+    dead `eval/mean_idle_legs` for exactly this reason, and `metric-liveness`
+    reports each of them as a failure.
+
+    So presence is tracked rather than defaulted. A key absent for the whole
+    episode omits its metric; a key present for any step is summed over the
+    steps that carried it. An omitted series is visibly missing, which is what
+    "this run had no shaping wrapper" actually looks like.
     """
 
     def __init__(self, eval_env: gym.Env, record_every: int, video_dir: Path,
@@ -127,6 +163,8 @@ class VideoEvalCallback(BaseCallback):
         total_reward = 0.0
         total_shaping = 0.0
         total_idle = 0.0
+        n_shaping = 0        # steps that actually carried the key, never n_steps
+        n_idle = 0
         n_steps = 0
         terminated = truncated = False
         while not (terminated or truncated):
@@ -134,25 +172,34 @@ class VideoEvalCallback(BaseCallback):
             action, _ = self.model.predict(obs, deterministic=True)
             obs, reward, terminated, truncated, info = self.eval_env.step(action)
             total_reward += float(reward)
-            total_shaping += float(info.get("shaping/foot_contact", 0.0))
-            total_idle += float(info.get("shaping/idle_legs", 0.0))
+            if "shaping/foot_contact" in info:
+                total_shaping += float(info["shaping/foot_contact"])
+                n_shaping += 1
+            if "shaping/idle_legs" in info:
+                total_idle += float(info["shaping/idle_legs"])
+                n_idle += 1
             n_steps += 1
 
         path = self.video_dir / f"eval_step_{self.num_timesteps:09d}.mp4"
         imageio.mimsave(path, frames, fps=self.fps, codec="libx264")
 
-        base_reward = total_reward - total_shaping
-        mean_idle = total_idle / max(n_steps, 1)
+        shaped = shaping_metrics(total_reward, total_shaping, n_shaping,
+                                 total_idle, n_idle)
+        base_reward = shaped.get("eval/base_reward")
+        mean_idle = shaped.get("eval/mean_idle_legs")
 
         self.logger.record("eval/mean_reward", total_reward)
-        self.logger.record("eval/base_reward", base_reward)
-        self.logger.record("eval/mean_idle_legs", mean_idle)
         self.logger.record("eval/episode_length", n_steps)
+        # Omitted, not zeroed, when the wrapper that produces them is absent.
+        for key, value in shaped.items():
+            self.logger.record(key, value)
 
         if self.verbose:
+            shaped_note = (f"base={base_reward:.1f}  idle_legs={mean_idle:.2f}"
+                           if base_reward is not None and mean_idle is not None
+                           else "no shaping wrapper (base/idle_legs not logged)")
             print(f"[video] step={self.num_timesteps:,}  "
-                  f"shaped={total_reward:.1f}  base={base_reward:.1f}  "
-                  f"idle_legs={mean_idle:.2f}  ->  {path}")
+                  f"shaped={total_reward:.1f}  {shaped_note}  ->  {path}")
 
         if total_reward > self.best_eval_reward:
             self.best_eval_reward = total_reward
