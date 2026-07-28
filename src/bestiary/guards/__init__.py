@@ -37,15 +37,62 @@ class Finding:
 
     `detail` is read by a human at 3am deciding whether to kill a run, so it
     carries the numbers that justify the verdict, not a restatement of `label`.
+
+    `n` is the size of the **input set this assertion actually quantified
+    over** — the number of things it looked at, not the number it could have.
+    An assertion over an empty set is *vacuously true*: "every X has property
+    P" holds when there is no X. The verdict is then `PASS` and the assertion
+    verified nothing, and those two facts are indistinguishable in a boolean.
+
+    That is not hypothetical. `measurement-provenance` shipped green on
+    2026-07-28 printing `0 verified, 0 MISMATCHED`, which was read as *no
+    problems found* when it says *nothing was examined* — see
+    `research/learnings/014`. Cycle 011's response was to write the count into
+    `detail`, and 014's own falsifier notes that is necessary and not
+    sufficient, because a human read the count and moved on anyway.
+
+    So the size is a field rather than a sentence, and the runner renders
+    `n == 0` as **VACUOUS**, never as `PASS`. Prose can be skimmed; a distinct
+    verdict cannot.
+
+    `n = None` means *not set-quantified* — a scalar threshold like "≥8000 MiB
+    RAM available" has no input set and declaring one would be a lie. `None`
+    and `0` are deliberately different facts, exactly as `terrain_spec: null`
+    and an absent key are.
+
+    Vacuity is **not** a failure. `runs/` and `*.zip` are gitignored, so a
+    fresh clone legitimately has nothing to check, and failing there would make
+    the suite useless to anyone who cloned this repo. It is a third status:
+    visible, counted in the summary, and it does not gate a launch.
     """
 
     label: str
     ok: bool
     detail: str = ""
+    n: int | None = None
+
+    def __post_init__(self) -> None:
+        if self.n is not None and self.n < 0:
+            raise ValueError(
+                f"Finding({self.label!r}) declares a negative input-set size n={self.n}; "
+                "n counts things examined, so it is None (not set-quantified) or >= 0"
+            )
+
+    @property
+    def vacuous(self) -> bool:
+        """True when this assertion passed while examining nothing.
+
+        A FAIL over an empty set is not vacuous — it is a guard that raised
+        before it could count, which is a real failure and must read as one.
+        """
+        return self.ok and self.n == 0
+
+    @property
+    def status(self) -> str:
+        return "FAIL" if not self.ok else ("VACUOUS" if self.vacuous else "PASS")
 
     def __str__(self) -> str:
-        mark = "PASS" if self.ok else "FAIL"
-        return f"  [{mark}] {self.label}" + (f"   {self.detail}" if self.detail else "")
+        return f"  [{self.status}] {self.label}" + (f"   {self.detail}" if self.detail else "")
 
 
 @dataclass(frozen=True, slots=True)

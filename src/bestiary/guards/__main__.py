@@ -48,8 +48,15 @@ def _run_all(fast_only: bool, only: str | None = None) -> tuple[list[dict], bool
                 "enforces": guard.enforces,
                 "cost": guard.cost,
                 "ok": ok,
+                # How much this guard actually examined, so a reader can tell a
+                # green guard that checked everything from a green guard that
+                # checked nothing without reading every detail string.
+                "verified": sum(f.n for f in findings if f.n is not None),
+                "vacuous": sum(f.vacuous for f in findings),
                 "seconds": round(elapsed, 2),
-                "findings": [{"label": f.label, "ok": f.ok, "detail": f.detail} for f in findings],
+                "findings": [
+                    {"label": f.label, "ok": f.ok, "detail": f.detail, "n": f.n} for f in findings
+                ],
             }
         )
     return results, all_ok
@@ -69,15 +76,25 @@ def main() -> int:
         return 0 if all_ok else 1
 
     failed = 0
+    vacuous = 0
     for result in results:
         mark = "ok" if result["ok"] else "FAILED"
-        print(f"\n{result['guard']}  [{mark}]  enforces {result['enforces']}  "
+        # A guard whose every assertion examined nothing is green and worthless;
+        # say so on its header line rather than only per-assertion.
+        blind = " [VERIFIED NOTHING]" if result["ok"] and result["verified"] == 0 else ""
+        print(f"\n{result['guard']}  [{mark}]{blind}  enforces {result['enforces']}  "
               f"({result['seconds']}s)")
         for finding in result["findings"]:
-            prefix = "PASS" if finding["ok"] else "FAIL"
+            if not finding["ok"]:
+                prefix = "FAIL"
+            elif finding["n"] == 0:
+                prefix = "VACUOUS"
+            else:
+                prefix = "PASS"
             detail = f"   {finding['detail']}" if finding["detail"] else ""
             print(f"  [{prefix}] {finding['label']}{detail}")
             failed += not finding["ok"]
+            vacuous += prefix == "VACUOUS"
 
     print("\n" + "=" * 66)
     if all_ok:
@@ -86,6 +103,13 @@ def main() -> int:
         print(f"{failed} assertion(s) failed across {len(results)} guards.")
         print("Each failure names the lesson it enforces — read that lesson before")
         print("deciding the guard is wrong.")
+
+    # Printed on green runs too, and deliberately: the failure in learnings/014
+    # happened on a run where everything passed.
+    if vacuous:
+        print(f"{vacuous} assertion(s) VACUOUS — passed while examining an empty input set.")
+        print("Vacuous is not failure (a fresh clone has nothing to check) and it is")
+        print("not verification either. research/learnings/014.")
     return 0 if all_ok else 1
 
 
