@@ -52,8 +52,10 @@ def _check_envs() -> list[Finding]:
 
     from bestiary.envs.reward_spec import RewardSpec
 
-    # Every finding in this loop carries n=None: each asserts a property of ONE
-    # named env, so there is no input set behind it and n=1 would invent one.
+    # Every finding in this loop carries n=1: each is one of a series generated
+    # by iterating ENV_IDS, and it really did examine one named env. n=None is
+    # reserved for assertions with no input set at all — otherwise an assertion
+    # could hide from the vacuity audit by declaring itself unquantified.
     findings: list[Finding] = []
     for env_id in ENV_IDS:
         try:
@@ -62,7 +64,7 @@ def _check_envs() -> list[Finding]:
             findings.append(Finding(
                 f"{env_id}: declares a reward spec", False,
                 f"env failed to build: {type(exc).__name__}: {exc}",
-                n=None,
+                n=1,
             ))
             continue
 
@@ -74,7 +76,7 @@ def _check_envs() -> list[Finding]:
                 "an observation and no reward, which is how the record ended "
                 "up with three hound runs at two ctrl_cost_weights and no way "
                 "to tell them apart (learnings/004).",
-                n=None,
+                n=1,
             ))
             continue
 
@@ -88,14 +90,14 @@ def _check_envs() -> list[Finding]:
                 f"the hash is not deterministic across two constructions: "
                 f"{spec.hash}/{spec.shape_hash} then {again.hash}/{again.shape_hash}. "
                 f"A recorded hash that cannot be reproduced proves nothing.",
-                n=None,
+                n=1,
             ))
             continue
 
         findings.append(Finding(
             f"{env_id}: declares a reward spec", True,
             f"{len(spec.terms)} terms, hash {spec.hash}, shape {spec.shape_hash}",
-            n=None,
+            n=1,
         ))
     return findings
 
