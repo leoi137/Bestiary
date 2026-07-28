@@ -154,18 +154,71 @@ BETA_V = 0.5
 # comfortably tighter than the 0.45 cap.
 ALPHA_W_MIN = 0.10
 
-# Relative yaw tolerance: alpha_w = BETA_W * |w_cmd|. This is the tightest
-# window in the design and it is squeezed from both sides. Below 0.72 the
-# (0.5, 0, -0.4) cell goes net-negative at the achieved yaw error. Above 0.764
-# an unsteered machine under a 0.4 rad/s command clears the 0.45 freeride cap.
-# Window [0.72, 0.76]. Both jaws open as tracking improves, so this constant is
-# the one most likely to want revisiting after a run that actually tracks.
-BETA_W = 0.75
+# Relative yaw tolerance: alpha_w = BETA_W * |w_cmd|.
+#
+# 0.5, AND THE FIRST VALUE HERE WAS 0.75, WHICH REOPENED THE EXPLOIT THIS ENV
+# EXISTS TO CLOSE. The mechanism is worth stating because it is not obvious and
+# it very nearly shipped:
+#
+# A standing machine's yaw error IS the command (its own drift is ~0.018 rad/s,
+# negligible against a 0.3-0.6 rad/s turn). So under alpha_w = k*|w_cmd| its
+# score is
+#
+#     exp(-(|w_cmd| / (k*|w_cmd|))^2) = exp(-1/k^2)
+#
+# -- INDEPENDENT OF THE COMMAND. Scale-free. At k = 0.75 that is 0.169, and
+# with the velocity factor ~0.945 (a stander correctly is not moving on a
+# turn-in-place command) a do-nothing machine collects 0.160/step on EVERY turn
+# command. That is more than a trained policy earns on its best straight-drive
+# cell, and it is WORSE than the reward this env replaces, which paid a stander
+# 0.045/step there.
+#
+# k = 0.5 gives exp(-4) = 0.0183, a 9.2x cut, and still clears the freeride
+# bound that k = 0.75 was chosen to satisfy: an unsteered but driving machine
+# (yaw ~ N(0, 0.127^2)) under a 0.4 rad/s command scores 0.081 in expectation
+# against the <= 0.45 cap. 0.75 was chosen against a POINT estimate (0.437) that
+# assumed the drift lands favourably; the honest expectation clears at 0.5 with
+# room, so 0.75 was gaming the bound rather than meeting it.
+#
+# The derivation that produced 0.75 asked for the largest k that still cleared
+# the cap. That was the wrong objective: the cap is a ceiling, not a target, and
+# every increase in k hands the stander income at exp(-1/k^2).
+BETA_W = 0.5
 
 # The shaping discount. MUST equal SAC's gamma: a mismatch breaks the
 # invariance theorem by O(|delta gamma| * P) and would make the shaping a real
 # term in the objective rather than a telescoping one.
+#
+# This is a COUPLING WITH NO OTHER HOME IN THE RECORD. train.py never passes
+# gamma (it takes SB3's default 0.99), config.json's hyperparameters block has
+# no gamma key, and until now the reward spec had no gamma either -- so a gamma
+# change would have broken the invariance silently and left no trace anywhere.
+# It is hashed into the reward spec below for exactly that reason.
 SHAPING_GAMMA = 0.99
+
+# HALVED from the 0.01 every other hound env uses, and this is a deliberate
+# second variable in this experiment rather than an oversight.
+#
+# learnings/011 measured the control cost at 105.5% of the entire gap between
+# the policy and doing nothing, and the tracking term at -3.4%. A redesign that
+# attacks the -3.4% term and freezes the 105.5% one is optimising the wrong
+# object: at 0.01 the mean control cost across the drive grid is 0.0697/step
+# against a maximum possible income of 1.0/step, and it exceeds the whole
+# measured income gap in 5 of 6 cells.
+#
+# Measured, at the policy's ACHIEVED errors under this kernel: the kernel change
+# alone leaves the drive grid at -0.0267/step, and halving w_ctrl flips it to
+# +0.0082/step. The kernel is necessary and not sufficient; this is the other
+# half. nulls.jsonl row 4 refuses a rerun unless the inequality holds at
+# achievable phi, so shipping the kernel alone would have been launching a
+# predicted failure.
+#
+# The cost of changing two things at once is that a success is not attributable
+# to either. That is accepted and stated: this run tests "is the objective now
+# winnable at all", not "which of the two did it". The attribution is a
+# two-arm experiment for a later window, and it is cheap once one arm wins.
+# Still <= the 0.02 ceiling nulls row 2 enforces as a launch gate.
+CTRL_COST_WEIGHT = 0.005
 
 # Potential tolerances -- deliberately the OLD reward's, unchanged. The
 # potential's whole job is to reproduce the gradient field the failed run
@@ -199,14 +252,20 @@ def yaw_tolerance(w_cmd: float) -> float:
 class HoundTrackRelEnv(HoundTrackEnv):
     """The hound, with a tracking tolerance proportional to what was asked."""
 
-    def __init__(self, xml_file: str = str(paths.HOUND_PD_DESERT_XML), **kwargs):
+    def __init__(
+        self,
+        xml_file: str = str(paths.HOUND_PD_DESERT_XML),
+        ctrl_cost_weight: float = CTRL_COST_WEIGHT,
+        **kwargs,
+    ):
         # Set before super().__init__: the base constructor can reach _get_obs,
         # and a half-built env that AttributeErrors is the good failure mode.
         self._potential_prev = 0.0
 
-        super().__init__(xml_file=xml_file, **kwargs)
+        super().__init__(xml_file=xml_file, ctrl_cost_weight=ctrl_cost_weight,
+                         **kwargs)
 
-        utils.EzPickle.__init__(self, xml_file, **kwargs)
+        utils.EzPickle.__init__(self, xml_file, ctrl_cost_weight, **kwargs)
 
         # `track_cmd` KEEPS ITS NAME ON PURPOSE. nulls.jsonl row 2 is a
         # machine-enforced launch gate asserting that this term is present and
@@ -239,6 +298,10 @@ class HoundTrackRelEnv(HoundTrackEnv):
                     "sigma_v=0.15 sigma_w=0.10, P(terminal)=0; "
                     "policy-invariant by Ng-Harada-Russell",
                     params=(
+                        # gamma is part of the OBJECTIVE now, not just of the
+                        # optimiser, because the shaping's invariance holds only
+                        # if this equals SAC's discount. Hashed so a change to
+                        # either one cannot pass silently.
                         ("gamma", SHAPING_GAMMA),
                         ("potential_sigma_v", POTENTIAL_SIGMA_V),
                         ("potential_sigma_w", POTENTIAL_SIGMA_W),
