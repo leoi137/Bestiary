@@ -78,6 +78,7 @@ def _registry() -> tuple[Guard, ...]:
         spawn_pad,
         standing,
         terrain_spec,
+        track_length_bias,
         tracking_frame,
     )
 
@@ -179,6 +180,16 @@ def _registry() -> tuple[Guard, ...]:
             enforces="research/nulls.jsonl, anomalies.jsonl 2026-07-26",
             cost="fast",
             run=nulls.run,
+        ),
+        # Fast: pure arithmetic on synthetic episodes, no env and no disk. It
+        # asserts the aggregation in record/track_eval.py directly rather than
+        # a copy of it, which is the only version of this check that bounds
+        # anything.
+        Guard(
+            name="track-length-bias",
+            enforces="anomalies.jsonl row 20 (2026-07-27)",
+            cost="fast",
+            run=track_length_bias.run,
         ),
         Guard(
             name="metric-liveness",
