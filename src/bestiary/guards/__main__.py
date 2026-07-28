@@ -52,6 +52,11 @@ def _run_all(fast_only: bool, only: str | None = None) -> tuple[list[dict], bool
                 # green guard that checked everything from a green guard that
                 # checked nothing without reading every detail string.
                 "verified": sum(f.n for f in findings if f.n is not None),
+                # Counted separately from `verified`, because a guard of purely
+                # scalar thresholds (memory) has no input set at all and must
+                # not read as one that examined an empty one. None and 0 are
+                # different facts here exactly as they are on the Finding.
+                "quantified": sum(f.n is not None for f in findings),
                 "vacuous": sum(f.vacuous for f in findings),
                 "seconds": round(elapsed, 2),
                 "findings": [
@@ -81,7 +86,11 @@ def main() -> int:
         mark = "ok" if result["ok"] else "FAILED"
         # A guard whose every assertion examined nothing is green and worthless;
         # say so on its header line rather than only per-assertion.
-        blind = " [VERIFIED NOTHING]" if result["ok"] and result["verified"] == 0 else ""
+        blind = (
+            " [VERIFIED NOTHING]"
+            if result["ok"] and result["quantified"] and result["verified"] == 0
+            else ""
+        )
         print(f"\n{result['guard']}  [{mark}]{blind}  enforces {result['enforces']}  "
               f"({result['seconds']}s)")
         for finding in result["findings"]:
