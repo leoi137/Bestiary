@@ -126,14 +126,33 @@ def main() -> int:
     outside = totals["vacuous_outside_measurement_provenance"]
     print(f"\nlearnings/014's falsifier — vacuous assertions OUTSIDE "
           f"measurement-provenance: {outside}")
-    if outside == 0:
-        print("  → CONFIRMED on the 'today' clause: every other guard has a non-empty")
-        print("    input set. measurement-provenance was careless, not symptomatic,")
-        print("    and 014's generalisation is overreach as written.")
-    else:
-        print("  → REFUTED: vacuity is not confined to the guard 014 was written about.")
-    print("  The falsifier's second clause — 'and always did on its commit day' —")
-    print("  is NOT tested here. It needs git archaeology, not today's run.")
+
+    # This script tests ONE HALF of a two-clause falsifier, and an earlier
+    # version of these lines printed "CONFIRMED" off the half it can see. That
+    # was wrong and an independent refutation killed it. The falsifier reads:
+    #
+    #   "a coverage audit of the other twelve guards finds every one has a
+    #    non-empty input set, AND ALWAYS DID ON ITS COMMIT DAY"
+    #
+    # It is a conjunction, so clause 1 holding proves nothing on its own. And
+    # clause 2 is FALSE on this repository's own timestamps: terrain-spec was
+    # committed 86e50d1 2026-07-27 05:16 and both runs carrying a terrain spec
+    # postdate it; reward-spec was committed 3d70b1e 2026-07-27 03:39 and the
+    # earliest run carrying a reward spec is 07-27 04:40. Both guards were
+    # vacuous on the day they shipped and grew inputs afterwards.
+    #
+    # So "3 vacuous today, all in the newest guard" is what 014 PREDICTS, not
+    # evidence against it: measurement-provenance (aa1f6c9, 2026-07-28) is
+    # simply the youngest module in the registry. Vacuity here looks like a
+    # function of a guard's AGE, not of its author's care.
+    print("  Clause 1 of the falsifier only. This does NOT confirm the falsifier:")
+    print("  it is a conjunction, and clause 2 — 'and always did on its commit")
+    print("  day' — is FALSE for terrain-spec and reward-spec on this repo's own")
+    print("  timestamps. A guard vacuous at birth that later grew inputs reads")
+    print("  exactly like a guard that was never vacuous. See learnings/014 and")
+    print("  cycle 012's refutation.")
+    if outside:
+        print("  Clause 1 also fails: vacuity is not confined to one guard.")
     return 0
 
 
