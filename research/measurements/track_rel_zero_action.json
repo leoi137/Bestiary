@@ -1,0 +1,176 @@
+{
+  "env": "HoundPDTrackRelDesert-v0",
+  "episodes_per_cell": 20,
+  "seed0": 1000,
+  "deterministic": true,
+  "action_seed": null,
+  "zero_action": {
+    "cells": {
+      "(0.5, 0.0, 0.0)": {
+        "command": [
+          0.5,
+          0.0,
+          0.0
+        ],
+        "mean": -0.18158848247843407,
+        "sd": 0.5663138220900894,
+        "mean_track": 0.009924866659212954,
+        "mean_phi_v": 0.010243478044893405,
+        "mean_phi_w": 0.9691524319294281,
+        "achieved_vx": -0.03514346245329437,
+        "commanded_vx": 0.5,
+        "crashes": 0,
+        "episodes": 20,
+        "mean_steps": 1000.0,
+        "sd_steps": 0.0,
+        "reward_track": 9.924866659212952,
+        "reward_ctrl": 0.0,
+        "reward_contact": -9.28168819118552,
+        "reward_termination": 0.0
+      },
+      "(0.8, 0.0, 0.0)": {
+        "command": [
+          0.8,
+          0.0,
+          0.0
+        ],
+        "mean": 2.65401456465149,
+        "sd": 0.5708291529321055,
+        "mean_track": 0.012397437259420793,
+        "mean_phi_v": 0.012793522218989084,
+        "mean_phi_w": 0.9691524319294281,
+        "achieved_vx": -0.03514346245329437,
+        "commanded_vx": 0.8,
+        "crashes": 0,
+        "episodes": 20,
+        "mean_steps": 1000.0,
+        "sd_steps": 0.0,
+        "reward_track": 12.397437259420792,
+        "reward_ctrl": 0.0,
+        "reward_contact": -9.28168819118552,
+        "reward_termination": 0.0
+      },
+      "(-0.3, 0.0, 0.0)": {
+        "command": [
+          -0.3,
+          0.0,
+          0.0
+        ],
+        "mean": 31.356460156869627,
+        "sd": 0.791991102093908,
+        "mean_track": 0.042948071191735535,
+        "mean_phi_v": 0.04431486891910767,
+        "mean_phi_w": 0.9691524319294281,
+        "achieved_vx": -0.03514346245329437,
+        "commanded_vx": -0.3,
+        "crashes": 0,
+        "episodes": 20,
+        "mean_steps": 1000.0,
+        "sd_steps": 0.0,
+        "reward_track": 42.94807119173554,
+        "reward_ctrl": 0.0,
+        "reward_contact": -9.28168819118552,
+        "reward_termination": 0.0
+      },
+      "(0.5, 0.0, 0.4)": {
+        "command": [
+          0.5,
+          0.0,
+          0.4
+        ],
+        "mean": -9.309890359117658,
+        "sd": 0.520185145553408,
+        "mean_track": 0.00019946148904035878,
+        "mean_phi_v": 0.010243478044893405,
+        "mean_phi_w": 0.01946186078656176,
+        "achieved_vx": -0.03514346245329437,
+        "commanded_vx": 0.5,
+        "crashes": 0,
+        "episodes": 20,
+        "mean_steps": 1000.0,
+        "sd_steps": 0.0,
+        "reward_track": 0.19946148904035882,
+        "reward_ctrl": 0.0,
+        "reward_contact": -9.28168819118552,
+        "reward_termination": 0.0
+      },
+      "(0.5, 0.0, -0.4)": {
+        "command": [
+          0.5,
+          0.0,
+          -0.4
+        ],
+        "mean": -9.310113660048604,
+        "sd": 0.5224311831549229,
+        "mean_track": 0.00019933220624686665,
+        "mean_phi_v": 0.010243478044893405,
+        "mean_phi_w": 0.019449045713723908,
+        "achieved_vx": -0.03514346245329437,
+        "commanded_vx": 0.5,
+        "crashes": 0,
+        "episodes": 20,
+        "mean_steps": 1000.0,
+        "sd_steps": 0.0,
+        "reward_track": 0.1993322062468666,
+        "reward_ctrl": 0.0,
+        "reward_contact": -9.28168819118552,
+        "reward_termination": 0.0
+      },
+      "(0.0, 0.0, 0.45)": {
+        "command": [
+          0.0,
+          0.0,
+          0.45
+        ],
+        "mean": 8.262091430427054,
+        "sd": 0.6605413572926262,
+        "mean_track": 0.018134893358501693,
+        "mean_phi_v": 0.9449545692151696,
+        "mean_phi_w": 0.01921510116920389,
+        "achieved_vx": -0.03514346245329437,
+        "commanded_vx": 0.0,
+        "crashes": 0,
+        "episodes": 20,
+        "mean_steps": 1000.0,
+        "sd_steps": 0.0,
+        "reward_track": 18.134893358501692,
+        "reward_ctrl": 0.0,
+        "reward_contact": -9.28168819118552,
+        "reward_termination": 0.0
+      },
+      "(0.0, 0.0, 0.0)": {
+        "command": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "mean": 898.2373061603876,
+        "sd": 8.96005282763823,
+        "mean_track": 0.9159705453587499,
+        "mean_phi_v": 0.9449545692151696,
+        "mean_phi_w": 0.9691524319294281,
+        "achieved_vx": -0.03514346245329437,
+        "commanded_vx": 0.0,
+        "crashes": 0,
+        "episodes": 20,
+        "mean_steps": 1000.0,
+        "sd_steps": 0.0,
+        "reward_track": 915.97054535875,
+        "reward_ctrl": 0.0,
+        "reward_contact": -9.28168819118552,
+        "reward_termination": 0.0
+      }
+    },
+    "drive_grid_mean": 3.911828941717245,
+    "drive_grid_track": 0.013967343694026366,
+    "drive_grid_steps": 1000.0,
+    "stop_cell_mean": 898.2373061603876,
+    "command_gain": 9.110484723392882e-18,
+    "crashes": 0,
+    "deterministic": true,
+    "drive_grid_reward_track": 13.967343694026368,
+    "drive_grid_reward_ctrl": 0.0,
+    "drive_grid_reward_contact": -9.281688191185522,
+    "drive_grid_reward_termination": 0.0
+  }
+}
