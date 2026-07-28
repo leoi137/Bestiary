@@ -4,7 +4,9 @@
 **Run under measurement:** `hound_track_desert_s0` (already in the ledger, row 4)
 **Arithmetic:** `research/scripts/track_length_bias_math.py`
 **Measurements:** `research/measurements/track_length_bias_s0.json`,
-`research/measurements/track_length_bias_s0_best.json`
+`research/measurements/track_length_bias_s0_best.json`,
+`research/measurements/track_length_bias_s0_seed5000.json` (the independent
+seed replicate)
 
 ---
 
