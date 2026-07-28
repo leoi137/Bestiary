@@ -63,12 +63,16 @@ $$\frac{1}{1-\gamma} \;=\; \frac{1}{1-0.99} \;=\; 100 \text{ steps}$$
 A step here is `frame_skip = 10` physics steps of 0.005 s, so the control rate is
 20 Hz and one step is 0.05 s:
 
-$$100 \text{ steps} \times 0.05\,\mathrm{s} = 5.0\,\mathrm{s}$$
+$$H \times \Delta t \;=\; 100 \text{ steps} \times 0.05\,\mathrm{s} \;=\; 5.0\,\mathrm{s}$$
+
+- $H$ — the horizon in steps, dimensionless
+- $\Delta t$ — one control step, 0.05 s
 
 Physically: the critic is what lets the hound accept a worse step now for a
 better **five seconds**. That is roughly the length of the manoeuvre this
 project cares about — turning onto a commanded heading and settling — which is
-why $\gamma = 0.99$ and not $0.9$ (0.5 s, too short to see a turn finish).
+why $\gamma$ is 0.99 and not 0.9, whose horizon of 0.5 s is too short to see a
+turn finish.
 
 That job is harder than the actor's, and the checkpoint shows the field paying
 for it. From `docs/lessons/scripts/actor_critic_math.py`:
