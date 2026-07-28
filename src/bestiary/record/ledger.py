@@ -270,6 +270,14 @@ def summarize(run: str, episodes: int = EVAL_EPISODES,
         "eval_crash_rate": round(float(crash_rate), 4),
         "eval_crash_rate_episodes": episodes,
         "eval_crash_rate_checkpoint": "ant_sac.zip",
+        # ...and WHICH ant_sac.zip. A bare filename is what put a number into
+        # the record naming a checkpoint that was overwritten nine minutes
+        # later (anomalies 19/20/23/27, learnings/013). compare() freezes both
+        # checkpoints to content-addressed paths, so the identity is already in
+        # hand here -- discarding it and writing only the filename would
+        # reproduce the original defect in the append-only record itself.
+        "eval_crash_rate_checkpoint_sha256": latest.get("checkpoint_sha256"),
+        "best_eval_checkpoint_sha256": best.get("checkpoint_sha256"),
 
         "seeds": seeds,
         "provisional": seeds < 3,
