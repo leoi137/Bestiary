@@ -1,0 +1,149 @@
+source     research/measurements/heading_ceiling_s0.json
+run        hound_track_desert_s0 / ant_sac.zip
+cells      16  (4 alpha x 4 commands), n=10 per cell per arm, seeds 3000..3009
+sigma_w    0.1 rad/s = 5.73 deg/s
+sigma_v    0.15 m/s
+terrain    committed elevation span 5.050 m; alphas [0.0, 0.25, 0.5, 1.0]
+spawn      z=0.3686 m over ground 0.00019 m -> clearance 0.3684 m, held constant across arms
+
+1. ZERO ACTION: what the GROUND alone does to the heading factor
+----------------------------------------------------------------
+  alpha=0.0   elev= 0.0000 m   Phi_w=0.9688 (sd=0.0115, sem=0.0036)   yaw err=0.01794 rad/s = 1.03 deg/s
+  alpha=0.25  elev= 1.2625 m   Phi_w=0.9690 (sd=0.0102, sem=0.0032)   yaw err=0.01790 rad/s = 1.03 deg/s
+  alpha=0.5   elev= 2.5250 m   Phi_w=0.9716 (sd=0.0051, sem=0.0016)   yaw err=0.01709 rad/s = 0.98 deg/s
+  alpha=1.0   elev= 5.0500 m   Phi_w=0.9699 (sd=0.0059, sem=0.0019)   yaw err=0.01763 rad/s = 1.01 deg/s
+  band across alpha:  0.9688 .. 0.9716   spread=0.00281 = 0.29% of the mean
+  mean within-cell SEM = 0.00259  ->  spread/SEM = 1.09   (monotone in alpha? NO)
+  full elevation span traversed: 0.000 m -> 5.050 m
+
+2. POLICY: the heading factor, and where its maximum is
+-------------------------------------------------------
+  global max over all 16 cells: Phi_w=0.8489 at alpha=0.0, drive_slow (crashes 10/10, mean steps 683.3)
+  alpha=0.0   slow=0.8489(10/10)   mid=0.7628(10/10)  fast=0.6811(10/10)   zero=0.9688
+  alpha=0.25  slow=0.7302( 9/10)   mid=0.5349( 5/10)  fast=0.4099( 0/10)   zero=0.9690
+  alpha=0.5   slow=0.6656( 0/10)   mid=0.4390( 0/10)  fast=0.5967( 0/10)   zero=0.9716
+  alpha=1.0   slow=0.6052( 0/10)   mid=0.4945( 0/10)  fast=0.5300( 0/10)   zero=0.9699
+
+3. THE LOAD-BEARING CELLS: full 1000-step, zero crashes, no length bias
+-----------------------------------------------------------------------
+  8 of 16 cells have 0/10 policy crashes (7 of them straight-drive)
+  alpha=0.25  drive_fast  Phi_w=0.4099 vs standing 0.9690   ratio=0.4231   deficit= 57.7%   yaw err 0.1200 vs 0.0179 rad/s ( 6.87 vs 1.03 deg/s)
+  alpha=0.5   drive_slow  Phi_w=0.6656 vs standing 0.9716   ratio=0.6850   deficit= 31.5%   yaw err 0.0709 vs 0.0171 rad/s ( 4.06 vs 0.98 deg/s)
+  alpha=0.5   drive_mid   Phi_w=0.4390 vs standing 0.9716   ratio=0.4518   deficit= 54.8%   yaw err 0.1131 vs 0.0171 rad/s ( 6.48 vs 0.98 deg/s)
+  alpha=0.5   drive_fast  Phi_w=0.5967 vs standing 0.9716   ratio=0.6141   deficit= 38.6%   yaw err 0.0822 vs 0.0171 rad/s ( 4.71 vs 0.98 deg/s)
+  alpha=1.0   drive_slow  Phi_w=0.6052 vs standing 0.9699   ratio=0.6240   deficit= 37.6%   yaw err 0.0808 vs 0.0176 rad/s ( 4.63 vs 1.01 deg/s)
+  alpha=1.0   drive_mid   Phi_w=0.4945 vs standing 0.9699   ratio=0.5099   deficit= 49.0%   yaw err 0.1011 vs 0.0176 rad/s ( 5.79 vs 1.01 deg/s)
+  alpha=1.0   drive_fast  Phi_w=0.5300 vs standing 0.9699   ratio=0.5465   deficit= 45.4%   yaw err 0.0942 vs 0.0176 rad/s ( 5.40 vs 1.01 deg/s)
+  BAND on uncrashed straight cells: Phi_w 0.4099 .. 0.6656
+  ratio to standing:                0.4231 .. 0.6850   (deficit 31.5% .. 57.7%)
+  standing's own variation over the SAME alpha range: 0.29%
+  -> driving costs 31.5-57.7% of the heading factor; the terrain costs standing 0.29%.
+  ratio of the two effects: 109x to 199x
+  and at a FIXED command, across the alphas where the cell is crash-free:
+    drive_slow  a=0.5:31.5%  a=1.0:37.6%   rougher-minus-smoother = +6.1 pp   monotone? yes  (2 points: monotone is vacuous)
+    drive_mid   a=0.5:54.8%  a=1.0:49.0%   rougher-minus-smoother = -5.8 pp   monotone? yes  (2 points: monotone is vacuous)
+    drive_fast  a=0.25:57.7%  a=0.5:38.6%  a=1.0:45.4%   rougher-minus-smoother = -12.3 pp   monotone? NO
+    -> the sign of that last column is not consistent across commands,
+       so even the POLICY's deficit does not track roughness cleanly.
+
+4. CRASHES: flat ground is where this policy dies
+-------------------------------------------------
+  alpha=0.0   elev= 0.0000 m   policy  40/40 crashed   zero action   0/40   policy mean steps  397.2
+  alpha=0.25  elev= 1.2625 m   policy  24/40 crashed   zero action   0/40   policy mean steps  704.3
+  alpha=0.5   elev= 2.5250 m   policy   7/40 crashed   zero action   0/40   policy mean steps  893.0
+  alpha=1.0   elev= 5.0500 m   policy   0/40 crashed   zero action   0/40   policy mean steps 1000.0
+  TOTAL  policy 71/160 = 44.4%   zero action 0/160
+  flat (alpha=0) policy mean steps by cell: drive_slow=683.3, drive_mid=366.8, drive_fast=325.5, turn=213.1
+  zero-action mean steps everywhere: 1000.0 .. 1000.0
+
+5. MONOTONICITY IN COMMANDED SPEED (the brief's claim, tested)
+--------------------------------------------------------------
+  alpha=0.0   0.30=0.8489 0.55=0.7628 0.80=0.6811   slow>mid:Y  mid>fast:Y  slow>fast:Y
+  alpha=0.25  0.30=0.7302 0.55=0.5349 0.80=0.4099   slow>mid:Y  mid>fast:Y  slow>fast:Y
+  alpha=0.5   0.30=0.6656 0.55=0.4390 0.80=0.5967   slow>mid:Y  mid>fast:N  slow>fast:Y
+  alpha=1.0   0.30=0.6052 0.55=0.4945 0.80=0.5300   slow>mid:Y  mid>fast:N  slow>fast:Y
+  slow>mid   holds at 4/4 alphas
+  mid>fast   holds at 2/4 alphas
+  slow>fast  holds at 4/4 alphas
+  strictly monotone decreasing in commanded speed: 2/4 alphas, at alpha=[0.0, 0.25]
+  ... of which crash-free (so not length-biased): 0/4, at alpha=[]
+  -> the brief's 'monotone at every roughness' is NOT supported; what
+     survives is slow>mid and slow>fast at 4/4, i.e. Phi_w is lower at
+     0.55 and 0.80 m/s than at 0.30 m/s on every ground tested.
+
+6. THE 011 CANCELLATION, cell by cell (moving vs not moving)
+------------------------------------------------------------
+  cells where policy Phi_v > standing AND policy Phi_w < standing: 12/12 straight-drive cells
+  alpha=0.0   drive_slow  Phi_v 0.1668->0.9451 (x  5.67)   Phi_w 0.9688->0.8489 (x0.88)   track 0.1616->0.8094 (x5.01)  [length-biased]
+  alpha=0.0   drive_mid   Phi_v 0.0616->0.7849 (x 12.73)   Phi_w 0.9688->0.7628 (x0.79)   track 0.0597->0.6071 (x10.17)  [length-biased]
+  alpha=0.0   drive_fast  Phi_v 0.0312->0.3119 (x  9.98)   Phi_w 0.9688->0.6811 (x0.70)   track 0.0303->0.2133 (x7.05)  [length-biased]
+  alpha=0.25  drive_slow  Phi_v 0.1668->0.7970 (x  4.78)   Phi_w 0.9690->0.7302 (x0.75)   track 0.1616->0.6104 (x3.78)  [length-biased]
+  alpha=0.25  drive_mid   Phi_v 0.0616->0.5542 (x  8.99)   Phi_w 0.9690->0.5349 (x0.55)   track 0.0597->0.3506 (x5.87)  [length-biased]
+  alpha=0.25  drive_fast  Phi_v 0.0312->0.1828 (x  5.85)   Phi_w 0.9690->0.4099 (x0.42)   track 0.0303->0.0979 (x3.23)
+  alpha=0.5   drive_slow  Phi_v 0.1667->0.5472 (x  3.28)   Phi_w 0.9716->0.6656 (x0.69)   track 0.1620->0.3771 (x2.33)
+  alpha=0.5   drive_mid   Phi_v 0.0616->0.3260 (x  5.29)   Phi_w 0.9716->0.4390 (x0.45)   track 0.0599->0.1701 (x2.84)
+  alpha=0.5   drive_fast  Phi_v 0.0312->0.1574 (x  5.04)   Phi_w 0.9716->0.5967 (x0.61)   track 0.0304->0.0857 (x2.82)
+  alpha=1.0   drive_slow  Phi_v 0.1667->0.5028 (x  3.02)   Phi_w 0.9699->0.6052 (x0.62)   track 0.1617->0.3176 (x1.96)
+  alpha=1.0   drive_mid   Phi_v 0.0616->0.2355 (x  3.82)   Phi_w 0.9699->0.4945 (x0.51)   track 0.0598->0.1232 (x2.06)
+  alpha=1.0   drive_fast  Phi_v 0.0312->0.1257 (x  4.03)   Phi_w 0.9699->0.5300 (x0.55)   track 0.0303->0.0617 (x2.04)
+
+7. IS IT A TRADE? Phi_v against Phi_w within the policy, across cells
+---------------------------------------------------------------------
+  all 12 straight cells:      r(Phi_v, Phi_w) = +0.8033
+  7 uncrashed straight cells: r(Phi_v, Phi_w) = +0.5633
+  A trade-off across commands would give r < 0. Both factors fall
+  TOGETHER as the command gets harder, so the trade is against
+  STANDING STILL (section 6), not between the two factors.
+
+8. THE TURN CELL: the only command where doing nothing cannot win
+-----------------------------------------------------------------
+  alpha=0.0   policy Phi_w=0.2528 vs standing 0.1013   ratio=2.50   policy crashes 10/10, steps 213.1
+  alpha=0.25  policy Phi_w=0.2255 vs standing 0.1010   ratio=2.23   policy crashes 10/10, steps 234.9
+  alpha=0.5   policy Phi_w=0.1879 vs standing 0.1011   ratio=1.86   policy crashes 7/10, steps 572.1
+  alpha=1.0   policy Phi_w=0.1528 vs standing 0.1010   ratio=1.51   policy crashes 0/10, steps 1000.0
+  policy band 0.1528 .. 0.2528   standing band 0.1010 .. 0.1013
+  policy beats standing on Phi_w at 4/4 alphas
+
+9. WHAT THE HEADING FACTOR COSTS, in tracking reward per step
+-------------------------------------------------------------
+  Caveat computed, not assumed: track is mean_t[Phi_v*Phi_w], which is
+  NOT mean[Phi_v]*mean[Phi_w]. The gap below is the covariance term,
+  so the counterfactual is an estimate to ~that accuracy, not exact.
+  alpha=0.25  drive_fast  track=0.0979  mean(Phi_v)*mean(Phi_w)=0.0749 (cov gap +0.0230)   if heading were held at standing: 0.1771  -> heading removes 0.1022/step = 57.7%
+  alpha=0.5   drive_slow  track=0.3771  mean(Phi_v)*mean(Phi_w)=0.3642 (cov gap +0.0129)   if heading were held at standing: 0.5317  -> heading removes 0.1675/step = 31.5%
+  alpha=0.5   drive_mid   track=0.1701  mean(Phi_v)*mean(Phi_w)=0.1431 (cov gap +0.0270)   if heading were held at standing: 0.3168  -> heading removes 0.1737/step = 54.8%
+  alpha=0.5   drive_fast  track=0.0857  mean(Phi_v)*mean(Phi_w)=0.0939 (cov gap -0.0082)   if heading were held at standing: 0.1529  -> heading removes 0.0590/step = 38.6%
+  alpha=1.0   drive_slow  track=0.3176  mean(Phi_v)*mean(Phi_w)=0.3043 (cov gap +0.0133)   if heading were held at standing: 0.4877  -> heading removes 0.1834/step = 37.6%
+  alpha=1.0   drive_mid   track=0.1232  mean(Phi_v)*mean(Phi_w)=0.1164 (cov gap +0.0068)   if heading were held at standing: 0.2284  -> heading removes 0.1119/step = 49.0%
+  alpha=1.0   drive_fast  track=0.0617  mean(Phi_v)*mean(Phi_w)=0.0666 (cov gap -0.0049)   if heading were held at standing: 0.1219  -> heading removes 0.0553/step = 45.4%
+  WORKED CELL alpha=1.00 drive_slow (committed terrain, 0/10 crashed):
+    u_w standing = sqrt(1/0.9699 - 1) = 0.1763  -> |w| = 0.01763 rad/s = 1.01 deg/s
+    u_w policy   = sqrt(1/0.6052 - 1) = 0.8077  -> |w| = 0.08077 rad/s = 4.63 deg/s
+    the policy yaws 4.58x as fast as a machine lying still
+
+10. THE FALSIFIER LINE
+----------------------
+  cells where the policy reaches Phi_w >= 0.95: 0/16
+  the closest it gets, anywhere: 0.8489 (alpha=0.0, drive_slow, 10/10 crashed)
+  closest among full-length cells: 0.6656
+
+11. RECONCILING learnings/011's FALSIFIER 2 (the 0.513 threshold)
+-----------------------------------------------------------------
+  011's control figure, recomputed: mean Phi_w over the 6 drive-grid cells = 0.5128
+    of which 3 straight (w_cmd=0): 0.9705
+    of which 3 yaw-commanded:         0.0552
+  This sweep's matched control (straight, committed terrain, alpha=1.00): 0.9699
+  agreement with the independent baseline file: 0.0006 absolute (0.06%)
+  -> 0.513 is a MIXTURE average and is not the right threshold for a
+     straight-drive cell. The matched comparison is 0.969, and the
+     policy is below it at 12/12 straight cells (section 6).
+
+12. THE PRE-POLICY REFERENCE: an OPEN-LOOP driver, measured in 2026-07
+----------------------------------------------------------------------
+  wheel_0    env=HoundPDDesert-v0     wheel cmd=0.0  achieved vx=-0.03553 m/s
+             yaw rms=0.01823 rad/s (1.04 deg/s) -> Phi(rms)=0.9678
+  wheel_0.3  env=HoundPDDesert-v0     wheel cmd=0.3  achieved vx=+0.15437 m/s
+             yaw rms=0.12695 rad/s (7.27 deg/s) -> Phi(rms)=0.3829
+  open-loop rolling yaws 6.96x as fast as lying still, with NO policy involved at all
+  the trained policy at alpha=1.00, 0.30 m/s sits at Phi_w=0.6052, between
+  open-loop rolling (0.3829) and lying still (0.9699) -- it recovers 38% of what driving costs, and pays the rest.
