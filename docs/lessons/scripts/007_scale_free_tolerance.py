@@ -96,7 +96,7 @@ best_drive = max(v["mean_track"] for c, v in OLD["trained"]["cells"].items()
                  if c != STOP_CELL and json.loads(c.replace("(", "[")
                                                   .replace(")", "]"))[2] == 0.0)
 old_stander_turn = OLD["zero_action"]["cells"][TURN_CELL]["mean_track"]
-print(f"  for scale, measured under the reward this design replaces:")
+print("  for scale, measured under the reward this design replaces:")
 print(f"    trained policy, best straight-drive cell   {best_drive:.5f} / step")
 print(f"    stander, turn cell {TURN_CELL}          {old_stander_turn:.5f} / step")
 
@@ -163,7 +163,7 @@ print(f"  k = {K_FIRST} pays a do-nothing machine "
 # command sets. The same-commands number is six-cell against six-cell:
 old_drive = OLD["zero_action"]["drive_grid_track"]
 new_drive = REL["drive_grid_track"]
-print(f"  the SAME SIX COMMANDS under each reward (drive_grid_track):")
+print("  the SAME SIX COMMANDS under each reward (drive_grid_track):")
 print(f"    old reward {old_drive:.5f} / step -> shipped k = {K_SHIPPED} "
       f"{new_drive:.5f} / step   = {old_drive / new_drive:.1f}x cut")
 print(f"  do NOT divide {old_drive:.5f} (six fixed commands) by "
