@@ -95,19 +95,26 @@ is that three earlier lessons — 008, 009 and 011 — have all leaned on
 `Linear(obs, 256)` without the reader ever being shown what `obs` *contains*,
 or why a checkpoint dies rather than degrades when it changes.
 
-Its own correction, in the pattern the number rule keeps producing — and this
-time it is a number that is easy to read out of this repo as current when it
-never was. `research/CORE_PLAN.md` computes `141 × 256 = 36,096` first-layer
-weights, and `CLAUDE.md` repeats the 141, both of them describing a *Spyder*
-plan that was never applied. Spyder is still **113**, three terms, no reserved
-block. The reserved command and height slots landed on the **Hound** instead,
-which is **169** — in every one of its six envs,
-including the two tracking envs, all sharing hash `11093686ef09fe13`. 141 does
-exist on disk, but only as a fossil: `runs/hound_desert_test150k/` carries a
-`(256, 141)` first layer against a live env of 169, which is precisely why it
-is the dead run. Caught by
+Its own correction — and this one cuts against the draft rather than against
+the repo, which is worth recording as its own kind of result. The lesson was
+first drafted claiming `research/CORE_PLAN.md` and `CLAUDE.md` carry a *wrong*
+number, because both name **141** while Spyder measures **113**. They do not.
+`CORE_PLAN.md` is a proposal — it computes `141 × 256 = 36,096` as the width
+Spyder *would* have after adding reserved command and height slots — and
+`CLAUDE.md` states in the same sentence that Spyder "is at 113 today" and that
+the plan "is not yet applied". Read as a plan, both are exactly right, and a
+lesson that accused them would have put a false correction into the record
+while sounding like the number rule working.
+
+What the script does establish, and what the prose nowhere says, is where the
+reserved-slot design actually landed: not on Spyder at 141 but on the **Hound
+at 169**, in all six of its envs including both tracking envs, every one
+sharing obs hash `11093686ef09fe13`. And 141 is not merely hypothetical — it
+is on disk as a fossil, the `(256, 141)` first layer in
+`runs/hound_desert_test150k/` sitting against a live env of 169, which is
+precisely why that run is the dead one. All of it from
 `docs/lessons/scripts/013_observation_width_math.py` building every env and
-reading its declared spec instead of trusting the prose.
+reading its declared spec instead of trusting prose.
 
 **The planned list was 2 after 012, and that cycle did not draw it down.**
 *When an average hides a single winner* is not on the list and was written
