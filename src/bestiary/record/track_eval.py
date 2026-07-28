@@ -122,7 +122,94 @@ TRACK_ENV = "HoundPDTrackDesert-v0"
 TRACK_ENVS = ("HoundPDTrackDesert-v0", "HoundPDTrackRelDesert-v0")
 
 
-TERMS = ("reward_track", "reward_ctrl", "reward_contact", "reward_termination")
+# The reward decomposition is DISCOVERED from the env's own step info, never
+# declared here. Until 2026-07-28 this was a hardcoded 4-tuple
+# ("reward_track", "reward_ctrl", "reward_contact", "reward_termination") and
+# `HoundPDTrackRelDesert-v0` pays FIVE terms -- it added `reward_shaping` when
+# the PBRS term landed. The decomposition therefore did not sum to the return
+# and said nothing about it: the residual was -0.78 on the zero-action arm,
+# **20% of that baseline**, while every field it printed looked complete.
+# Ledger row 4's entire published conclusion was a decomposition argument
+# ("ctrl_cost is 102.9% of the gap to zero action"), so this is not a
+# cosmetic omission -- it is a claim-shaped one. anomalies.jsonl row 39.
+#
+# Two properties matter and a hardcoded tuple has neither:
+#
+# 1. **It cannot go stale.** A new reward term appears in the decomposition
+#    the first time it is paid, with no edit here. That is what makes the bug
+#    class impossible rather than fixed -- the next term to be added will not
+#    repeat this, and nobody has to remember it happened.
+# 2. **It is checked against the return.** Discovery alone would still be
+#    silent if an env logged a term it does not actually pay, or paid one it
+#    does not log. `assert_decomposition_complete` closes that: the terms must
+#    SUM to the reward, every step, or the rollout raises.
+#
+# Not derived from `RewardSpec` on purpose, though that was the obvious route.
+# The spec's term names are the reward's own vocabulary ("track_cmd",
+# "pbrs_shaping", "ctrl_cost") and the info keys are the instrument's
+# ("reward_track", "reward_shaping", "reward_ctrl"); bridging them needs a
+# hand-written mapping table, which is a second hardcoded list with exactly
+# the failure mode being removed. The info dict is what the decomposition is
+# actually built from, so it is what the decomposition should be discovered
+# from -- and the sum check below is a stronger statement than name agreement
+# would have been.
+REWARD_TERM_PREFIX = "reward_"
+
+# Float slack for the per-step sum. The env computes the reward as a sum of
+# these very terms, so agreement is exact up to summation order: ~1e-16
+# relative on a 5-term sum. 1e-9 is six orders of magnitude of headroom and
+# still catches an omitted term, every one of which is O(0.1-1) here.
+DECOMPOSITION_TOL = 1e-9
+
+
+def discover_terms(info: dict) -> tuple[str, ...]:
+    """The reward's term names, in the order the env declares them.
+
+    Insertion order rather than sorted: it is the order the reward is written
+    in the env's own `step`, which is the order a reader wants the
+    decomposition printed in. Sorting would put `reward_contact` first, which
+    is meaningful to nobody.
+    """
+    terms = tuple(k for k in info if k.startswith(REWARD_TERM_PREFIX))
+    if not terms:
+        raise ValueError(
+            f"no {REWARD_TERM_PREFIX!r} keys in step info (saw {sorted(info)}), "
+            f"so this env's return cannot be decomposed. track_eval is defined "
+            f"for envs that report their reward terms; one that does not needs "
+            f"to start, not to be measured without them."
+        )
+    return terms
+
+
+def assert_decomposition_complete(terms, info: dict, reward: float,
+                                  step: int) -> None:
+    """The terms must sum to the reward. Raises with the actual numbers if not.
+
+    THIS is the guard, and it is the reason discovery is safe. It fires on the
+    step it fails on rather than at the end of an episode, so the message names
+    a single step's terms instead of a 1000-step aggregate in which a 20%
+    residual is a plausible-looking number.
+
+    A residual means one of two things and both are real: the env pays
+    something it does not log, or it logs something it does not pay. Either
+    makes every downstream `drive_grid_reward_*` field a partial account
+    presented as a complete one.
+    """
+    total = sum(float(info[t]) for t in terms)
+    residual = total - float(reward)
+    if abs(residual) > DECOMPOSITION_TOL * max(1.0, abs(float(reward))):
+        breakdown = ", ".join(f"{t}={float(info[t]):+.6g}" for t in terms)
+        raise ValueError(
+            f"reward decomposition does not sum to the reward at step {step}: "
+            f"terms sum to {total:.9g} but the env paid {float(reward):.9g} "
+            f"(residual {residual:+.3g}, tol "
+            f"{DECOMPOSITION_TOL * max(1.0, abs(float(reward))):.3g}).\n"
+            f"  terms discovered: {list(terms)}\n"
+            f"  values: {breakdown}\n"
+            f"The env pays a term it does not report in info, or reports one "
+            f"it does not pay. Every drive_grid_reward_* field downstream of "
+            f"this is a partial account of the return. anomalies.jsonl row 39."
+        )
 
 
 def resolve_horizon(env) -> int:
@@ -191,7 +278,10 @@ def rollout(env, seed: int, policy=None, forced_cmd=None, *,
 
     zero = np.zeros(env.action_space.shape[0])
     total = 0.0
-    term_sums = dict.fromkeys(TERMS, 0.0)
+    # Discovered on the first step, not before it: the terms are a property of
+    # what the env actually pays, and nothing here knows that until it pays.
+    terms: tuple[str, ...] | None = None
+    term_sums: dict[str, float] = {}
     phi_v, phi_w, achieved, commanded = [], [], [], []
     steps, terminated = 0, False
     while True:
@@ -202,7 +292,22 @@ def rollout(env, seed: int, policy=None, forced_cmd=None, *,
         obs_before = obs
         obs, r, term, trunc, info = env.step(action)
         total += r
-        for t in TERMS:
+        if terms is None:
+            terms = discover_terms(info)
+            term_sums = dict.fromkeys(terms, 0.0)
+        elif tuple(k for k in info if k.startswith(REWARD_TERM_PREFIX)) != terms:
+            # An env whose term list changes mid-episode would make the summed
+            # decomposition an average over two different rewards. Nothing does
+            # this today; the check costs one tuple build and means the
+            # discovery above is a fact about the episode, not about its first
+            # step.
+            raise ValueError(
+                f"reward terms changed mid-episode at step {steps}: "
+                f"{list(terms)} -> "
+                f"{[k for k in info if k.startswith(REWARD_TERM_PREFIX)]}"
+            )
+        assert_decomposition_complete(terms, info, r, steps)
+        for t in terms:
             term_sums[t] += float(info[t])
         phi_v.append(info["track_phi_v"])
         phi_w.append(info["track_phi_w"])
@@ -236,6 +341,10 @@ def rollout(env, seed: int, policy=None, forced_cmd=None, *,
         "track_income": float(term_sums["reward_track"]),
         "achieved_vx": float(np.mean(achieved)),
         "commanded_vx": float(np.mean(commanded)),
+        # The term list travels WITH the episode. Downstream aggregation reads
+        # it from here rather than from a module constant, so an episode can
+        # never be summarised under a term list that is not its own.
+        "terms": list(terms),
         **term_sums,
     }
 
@@ -250,6 +359,16 @@ def aggregate_cell(cell, eps: list[dict]) -> dict:
     """
     rets = np.array([e["return"] for e in eps])
     steps = np.array([float(e["steps"]) for e in eps])
+    # Every episode in a cell must decompose the same way, or the per-term
+    # means below average unlike quantities under one name.
+    term_lists = {tuple(e["terms"]) for e in eps}
+    if len(term_lists) != 1:
+        raise ValueError(
+            f"cell {cell} mixes episodes with different reward terms: "
+            f"{sorted(term_lists)}. A per-term mean over these is not a "
+            f"decomposition of anything."
+        )
+    terms = tuple(eps[0]["terms"])
     return {
         "command": list(cell),
         "mean": float(rets.mean()),
@@ -277,7 +396,8 @@ def aggregate_cell(cell, eps: list[dict]) -> dict:
             sum(e["track_income"] for e in eps) / steps.sum()),
         "track_per_horizon": float(
             np.mean([e["track_income"] / e["horizon"] for e in eps])),
-        **{t: float(np.mean([e[t] for e in eps])) for t in TERMS},
+        "terms": list(terms),
+        **{t: float(np.mean([e[t] for e in eps])) for t in terms},
     }
 
 
@@ -301,6 +421,12 @@ def _arm(env, policy, episodes: int, seed0: int, *,
                for i in range(episodes)]
         cells[str(cell)] = aggregate_cell(cell, eps)
     drive = [c for c in cells.values() if tuple(c["command"]) != STOP_CELL]
+    cell_terms = {tuple(c["terms"]) for c in cells.values()}
+    if len(cell_terms) != 1:
+        raise ValueError(
+            f"grid cells disagree on the reward terms: {sorted(cell_terms)}"
+        )
+    terms = tuple(next(iter(cell_terms)))
     # Command gain: OLS slope of achieved on commanded forward velocity across
     # the drive cells. Failure mode 3 -- a dead command input reads ~0.
     x = np.array([c["commanded_vx"] for c in drive])
@@ -319,8 +445,13 @@ def _arm(env, policy, episodes: int, seed0: int, *,
         "command_gain": slope,
         "crashes": int(sum(c["crashes"] for c in cells.values())),
         "deterministic": deterministic,
+        # Published so a reader of the JSON can see WHICH decomposition the
+        # drive_grid_reward_* fields below are, without inferring it from which
+        # keys happen to be present. Row 4's measurement had no such field and
+        # reads as a complete four-term account.
+        "terms": list(terms),
         **{f"drive_grid_{t}": float(np.mean([c[t] for c in drive]))
-           for t in TERMS},
+           for t in terms},
     }
 
 

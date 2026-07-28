@@ -59,9 +59,9 @@ from bestiary import paths
 from bestiary.record.track_eval import (
     EVAL_GRID,
     STOP_CELL,
-    TERMS,
     TRACK_ENV,
     _arm,
+    discover_terms,
 )
 
 RUN = "hound_track_desert_s0"
@@ -225,15 +225,27 @@ def run_arm(env, policy, episodes: int, seed0: int, deterministic: bool,
     cannot drift from the table. Episode boundaries are step_index == 0.
     """
     traces: list[list[list[float]]] = []
+    # The trace's COLUMN ORDER is the env's own term order, discovered on the
+    # first step rather than taken from a constant (anomalies.jsonl row 39 --
+    # the constant was a 4-tuple and this env family now has envs paying 5).
+    # It is captured once and asserted stable, because a column order that
+    # changed mid-arm would silently reindex every rate computed below.
+    seen: list[tuple[str, ...]] = []
 
     def on_step(i, obs_before, action, info):
         if i == 0:
             traces.append([])
-        traces[-1].append([float(info[t]) for t in TERMS])
+        terms = discover_terms(info)
+        if not seen:
+            seen.append(terms)
+        elif terms != seen[0]:
+            raise SystemExit(f"reward terms changed mid-arm: {seen[0]} -> {terms}")
+        traces[-1].append([float(info[t]) for t in terms])
 
     arm = _arm(env, policy, episodes, seed0, deterministic=deterministic,
                action_seed0=action_seed0, on_step=on_step)
     arrays = [np.asarray(t, dtype=np.float64) for t in traces]
+    term_order = seen[0]
 
     # The traces must be the same episodes the table came from, in order.
     expected = episodes * len(EVAL_GRID)
@@ -244,6 +256,14 @@ def run_arm(env, policy, episodes: int, seed0: int, deterministic: bool,
         want = arm["cells"][str(cell)]["mean_steps"]
         if abs(got - want) > 1e-9:
             raise SystemExit(f"trace misaligned on {cell}: {got} != {want}")
+    # The trace columns and the table's own decomposition must be the same
+    # list in the same order -- `per_step_rates` indexes the traces by looking
+    # names up in `arm["terms"]`, so this is what makes that lookup sound.
+    if tuple(arm["terms"]) != term_order:
+        raise SystemExit(
+            f"trace columns {term_order} do not match the table's terms "
+            f"{tuple(arm['terms'])}"
+        )
     return arm, arrays
 
 
@@ -270,7 +290,8 @@ def per_step_rates(arm: dict, traces: list[np.ndarray], prefix: int) -> dict:
         crashing arm and a surviving one are compared over the same window.
         The only one of the three with no length bias at all.
     """
-    i_track, i_ctrl = TERMS.index("reward_track"), TERMS.index("reward_ctrl")
+    terms = list(arm["terms"])
+    i_track, i_ctrl = terms.index("reward_track"), terms.index("reward_ctrl")
     steps = np.array([len(t) for t in traces], dtype=float)
     tot_track = np.array([t[:, i_track].sum() for t in traces])
     tot_ctrl = np.array([-t[:, i_ctrl].sum() for t in traces])   # info is signed

@@ -63,7 +63,11 @@ def _ep(rate: float, steps: int, horizon: int = HORIZON) -> dict:
         "track_income": rate * steps,
         "achieved_vx": 0.0,
         "commanded_vx": 0.0,
-        **dict.fromkeys(track_eval.TERMS, 0.0),
+        # A synthetic one-term decomposition. The names no longer come from a
+        # module constant -- there isn't one -- and this guard is about the
+        # length correction, not about which terms an env pays.
+        "terms": ["reward_track"],
+        "reward_track": 0.0,
     }
 
 

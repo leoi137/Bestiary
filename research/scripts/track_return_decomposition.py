@@ -31,9 +31,18 @@ import numpy as np
 
 import bestiary.envs  # noqa: F401 -- registers the env ids
 from bestiary import paths
-from bestiary.record.track_eval import EVAL_GRID, STOP_CELL, TRACK_ENV
+from bestiary.record.track_eval import (
+    EVAL_GRID,
+    STOP_CELL,
+    TRACK_ENV,
+    assert_decomposition_complete,
+    discover_terms,
+)
 
-TERMS = ("reward_track", "reward_ctrl", "reward_contact", "reward_termination")
+# This module used to carry its OWN copy of the hardcoded four-term tuple --
+# a second instance of anomalies.jsonl row 39, in the script whose entire
+# output is a decomposition. Terms are now discovered from the env's step info
+# and checked to sum to the reward, exactly as in `record/track_eval.py`.
 
 
 def episode(env, seed: int, policy, cmd) -> dict:
@@ -44,39 +53,51 @@ def episode(env, seed: int, policy, cmd) -> dict:
     obs = env.unwrapped._get_obs()
 
     zero = np.zeros(env.action_space.shape[0])
-    sums = dict.fromkeys(TERMS, 0.0)
+    terms: tuple[str, ...] | None = None
+    sums: dict[str, float] = {}
     total, steps = 0.0, 0
     terminated = False
     while True:
         action = zero if policy is None else policy.predict(obs, deterministic=True)[0]
         obs, r, term, trunc, info = env.step(action)
         total += r
-        for t in TERMS:
+        if terms is None:
+            terms = discover_terms(info)
+            sums = dict.fromkeys(terms, 0.0)
+        assert_decomposition_complete(terms, info, r, steps)
+        for t in terms:
             sums[t] += float(info[t])
         steps += 1
         if term or trunc:
             terminated = term
             break
-    return {"return": total, "steps": steps, "terminated": terminated, **sums}
+    return {"return": total, "steps": steps, "terminated": terminated,
+            "terms": list(terms), **sums}
 
 
 def arm(env, policy, episodes: int, seed0: int) -> dict:
     out = {}
+    seen: set[tuple[str, ...]] = set()
     for cell in EVAL_GRID:
         eps = [episode(env, seed0 + i, policy, cell) for i in range(episodes)]
+        seen.update(tuple(e["terms"]) for e in eps)
+        if len(seen) != 1:
+            raise SystemExit(f"episodes disagree on reward terms: {sorted(seen)}")
+        terms = tuple(next(iter(seen)))
         out[str(cell)] = {
             "command": list(cell),
             "return": float(np.mean([e["return"] for e in eps])),
             "steps": float(np.mean([e["steps"] for e in eps])),
             "crashes": int(sum(e["terminated"] for e in eps)),
-            **{t: float(np.mean([e[t] for e in eps])) for t in TERMS},
+            **{t: float(np.mean([e[t] for e in eps])) for t in terms},
         }
     drive = [c for c in out.values() if tuple(c["command"]) != STOP_CELL]
     agg = {
         "drive_grid_return": float(np.mean([c["return"] for c in drive])),
         "drive_grid_steps": float(np.mean([c["steps"] for c in drive])),
         "drive_grid_crashes": int(sum(c["crashes"] for c in drive)),
-        **{f"drive_grid_{t}": float(np.mean([c[t] for c in drive])) for t in TERMS},
+        "terms": list(terms),
+        **{f"drive_grid_{t}": float(np.mean([c[t] for c in drive])) for t in terms},
     }
     return {"cells": out, **agg}
 
@@ -109,7 +130,16 @@ def main() -> None:
     # Signed contribution of each term to the gap. track is earned (+ is good);
     # the three costs are already negative in `info`, so a more-negative cost
     # shows up as a negative contribution. They sum to the gap by construction.
-    contrib = {t: trained[f"drive_grid_{t}"] - zero[f"drive_grid_{t}"] for t in TERMS}
+    # "By construction" is now true. It was not before: the term list was a
+    # hardcoded 4-tuple and this env family has envs paying five, so
+    # `residual_check` below was the only field that knew, and it printed a
+    # small number next to a table that looked complete.
+    if list(trained["terms"]) != list(zero["terms"]):
+        raise SystemExit(
+            f"arms disagree on reward terms: {trained['terms']} vs {zero['terms']}"
+        )
+    terms = list(trained["terms"])
+    contrib = {t: trained[f"drive_grid_{t}"] - zero[f"drive_grid_{t}"] for t in terms}
 
     result = {
         "run": args.run,
@@ -133,7 +163,7 @@ def main() -> None:
     print(f"{args.run}  [{ckpt.name}]  {args.episodes} episodes/cell, "
           f"drive grid = {len(EVAL_GRID) - 1} cells\n")
     print(f"{'':22} {'policy':>12} {'zero action':>12} {'contribution':>14}")
-    for t in TERMS:
+    for t in terms:
         print(f"  {t:20} {trained[f'drive_grid_{t}']:12.2f} "
               f"{zero[f'drive_grid_{t}']:12.2f} {contrib[t]:14.2f}")
     print(f"  {'-' * 60}")
