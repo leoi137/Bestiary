@@ -58,7 +58,8 @@ which gets re-sorted as the set grows.
 7. [006 — What γ = 0.99 is really saying about the future](006-what-gamma-is-saying-about-the-future.md)
 8. [007 — When a tolerance scales with the command, the command cancels](007-a-tolerance-that-cancels-the-command.md) — make the tolerance proportional to the command and a do-nothing machine is paid the same for every command you can give it.
 9. [005 — What `ent_coef` really measures](005-what-ent-coef-really-measures.md)
-10. [010 — Why a test can pass without testing anything](010-the-empty-set-says-yes.md) — "every X has property P" is true when there are no X, so 3 of this suite's 111 set-quantified assertions were reporting `PASS` over an empty set; one of them had coverage 0/9 while green.
+10. [011 — Torque control versus PD position targets](011-torque-versus-pd-position-targets.md) — the same 16 numbers mean *how hard to push* in one env and *what angle to be at* in the other; `tau = 90.0 × 0.41973 = 37.776 N·m` is what the servo does for free, and it bought ~5x fewer samples and a slightly *lower* ceiling.
+11. [010 — Why a test can pass without testing anything](010-the-empty-set-says-yes.md) — "every X has property P" is true when there are no X, so 3 of this suite's 111 set-quantified assertions were reporting `PASS` over an empty set; one of them had coverage 0/9 while green.
 
 Note the reading order is not the file order: 004 explains the machinery that
 003's reward change had to be built around, so it reads first. 006 reads after
@@ -75,15 +76,31 @@ dynamics *across* two rewards.
 
 - ~~What a policy is, and why it is a neural network~~ → [008](008-what-a-policy-is.md)
 - ~~Actor and critic: why one network is not enough~~ → [009](009-actor-and-critic.md)
-- Torque control versus PD position targets
+- ~~Torque control versus PD position targets~~ → [011](011-torque-versus-pd-position-targets.md)
 - What an observation is, and why its width is a one-way door
 - ~~Discounting: what γ = 0.99 is really saying about the future~~ → [006](006-what-gamma-is-saying-about-the-future.md)
 - Why parallel environments change everything
 
 Each lands when the project needs it to decide something, not before.
 
-**The planned list is still 3 — cycle 012 did not draw it down, and owes it an
-item.** 010 is not on the list and was written anyway, on the same basis 007
+**The planned list is down to 2, and cycle 012's debt is paid.** 011 was taken
+strictly in queue order — off the top of the list, on the weaker
+queue-order-only justification rather than the both-tests one, which is exactly
+the justification a cycle uses when the queue is owed. It also earns its place
+on merit: three lessons and two ledger rows have leaned on the PD-versus-torque
+comparison without the reader ever being shown what a position target *is*, and
+`tau = kp(q_des − q) − kv·qdot` on the real gains is a four-line answer that had
+never been written down.
+
+Its own correction, in the pattern 005, 006 and 009 set: the docstring of
+`robots/hound/build.py::actuator_xml` said the PD loop runs "five times per
+control step". It runs **ten** — 200 Hz physics under a 20 Hz policy. Caught by
+`docs/lessons/scripts/pd_vs_torque_math.py` reading `timestep` off the XML and
+`frame_skip` off the env instead of trusting the prose, and fixed in the source.
+That is the fourth remembered control rate the number rule has caught.
+
+**The planned list was still 3 after cycle 012 — that cycle did not draw it
+down, and owed it an item.** 010 is not on the list and was written anyway, on the same basis 007
 was: it is the idea the cycle's work actually turned on, and it had become
 load-bearing that week rather than merely interesting. The cycle spent itself
 auditing what fraction of the guard suite checks nothing, which is a question
