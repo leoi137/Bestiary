@@ -178,6 +178,44 @@ def main() -> int:
         print(f"{str(cmd):18s} {got['shaping_sum']:10.5f} {identity:10.5f} "
               f"{delta:+10.2e} {got['steps']:6d} {'ok' if ok else 'FAIL'}")
 
+    print("\n3b. THE DISCOUNTED SHAPING SUM IS EXACTLY -P(s_0), ACROSS RESAMPLES")
+    print("    This is the assertion that matters and the one the first version")
+    print("    of this file did NOT make: it pinned the command, so it never")
+    print("    exercised the ordering trap. P must be evaluated with c_{t+1},")
+    print("    not c_t -- the base class resamples AFTER the reward, so the")
+    print("    natural placement uses the OLD command and injects a")
+    print("    non-telescoping P(x',c_t) - P(x',c_{t+1}) once per ~250 steps.")
+    print("    A drive->stop resample moves P from ~0.07 to ~0.92, so that is")
+    print("    +/-0.85 once per 250 steps = +/-0.0034/step of silent bias.")
+    obs, _ = env.reset(seed=4000)
+    u = env.unwrapped
+    # Force frequent resamples so a 400-step rollout contains several.
+    u._steps_until_resample = 40
+    p0 = u._potential()
+    disc, gamma_t, n_resamples, last_cmd = 0.0, 1.0, 0, tuple(u._cmd)
+    terminated = False
+    for _ in range(400):
+        _o, _r, terminated, truncated, info = env.step(
+            np.zeros(env.action_space.shape))
+        disc += gamma_t * info["reward_shaping"]
+        gamma_t *= SHAPING_GAMMA
+        if tuple(u._cmd) != last_cmd:
+            n_resamples += 1
+            last_cmd = tuple(u._cmd)
+        if u._steps_until_resample > 100:
+            u._steps_until_resample = 40
+        if terminated or truncated:
+            break
+    # sum_t gamma^t [gamma P(s_{t+1}) - P(s_t)] telescopes to
+    # gamma^T P(s_T) - P(s_0), and P(s_T) = 0 on a true termination.
+    expect = -p0 + (0.0 if terminated else gamma_t * info["potential"])
+    delta = disc - expect
+    ok = abs(delta) < 1e-9
+    failures += not ok
+    print(f"    resamples in rollout: {n_resamples}   terminated: {terminated}")
+    print(f"    discounted sum {disc:+.9f}  vs  -P(s_0)+tail {expect:+.9f}  "
+          f"delta {delta:+.2e}  {'ok' if ok else 'FAIL'}")
+
     print("\n4. THE POTENTIAL IS RESET, so episode 2 does not inherit episode 1")
     first = _rollout(env, CELLS[0], steps=50, seed=3000)
     second = _rollout(env, CELLS[0], steps=50, seed=3000)
