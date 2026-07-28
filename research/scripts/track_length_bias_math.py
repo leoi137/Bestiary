@@ -121,6 +121,49 @@ def main() -> None:
         print(f"{key:18s} {c['mean_steps']:8.1f} {c['crashes']:6d} "
               f"{c['mean_track']:11.5f} {c['track_per_horizon']:12.5f}")
 
+    # --- both checkpoints, and the corrections an adversarial review forced --
+    #
+    # Three things this section exists to keep honest, all of them raised by the
+    # refutation rather than by the analysis:
+    #
+    #   1. The bias is quoted as a BIAS on each checkpoint (mean_track /
+    #      track_per_horizon), not as a ratio of ratios. The two coincide only
+    #      because the zero arm's bias is exactly 1.0, which is a fact about
+    #      zero action never crashing and not something to lean on silently.
+    #   2. WHICH cell carries the bias differs by checkpoint. Naming (0.5,0,0.4)
+    #      as "the" crashing cell is true of ant_sac.zip and false of
+    #      ant_sac_best.zip.
+    #   3. Dropping the crashing cells drives the bias to exactly 1.0, which is
+    #      the real shape of the finding: this is not a diffuse length effect,
+    #      it is one cell per checkpoint.
+    print("\n--- both checkpoints, with the crashing cells identified ---")
+    for path in (MEASUREMENT,
+                 MEASUREMENT.with_name("track_length_bias_s0_best.json")):
+        if not path.exists():
+            print(f"{path.name}: MISSING")
+            continue
+        dd = json.loads(path.read_text())
+        p = dd["trained"]
+        drive = [c for c in p["cells"].values()
+                 if tuple(c["command"]) != STOP_CELL]
+        crashing = [c for c in drive if c["crashes"] > 0]
+        clean = [c for c in drive if c["crashes"] == 0]
+        mean = lambda cs, k: sum(c[k] for c in cs) / len(cs)  # noqa: E731
+
+        bias = p["drive_grid_track"] / p["drive_grid_track_per_horizon"]
+        print(f"\n{dd['checkpoint']}")
+        print(f"  bias (mean_track / track_per_horizon) = {bias:.4f} "
+              f"({(bias - 1) * 100:+.1f}%)")
+        print("  crashing cell(s): "
+              + ", ".join(f"{tuple(c['command'])} "
+                          f"({c['crashes']}/{c['episodes']} crashes, "
+                          f"{c['mean_steps']:.1f} steps)" for c in crashing))
+        if clean:
+            clean_bias = mean(clean, "mean_track") / mean(clean, "track_per_horizon")
+            print(f"  bias over the {len(clean)} NON-crashing cells only = "
+                  f"{clean_bias:.6f}  <- must be exactly 1.0: every episode "
+                  f"runs the full horizon, so there is no bias to have")
+
 
 if __name__ == "__main__":
     main()
