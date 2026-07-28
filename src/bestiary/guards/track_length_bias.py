@@ -159,4 +159,58 @@ def run() -> list[Finding]:
         f"says about it is load-bearing",
     ))
 
+    # 6. The identity that lets a READER check track_per_horizon without
+    #    trusting this code at all. It holds by algebra for any episode set:
+    #        mean_track_stepw * mean_steps / track_per_horizon == horizon
+    #    Every committed measurement JSON carries all four numbers, so a
+    #    reader can recover the divisor and see it is 1000 rather than assume
+    #    the right TimeLimit was found.
+    recovered = (mixed["mean_track_stepw"] * mixed["mean_steps"]
+                 / mixed["track_per_horizon"])
+    findings.append(Finding(
+        "the horizon is recoverable from the reported fields alone",
+        abs(recovered - HORIZON) < 1e-9 and mixed["horizon"] == HORIZON,
+        f"mean_track_stepw * mean_steps / track_per_horizon = {recovered:.6f}, "
+        f"and the cell reports horizon={mixed['horizon']} — these must agree "
+        f"and equal {HORIZON}. This is what makes the divisor auditable from a "
+        f"committed JSON instead of taken on trust",
+    ))
+
+    # 7. `rollout` must REFUSE an env with no TimeLimit rather than substitute
+    #    the episode's own length. That fallback existed until 2026-07-28 and
+    #    was the one hole an adversarial review found in this guard: it turns
+    #    track_per_horizon silently into mean_track_stepw, leaves every
+    #    assertion above green, and records nothing in the emitted JSON about
+    #    which of the two a number is. A designed silent-degradation path with
+    #    no assertion behind it is exactly what this repo's standard forbids.
+    class _Spec:
+        id, max_episode_steps = "NoLimit-v0", None
+
+    class _NoLimit:
+        spec = _Spec()
+
+    class _Fine:
+        spec = type("S", (), {"id": "Fine-v0", "max_episode_steps": 400})()
+
+    def _refuses(env) -> bool:
+        try:
+            track_eval.resolve_horizon(env)
+        except ValueError:
+            return True
+        return False
+
+    # Both directions: it must refuse the limitless env AND accept a real one,
+    # or "it raises" could be satisfied by a function that always raises.
+    raised = _refuses(_NoLimit()) and not _refuses(_Fine())
+    raised = raised and track_eval.resolve_horizon(_Fine()) == 400
+    findings.append(Finding(
+        "rollout refuses an env with no episode limit instead of guessing one",
+        raised,
+        "an env whose spec declares no max_episode_steps must raise ValueError — "
+        "'per horizon' is undefined without a horizon, and the earlier fallback "
+        "to the episode's own length degraded track_per_horizon into "
+        "mean_track_stepw with no trace in the output"
+        + ("" if raised else "  <- it did NOT raise, so the silent path is back"),
+    ))
+
     return findings

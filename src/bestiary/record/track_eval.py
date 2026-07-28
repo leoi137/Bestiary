@@ -125,6 +125,33 @@ TRACK_ENVS = ("HoundPDTrackDesert-v0", "HoundPDTrackRelDesert-v0")
 TERMS = ("reward_track", "reward_ctrl", "reward_contact", "reward_termination")
 
 
+def resolve_horizon(env) -> int:
+    """The episode horizon `track_per_horizon` divides by. Raises if there is none.
+
+    Asked of the env, never assumed: a hardcoded 1000 would silently mis-scale
+    the moment a TimeLimit moves.
+
+    It RAISES rather than falling back to the episode's own length, which is
+    what an earlier version did. That fallback is worse than a wrong number --
+    it silently degenerates `track_per_horizon` into `mean_track_stepw`, leaves
+    every assertion in `guards/track_length_bias.py` green, and records nothing
+    in the emitted JSON about which of the two a reader is looking at. "Per
+    horizon" is undefined without a horizon, so the honest move is to refuse.
+
+    Separate from `rollout` so the guard can assert this behaviour without
+    having to build a whole env to do it.
+    """
+    horizon = getattr(getattr(env, "spec", None), "max_episode_steps", None)
+    if not horizon:
+        raise ValueError(
+            f"{getattr(getattr(env, 'spec', None), 'id', env)!r} reports "
+            f"max_episode_steps={horizon!r}, so track_per_horizon has no "
+            f"denominator. This protocol is defined for fixed-horizon episodes; "
+            f"an env without a TimeLimit needs a stated horizon, not a guess."
+        )
+    return int(horizon)
+
+
 def rollout(env, seed: int, policy=None, forced_cmd=None, *,
             deterministic: bool = True, action_seed: int | None = None,
             on_step=None) -> dict:
@@ -187,12 +214,13 @@ def rollout(env, seed: int, policy=None, forced_cmd=None, *,
         if term or trunc:
             terminated = term
             break
-    # The horizon is asked of the env, never assumed: `track_per_horizon`
-    # divides by it, so a hardcoded 1000 would silently mis-scale the moment a
-    # TimeLimit changes. Absent (an unwrapped env with no limit) -> the episode
-    # is its own horizon, which makes track_per_horizon degenerate to the
-    # step-weighted rate rather than to a wrong number.
-    horizon = getattr(getattr(env, "spec", None), "max_episode_steps", None) or steps
+    horizon = resolve_horizon(env)
+    # The banked integral is taken from the env's OWN paid term, not recomputed
+    # as phi_v*phi_w. They differ on exactly one step: the env pays
+    # `phi_v*phi_w if healthy else 0.0`, so on a crashing episode the terminal
+    # unhealthy step earns nothing while the naive product still scores it.
+    # Sourcing it here makes track_per_horizon exactly the reward's tracking
+    # integral rather than an approximation good to ~4 significant figures.
     track = np.asarray(phi_v) * np.asarray(phi_w)
     return {
         "return": total,
@@ -202,9 +230,10 @@ def rollout(env, seed: int, policy=None, forced_cmd=None, *,
         "mean_phi_v": float(np.mean(phi_v)),
         "mean_phi_w": float(np.mean(phi_w)),
         "mean_track": float(track.mean()),
-        # The un-normalised integral. Every length-aware aggregate downstream is
-        # built from this and a step count, never from a mean of means.
-        "track_income": float(track.sum()),
+        # The un-normalised integral, taken from the env's own paid term. Every
+        # length-aware aggregate downstream is built from this and a step count,
+        # never from a mean of means.
+        "track_income": float(term_sums["reward_track"]),
         "achieved_vx": float(np.mean(achieved)),
         "commanded_vx": float(np.mean(commanded)),
         **term_sums,
@@ -237,6 +266,10 @@ def aggregate_cell(cell, eps: list[dict]) -> dict:
         # bias is visible rather than latent.
         "mean_steps": float(steps.mean()),
         "sd_steps": float(steps.std(ddof=1)) if len(eps) > 1 else 0.0,
+        # The divisor, written down. Without it a reader cannot check
+        # track_per_horizon against mean_steps and mean_track_stepw, and has to
+        # trust that the code found the right TimeLimit.
+        "horizon": int(eps[0]["horizon"]),
         # The two length-aware aggregates. Both are built from the summed
         # integral and a step count -- NEVER from a mean of per-episode
         # means, which is the bias being corrected here.
