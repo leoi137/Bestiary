@@ -50,13 +50,14 @@ which gets re-sorted as the set grows.
 ## Reading order
 
 1. [008 — What a policy is, and why it is a neural network](008-what-a-policy-is.md) — a policy is a function from 169 sensed numbers to 16 motor commands; a lookup table for it would be 10⁸⁹ times the atoms in the observable universe.
-2. [001 — What a reward function is, and how ours told the robot to stand still](001-what-a-reward-function-is.md)
-3. [002 — Why one training run is not a result](002-why-one-seed-is-not-a-result.md)
-4. [004 — Why changing the reward poisons the replay buffer](004-why-a-reward-change-poisons-the-buffer.md)
-5. [003 — Why two rewards should be multiplied, not added](003-add-or-multiply.md)
-6. [006 — What γ = 0.99 is really saying about the future](006-what-gamma-is-saying-about-the-future.md)
-7. [007 — When a tolerance scales with the command, the command cancels](007-a-tolerance-that-cancels-the-command.md) — make the tolerance proportional to the command and a do-nothing machine is paid the same for every command you can give it.
-8. [005 — What `ent_coef` really measures](005-what-ent-coef-really-measures.md)
+2. [009 — Why one network is not enough](009-actor-and-critic.md) — the actor picks the move, the critic guesses what follows; the critic's first layer is `Linear(185, 256)` against the actor's `Linear(169, 256)`, and those 16 extra columns are the entire architecture.
+3. [001 — What a reward function is, and how ours told the robot to stand still](001-what-a-reward-function-is.md)
+4. [002 — Why one training run is not a result](002-why-one-seed-is-not-a-result.md)
+5. [004 — Why changing the reward poisons the replay buffer](004-why-a-reward-change-poisons-the-buffer.md)
+6. [003 — Why two rewards should be multiplied, not added](003-add-or-multiply.md)
+7. [006 — What γ = 0.99 is really saying about the future](006-what-gamma-is-saying-about-the-future.md)
+8. [007 — When a tolerance scales with the command, the command cancels](007-a-tolerance-that-cancels-the-command.md) — make the tolerance proportional to the command and a do-nothing machine is paid the same for every command you can give it.
+9. [005 — What `ent_coef` really measures](005-what-ent-coef-really-measures.md)
 
 Note the reading order is not the file order: 004 explains the machinery that
 003's reward change had to be built around, so it reads first. 006 reads after
@@ -72,7 +73,7 @@ dynamics *across* two rewards.
 ### Planned, roughly in the order they will be needed
 
 - ~~What a policy is, and why it is a neural network~~ → [008](008-what-a-policy-is.md)
-- Actor and critic: why one network is not enough
+- ~~Actor and critic: why one network is not enough~~ → [009](009-actor-and-critic.md)
 - Torque control versus PD position targets
 - What an observation is, and why its width is a one-way door
 - ~~Discounting: what γ = 0.99 is really saying about the future~~ → [006](006-what-gamma-is-saying-about-the-future.md)
@@ -80,7 +81,24 @@ dynamics *across* two rewards.
 
 Each lands when the project needs it to decide something, not before.
 
-**The planned list is down to 4**, from 5, from 6, from 7, and from 8. Cycle
+**The planned list is down to 3**, from 4, from 5, from 6, from 7, and from 8.
+Cycle 011 took *"Actor and critic: why one network is not enough"* off it — off
+the top of the queue, and on the **both-tests** basis rather than 009's weaker
+queue-order-only one. The cycle spent itself on a single 5,106,759-byte
+checkpoint file, and "what is actually inside those bytes" is answered by
+`policy.pth`: 227,330 critic parameters, 227,330 more in a target copy, and
+117,536 in the actor. The idea the work touched and the head of the list were
+the same item.
+
+That lesson also cost its own correction, in the way 005 and 006 did. The draft
+said the 100-step horizon was "one second" at 100 Hz; the env runs at 20 Hz
+(`frame_skip = 10` × 0.005 s), so it is **five** seconds. Caught by moving the
+number out of prose and into
+`docs/lessons/scripts/actor_critic_math.py`, which now reads `dt` off the env
+rather than trusting a remembered control rate. The number rule earning its
+keep, again, on a figure nobody would have questioned.
+
+Cycle
 009 took *"What a policy is, and why it is a neural network"* off it — the head
 of the queue, and this time the queue is what chose the topic rather than the
 week's surprise. **This is a draw-down.**
