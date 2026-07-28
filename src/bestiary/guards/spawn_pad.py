@@ -94,6 +94,7 @@ def run() -> list[Finding]:
                     False,
                     f"{type(exc).__name__}: {exc}. learnings/009 cannot be checked, "
                     f"so treat its conclusion about GRID=2048 as unverified",
+                    n=0,   # the terrain never built, so no cell was examined
                 )
             )
             continue
@@ -119,6 +120,10 @@ def run() -> list[Finding]:
                         f"treating GRID=2048 as retired"
                     )
                 ),
+                # The quantification really is over cells: "every cell within
+                # 2.5 m is at exactly 0". `_pad_spread` raises rather than
+                # returning 0 cells, so this cannot silently go vacuous.
+                n=cells,
             )
         )
 

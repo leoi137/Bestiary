@@ -66,6 +66,7 @@ def run() -> list[Finding]:
                 False,
                 f"{BASELINE} is missing — the parked detector has no control arm to "
                 f"be checked against, so its threshold asserts nothing (learnings/011)",
+                n=0,   # no grid, so no cells examined; a FAIL is never vacuous
             )
         ]
 
@@ -87,6 +88,7 @@ def run() -> list[Finding]:
                 else "  <- the do-nothing policy is ABOVE the threshold meant to catch"
                 " it, so failure mode 1 cannot fire (learnings/011)"
             ),
+            n=n_nonzero,   # the detector's own denominator
         ),
         # Why the denominator excludes the pure-turn cell. Reported, not
         # asserted-against: this is the measurement that forced the definition,
@@ -99,6 +101,7 @@ def run() -> list[Finding]:
             f"cell commands v_x = 0 where a standing machine scores ~0.95 for "
             f"correctly not moving. That is the definition learnings/011 was written "
             f"about; track_eval's drive_grid_* still averages all {n_all}.",
+            n=n_all,
         ),
         # A future grid edit that adds another zero-speed cell, or removes the
         # turn cell, changes the denominator silently. Make it visible.
@@ -108,5 +111,9 @@ def run() -> list[Finding]:
             f"{n_all - n_nonzero} of {n_all} drive cell(s) command zero forward speed; "
             f"if this reaches 0 the distinction has quietly stopped mattering and the "
             f"threshold should be re-derived",
+            # The set whose partition is being asserted. An empty grid makes this
+            # VACUOUS rather than a green "the exclusion still does something",
+            # which is the same self-monitoring the detail string already does.
+            n=n_all,
         ),
     ]

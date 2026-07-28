@@ -86,6 +86,9 @@ def _cycle_memory_max() -> str | None:
 
 
 def run() -> list[Finding]:
+    # Every finding here reads one scalar — MemAvailable, or one systemd
+    # property — so none of them quantifies over a set and all leave n unset.
+    # A size of 0 or 1 here would be an invented collection.
     findings: list[Finding] = []
 
     avail = _mem_available_mib()

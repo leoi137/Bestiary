@@ -57,7 +57,7 @@ def run() -> list[Finding]:
 
     lines = [ln for ln in paths.LEDGER.read_text().splitlines() if ln.strip()]
     findings: list[Finding] = [
-        Finding("ledger is non-empty", bool(lines), f"{len(lines)} rows")
+        Finding("ledger is non-empty", bool(lines), f"{len(lines)} rows", n=len(lines))
     ]
     if not lines:
         return findings
@@ -67,16 +67,18 @@ def run() -> list[Finding]:
         try:
             row = json.loads(line)
         except json.JSONDecodeError as exc:
-            findings.append(Finding(f"row {i} parses", False, str(exc)))
+            findings.append(Finding(f"row {i} parses", False, str(exc), n=1))
             continue
         if not isinstance(row, dict):
-            findings.append(Finding(f"row {i} is an object", False, type(row).__name__))
+            findings.append(
+                Finding(f"row {i} is an object", False, type(row).__name__, n=1)
+            )
             continue
         rows.append(row)
 
     findings.append(
         Finding("every row parses as an object", len(rows) == len(lines),
-                f"{len(rows)}/{len(lines)}")
+                f"{len(rows)}/{len(lines)}", n=len(lines))
     )
 
     missing_base = {
@@ -85,8 +87,11 @@ def run() -> list[Finding]:
         if set(BASE_FIELDS) - set(r)
     }
     findings.append(
+        # n is the rows examined, never the length of the violation list: a
+        # clean check over every row and a check over no rows both print {}.
         Finding("every row has the base fields", not missing_base,
-                "; ".join(f"{k}: {v}" for k, v in missing_base.items()))
+                "; ".join(f"{k}: {v}" for k, v in missing_base.items()),
+                n=len(rows))
     )
 
     late = rows[GRANDFATHERED_ROWS:]
@@ -101,6 +106,9 @@ def run() -> list[Finding]:
             not missing_late,
             "; ".join(f"{k} missing {v}" for k, v in missing_late.items())
             or f"{len(late)} rows checked",
+            # The grandfathered first rows are exempt, so they are not part of
+            # what this verified.
+            n=len(late),
         )
     )
 
@@ -110,7 +118,8 @@ def run() -> list[Finding]:
         if r.get("verdict") not in VERDICTS
     }
     findings.append(
-        Finding("verdicts are from the allowed set", not bad_verdict, str(bad_verdict))
+        Finding("verdicts are from the allowed set", not bad_verdict,
+                str(bad_verdict), n=len(rows))
     )
 
     # A single-seed row that does not admit it is the exact failure the seed
@@ -121,12 +130,13 @@ def run() -> list[Finding]:
         if r.get("seeds") == 1 and r.get("provisional") is not True
     ]
     findings.append(
-        Finding("single-seed rows are marked provisional", not dishonest, str(dishonest))
+        Finding("single-seed rows are marked provisional", not dishonest,
+                str(dishonest), n=len(late))
     )
 
     names = [str(r.get("run", "?")) for r in rows]
     dupes = sorted({n for n in names if names.count(n) > 1})
-    findings.append(Finding("run names are unique", not dupes, str(dupes)))
+    findings.append(Finding("run names are unique", not dupes, str(dupes), n=len(names)))
 
     dates: list[date] = []
     unparseable: list[str] = []
@@ -135,12 +145,17 @@ def run() -> list[Finding]:
             dates.append(date.fromisoformat(str(r.get("date"))))
         except ValueError:
             unparseable.append(str(r.get("run", "?")))
-    findings.append(Finding("dates are ISO-8601", not unparseable, str(unparseable)))
+    findings.append(
+        Finding("dates are ISO-8601", not unparseable, str(unparseable), n=len(rows))
+    )
     findings.append(
         Finding(
             "rows are in non-decreasing date order",
             dates == sorted(dates),
             "a row inserted out of order means the file was rewritten, not appended",
+            # Only the dates that parsed can be ordered; an unparseable one was
+            # not placed in the sequence at all.
+            n=len(dates),
         )
     )
 

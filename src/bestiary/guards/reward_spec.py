@@ -52,6 +52,8 @@ def _check_envs() -> list[Finding]:
 
     from bestiary.envs.reward_spec import RewardSpec
 
+    # Every finding in this loop carries n=None: each asserts a property of ONE
+    # named env, so there is no input set behind it and n=1 would invent one.
     findings: list[Finding] = []
     for env_id in ENV_IDS:
         try:
@@ -60,6 +62,7 @@ def _check_envs() -> list[Finding]:
             findings.append(Finding(
                 f"{env_id}: declares a reward spec", False,
                 f"env failed to build: {type(exc).__name__}: {exc}",
+                n=None,
             ))
             continue
 
@@ -71,6 +74,7 @@ def _check_envs() -> list[Finding]:
                 "an observation and no reward, which is how the record ended "
                 "up with three hound runs at two ctrl_cost_weights and no way "
                 "to tell them apart (learnings/004).",
+                n=None,
             ))
             continue
 
@@ -84,12 +88,14 @@ def _check_envs() -> list[Finding]:
                 f"the hash is not deterministic across two constructions: "
                 f"{spec.hash}/{spec.shape_hash} then {again.hash}/{again.shape_hash}. "
                 f"A recorded hash that cannot be reproduced proves nothing.",
+                n=None,
             ))
             continue
 
         findings.append(Finding(
             f"{env_id}: declares a reward spec", True,
             f"{len(spec.terms)} terms, hash {spec.hash}, shape {spec.shape_hash}",
+            n=None,
         ))
     return findings
 
@@ -156,6 +162,9 @@ def _check_runs() -> list[Finding]:
         not bad,
         "; ".join(bad) if bad else
         f"{len(recorded)} run(s) carry a verified reward spec",
+        # The checkable set: runs that carry a reward record at all. The legacy
+        # runs below are named, never verified, so they are not counted here.
+        n=len(recorded) + len(bad),
     )]
 
     # Not a failure: a fact, kept visible so the number is seen to shrink.
@@ -163,6 +172,7 @@ def _check_runs() -> list[Finding]:
         "runs predating the reward spec are declared, not back-filled", True,
         f"{len(legacy)} run(s) carry no reward record and cannot be attributed "
         f"to a reward: {sorted(legacy)}" if legacy else "none",
+        n=len(legacy),  # the legacy runs ARE this assertion's subject
     ))
     return findings
 

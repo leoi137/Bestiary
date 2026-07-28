@@ -79,7 +79,9 @@ def _zero_action_return(env_id: str) -> tuple[float, float]:
 def run() -> list[Finding]:
     rows = _ledger_rows()
     if not rows:
-        return [Finding("ledger has rows to check", True, "empty ledger — nothing to do")]
+        return [
+            Finding("ledger has rows to check", True, "empty ledger — nothing to do", n=0)
+        ]
 
     findings: list[Finding] = []
     for name, row in rows.items():
@@ -87,7 +89,8 @@ def run() -> list[Finding]:
         trained = row.get("final_ep_rew_mean")
         if not env_id or not isinstance(trained, (int, float)):
             findings.append(
-                Finding(f"{name}: row has env_id and final_ep_rew_mean", False, str(row.get("env_id")))
+                Finding(f"{name}: row has env_id and final_ep_rew_mean", False,
+                        str(row.get("env_id")), n=1)   # this ledger row
             )
             continue
 
@@ -95,7 +98,8 @@ def run() -> list[Finding]:
             standing, length = _zero_action_return(env_id)
         except Exception as exc:
             findings.append(
-                Finding(f"{name}: {env_id} rolls out", False, f"{type(exc).__name__}: {exc}")
+                Finding(f"{name}: {env_id} rolls out", False,
+                        f"{type(exc).__name__}: {exc}", n=0)   # no episode completed
             )
             continue
 
@@ -110,6 +114,7 @@ def run() -> list[Finding]:
                 f"{name}: trained policy beats doing nothing on {env_id}",
                 ratio > 1.0,
                 measured + ("" if ratio > 1.0 else "  <- the reward is wrong, not the policy"),
+                n=EPISODES,   # the zero-action episodes the comparison rests on
             )
         )
         findings.append(
@@ -123,6 +128,7 @@ def run() -> list[Finding]:
                     else f"  <- under {HEALTHY_MARGIN}x, the reward is paying for"
                     " survival rather than locomotion (CORE_PLAN.md)"
                 ),
+                n=EPISODES,
             )
         )
     return findings

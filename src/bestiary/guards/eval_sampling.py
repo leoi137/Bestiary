@@ -54,10 +54,14 @@ def _rows() -> list[dict]:
 def run() -> list[Finding]:
     rows = _rows()
     if not rows:
-        return [Finding("ledger has rows to check", True, "empty ledger — nothing to do")]
+        return [
+            Finding("ledger has rows to check", True,
+                    "empty ledger — nothing to do", n=0)
+        ]
 
     findings: list[Finding] = []
     unpinned: list[str] = []
+    pinned: list[str] = []
 
     for row in rows:
         name = str(row.get("run", "<unnamed>"))
@@ -69,6 +73,7 @@ def run() -> list[Finding]:
             unpinned.append(name)
             continue
 
+        pinned.append(name)
         findings.append(
             Finding(
                 f"{name}: best_eval_return says how many episodes produced it",
@@ -76,6 +81,7 @@ def run() -> list[Finding]:
                 f"{N_FIELD}={n!r}, need an int >= {MIN_EVAL_EPISODES}"
                 + ("" if isinstance(n, int) and n >= MIN_EVAL_EPISODES else
                    "  <- a maximum over few draws is not a policy score (learnings/008)"),
+                n=1,  # one row, named in the label
             )
         )
 
@@ -90,6 +96,11 @@ def run() -> list[Finding]:
             f"{len(unpinned)} row(s) predate this guard and carry a "
             f"best_eval_return of unknown n: {sorted(unpinned)}"
             if unpinned else "all rows pinned",
+            # Only the pinned rows were genuinely verified; the predating rows
+            # are the uncheckable remainder and are not coverage. So this reads
+            # VACUOUS until the first row lands under this guard, however
+            # honestly the remainder is named.
+            n=len(pinned),
         )
     )
     return findings

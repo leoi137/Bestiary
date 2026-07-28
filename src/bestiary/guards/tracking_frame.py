@@ -131,6 +131,7 @@ def run() -> list[Finding]:
         f"heading frame reads ({v_b[0]:.4f}, {v_b[1]:.4f}), "
         f"world frame would read ({world_would_read[0]:.4f}, {world_would_read[1]:.4f}); "
         f"expected ({speed:.4f}, 0.0000)",
+        n=1,   # one constructed state: driving along its own +x at yaw=40deg
     ))
 
     # A forward command must be fully satisfied by that motion. This is the
@@ -144,6 +145,7 @@ def run() -> list[Finding]:
         phi_v > 0.999,
         f"Phi_v = {phi_v:.4f} in the heading frame; a world-frame reading would "
         f"cap it at {phi_v_world:.4f} on this segment and no training would close it",
+        n=1,   # the same constructed state, read in reward units
     ))
 
     # --- 2. Lateral drift is penalized, not discarded ------------------------
@@ -159,6 +161,7 @@ def run() -> list[Finding]:
         f"v_left={v_b_side[1]:.4f} and error {err_side:.4f} m/s "
         f"(Phi_v = {float(kernel(err_side / SIGMA_V)):.4f}); "
         f"a scalar v_forward - vx_cmd formulation would read error 0.0000",
+        n=1,   # one constructed state: the same yaw, plus 0.2 m/s to its left
     ))
 
     # --- 3. yaw_rate is the body-frame z component ---------------------------
@@ -169,6 +172,7 @@ def run() -> list[Finding]:
         "yaw_rate reads the trunk's body-frame z angular velocity",
         abs(env.yaw_rate - 0.37) < 1e-9,
         f"set qvel[5]=0.37, yaw_rate reads {env.yaw_rate:.6f}",
+        n=1,   # one constructed state: pure body-frame yaw
     ))
 
     # --- 4. The kernel is Cauchy ---------------------------------------------
@@ -179,6 +183,7 @@ def run() -> list[Finding]:
         abs(float(kernel(1.0)) - 0.5) < 1e-12 and abs(float(kernel(1 / 3)) - 0.9) < 1e-9,
         f"Phi(1)={float(kernel(1.0)):.6f} (Gaussian would be 0.367879), "
         f"Phi(1/3)={float(kernel(1/3)):.6f} — the 3x rule's 10% cost",
+        n=2,   # two evaluation points, u=1 and u=1/3
     ))
 
     # --- 5. The freeride inequalities sigma was derived from still hold ------
@@ -200,6 +205,7 @@ def run() -> list[Finding]:
         f"this guard asserts against {MIN_DRIVE_COMMAND} / "
         f"{MIN_DRIVE_COMMAND_BACKWARD}. If these drift apart the freeride bound "
         f"below is checking a distribution nothing samples from",
+        n=2,   # two command floors compared against the env's own
     ))
 
     # BOTH SIGNS. The creep is BACKWARD (mean_vx = -0.03553), so it adds to the
@@ -241,6 +247,7 @@ def run() -> list[Finding]:
         f"{UNSTEERED_DRIVING_YAW:.5f} would give "
         f"{phi_v_standing * float(kernel(UNSTEERED_DRIVING_YAW / SIGMA_W)):.4f} "
         f"and bound nothing",
+        n=2,   # both signs of the easiest drive command; the bound is the worse
     ))
 
     # This one genuinely IS about a driving machine, so it genuinely does use
@@ -254,6 +261,9 @@ def run() -> list[Finding]:
         f"rad/s scores Phi_w={unsteered_yaw_factor:.4f} at sigma_w={SIGMA_W}, "
         f"cap {MAX_UNSTEERED_YAW_FACTOR}; a steered one scores "
         f"{float(kernel(0.03 / SIGMA_W)):.4f}",
+        # A scalar threshold on one measured constant, not a quantification over
+        # a set -- declaring a size here would be a lie.
+        n=None,
     ))
 
     env.close()

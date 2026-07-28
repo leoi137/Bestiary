@@ -138,8 +138,11 @@ def _check_envs() -> list[Finding]:
         "the gym registry holds no env with a bestiary.envs entry point — "
         "either registration broke or every env was deleted, and in both cases "
         "every per-env check below would have passed by having nothing to check",
+        n=len(env_ids),  # the registry entries this walked
     )]
 
+    # Each per-env finding below carries n=None: it asserts a property of ONE
+    # named env, so there is no input set behind it and n=1 would invent one.
     for env_id in env_ids:
         try:
             spec = _live_terrain_spec(env_id)
@@ -147,6 +150,7 @@ def _check_envs() -> list[Finding]:
             findings.append(Finding(
                 f"{env_id}: its ground is identified", False,
                 f"could not measure the ground: {type(exc).__name__}: {exc}",
+                n=None,
             ))
             continue
 
@@ -166,6 +170,7 @@ def _check_envs() -> list[Finding]:
                 f"{spec.hash if spec else None} then "
                 f"{again.hash if again else None}. A recorded hash that cannot "
                 f"be reproduced proves nothing.",
+                n=None,
             ))
             continue
 
@@ -182,6 +187,7 @@ def _check_envs() -> list[Finding]:
                f"  <- the id says {'terrain' if expect_terrain else 'flat'} and "
                f"the compiled model says {'terrain' if has_terrain else 'flat'}; "
                f"a run against it would record ground that contradicts its name"),
+            n=None,
         ))
     return findings
 
@@ -191,7 +197,9 @@ def _check_runs() -> list[Finding]:
     from bestiary.terrain import TerrainSpec
 
     if not paths.RUNS.exists():
-        return [Finding("runs/ exists", True, "no runs yet — nothing to check")]
+        # n=0, not None: on a fresh clone this stands in for every run check
+        # below, and it quantified over zero runs.
+        return [Finding("runs/ exists", True, "no runs yet — nothing to check", n=0)]
 
     bad: list[str] = []
     legacy: list[str] = []
@@ -284,6 +292,9 @@ def _check_runs() -> list[Finding]:
         "; ".join(bad) if bad else
         f"{len(verified)} run(s) on verified terrain, "
         f"{len(flat)} verified flat: {sorted(verified + flat)}",
+        # The checkable set: runs carrying a terrain_spec key whose env built.
+        # Legacy and unverifiable runs are named below, never verified here.
+        n=len(verified) + len(flat) + len(bad),
     )]
 
     if unverifiable:
@@ -294,6 +305,7 @@ def _check_runs() -> list[Finding]:
             f"{len(unverifiable)} run(s) whose env would not build, so their "
             f"terrain was not compared (checkpoint-width owns that failure): "
             f"{sorted(unverifiable)}",
+            n=len(unverifiable),  # these runs ARE this assertion's subject
         ))
 
     # Not a failure: a fact, kept visible so the number is seen to shrink.
@@ -301,6 +313,7 @@ def _check_runs() -> list[Finding]:
         "runs predating the terrain record are declared, not back-filled", True,
         f"{len(legacy)} run(s) predate this record and cannot be checked: "
         f"{sorted(legacy)}" if legacy else "all runs pinned",
+        n=len(legacy),  # the legacy runs ARE this assertion's subject
     ))
     return findings
 

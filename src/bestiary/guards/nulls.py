@@ -159,7 +159,9 @@ def _validate(guard: dict) -> str | None:
 def run() -> list[Finding]:
     rows = _rows()
     if not rows:
-        return [Finding("nulls.jsonl has rows to check", True, "no recorded dead ends")]
+        return [
+            Finding("nulls.jsonl has rows to check", True, "no recorded dead ends", n=0)
+        ]
 
     findings: list[Finding] = []
     configs = _run_configs()
@@ -178,6 +180,7 @@ def run() -> list[Finding]:
                     False,
                     f"no `guard` block on {tried!r}  <- add a machine-readable "
                     f"release condition, or declare {{'checkable': false, 'why': ...}}",
+                    n=1,   # this row
                 )
             )
             continue
@@ -189,6 +192,9 @@ def run() -> list[Finding]:
                     f"nulls row {i} declared uncheckable, with a reason",
                     bool(why),
                     why or "checkable:false with no `why`  <- say what on disk is missing",
+                    # This assertion is about the ROW's declaration, which exists,
+                    # not about the runs the row cannot reach.
+                    n=1,
                 )
             )
             if why:
@@ -204,6 +210,7 @@ def run() -> list[Finding]:
                     f"scope {guard['scope']['kind']}, "
                     f"{len(guard['release_all_of'])} release clause(s)"
                 ),
+                n=1,   # this row
             )
         )
         if err is None:
@@ -268,6 +275,11 @@ def run() -> list[Finding]:
                 f"nulls row {i}: no unharvested run re-enters this dead end",
                 not live_breaches,
                 detail,
+                # The CHECKABLE set only: runs in scope minus the ones that
+                # predate the reward spec and so were named, not evaluated. A
+                # pass over zero evaluable runs plus any number of unreachable
+                # ones verified nothing, however honestly `detail` says so.
+                n=in_scope - len(unchecked),
             )
         )
 
@@ -280,6 +292,7 @@ def run() -> list[Finding]:
             f"{len(declared_uncheckable)} of {len(rows)} row(s) declared uncheckable: "
             f"{declared_uncheckable}" if declared_uncheckable
             else "every recorded dead end is machine-checkable",
+            n=len(rows),   # the set being partitioned into named/checkable
         )
     )
     findings.append(
@@ -288,6 +301,7 @@ def run() -> list[Finding]:
             True,
             f"{len(configs)} run(s) with config.json; runs predating it cannot be "
             f"checked against any dead end",
+            n=len(configs),
         )
     )
     return findings

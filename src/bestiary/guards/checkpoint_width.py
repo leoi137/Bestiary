@@ -94,16 +94,19 @@ def _retired() -> dict[str, dict]:
 
 def run() -> list[Finding]:
     if not paths.RUNS.exists():
-        return [Finding("runs/ exists", True, "no runs yet — nothing to check")]
+        # n=0, not None: this is the guard's whole output on a fresh clone, and
+        # it quantified over zero runs. VACUOUS is what that should read as.
+        return [Finding("runs/ exists", True, "no runs yet — nothing to check", n=0)]
 
     findings: list[Finding] = []
     checked = 0
     unpinned: list[str] = []
+    pinned: list[str] = []
 
     try:
         retired = _retired()
     except ValueError as exc:
-        return [Finding("retired_runs.jsonl parses", False, str(exc))]
+        return [Finding("retired_runs.jsonl parses", False, str(exc), n=None)]
 
     for run_dir in sorted(p for p in paths.RUNS.iterdir() if p.is_dir()):
         config_path = run_dir / "config.json"
@@ -113,7 +116,12 @@ def run() -> list[Finding]:
             config = json.loads(config_path.read_text())
             env_id = config["env_id"]
         except (json.JSONDecodeError, KeyError) as exc:
-            findings.append(Finding(f"{run_dir.name}: config is readable", False, str(exc)))
+            # Per-run and per-checkpoint findings below carry n=None: each
+            # names ONE artifact and asserts a property of it, so there is no
+            # set behind it and declaring a size of 1 would invent a quantifier.
+            findings.append(
+                Finding(f"{run_dir.name}: config is readable", False, str(exc), n=None)
+            )
             continue
 
         is_retired = run_dir.name in retired
@@ -131,6 +139,7 @@ def run() -> list[Finding]:
                     f"{type(exc).__name__}: {exc}"
                     + (f"  <- retired {retired[run_dir.name].get('retired_at')}, "
                        "as declared" if is_retired else ""),
+                    n=None,
                 )
             )
             continue
@@ -147,12 +156,13 @@ def run() -> list[Finding]:
             # reports full coverage it does not have.
             unpinned.append(run_dir.name)
         else:
+            pinned.append(run_dir.name)
             try:
                 live = _env_obs_spec(env_id)
             except Exception as exc:
                 findings.append(
                     Finding(f"{run_dir.name}: {env_id} exposes an obs spec", False,
-                            f"{type(exc).__name__}: {exc}")
+                            f"{type(exc).__name__}: {exc}", n=None)
                 )
                 live = None
             if live is not None:
@@ -167,6 +177,7 @@ def run() -> list[Finding]:
                             f"(width {live.width})"
                             + ("" if spec_matches else
                                "  <- the observation list changed under this run"),
+                            n=None,
                         )
                     )
 
@@ -181,7 +192,7 @@ def run() -> list[Finding]:
             except (KeyError, zipfile.BadZipFile, json.JSONDecodeError) as exc:
                 findings.append(
                     Finding(f"{run_dir.name}/{name}: readable", False,
-                            f"{type(exc).__name__}: {exc}")
+                            f"{type(exc).__name__}: {exc}", n=None)
                 )
                 continue
 
@@ -195,6 +206,7 @@ def run() -> list[Finding]:
                     ok,
                     f"checkpoint {got_obs}obs/{got_act}act vs env {want_obs}/{want_act}"
                     + ("" if ok else "  <- this checkpoint is orphaned"),
+                    n=None,
                 )
             )
 
@@ -252,11 +264,14 @@ def run() -> list[Finding]:
                     f"{run_dir.name}: orphaned as declared ({row.get('reason', '?')})",
                     bool(loads) and (dead_by_width or dead_by_spec),
                     head + why,
+                    n=None,  # one run's declaration, not a set of them
                 )
             )
 
     if not checked:
-        findings.append(Finding("checkpoints found", True, "none on disk"))
+        # Quantified over the checkpoints read off disk, which is zero here by
+        # construction: VACUOUS is the honest verdict, not PASS.
+        findings.append(Finding("checkpoints found", True, "none on disk", n=checked))
 
     # `runs/` is gitignored and machine-local, so a clone legitimately has none
     # of these directories while still carrying the tracked declarations. Absent
@@ -270,6 +285,9 @@ def run() -> list[Finding]:
                 True,
                 f"{len(absent)} declared but not on this machine "
                 f"(runs/ is gitignored): {absent}",
+                # The checkable set is the declarations whose run IS on disk;
+                # the absent ones are named, not verified, so they are excluded.
+                n=len(retired) - len(absent),
             )
         )
 
@@ -285,6 +303,9 @@ def run() -> list[Finding]:
             f"{len(unpinned)} run(s) predate the spec record and cannot be "
             f"checked for a width-preserving change: {sorted(unpinned)}"
             if unpinned else "all runs pinned",
+            # Only the pinned runs were genuinely verified; the unpinned ones
+            # are the uncheckable remainder this finding exists to name.
+            n=len(pinned),
         )
     )
     return findings

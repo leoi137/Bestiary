@@ -83,10 +83,15 @@ def _tracked_files() -> list[Path]:
     return files
 
 
-def scan() -> list[tuple[str, str, int, str]]:
-    """(relative path, pattern label, line number, the offending line)."""
+def scan(files: list[Path] | None = None) -> list[tuple[str, str, int, str]]:
+    """(relative path, pattern label, line number, the offending line).
+
+    `files` is the already-narrowed tracked-text list; passing it in lets the
+    caller report the size of the set that was scanned without listing it
+    twice, which is how the two could disagree.
+    """
     hits: list[tuple[str, str, int, str]] = []
-    for rel in _tracked_files():
+    for rel in _tracked_files() if files is None else files:
         allowed = ALLOW.get(str(rel), {})
         try:
             text = (paths.REPO_ROOT / rel).read_text(encoding="utf-8")
@@ -103,20 +108,25 @@ def scan() -> list[tuple[str, str, int, str]]:
 
 def run() -> list[Finding]:
     try:
-        hits = scan()
+        files = _tracked_files()
     except subprocess.CalledProcessError as exc:
-        return [Finding("privacy scan runs", False, f"git ls-files failed: {exc}")]
+        # Nothing was examined: the file list itself never came back.
+        return [Finding("privacy scan runs", False, f"git ls-files failed: {exc}", n=0)]
+
+    hits = scan(files)
 
     if not hits:
         return [
             Finding(
                 "no private content in the public repository",
                 True,
-                f"{len(_tracked_files())} tracked text files scanned, "
+                f"{len(files)} tracked text files scanned, "
                 f"{len(PATTERNS)} patterns",
+                n=len(files),
             )
         ]
 
+    # One finding per offending line — a single named occurrence, not a set.
     return [
         Finding(
             f"{path}:{lineno} — {label}",

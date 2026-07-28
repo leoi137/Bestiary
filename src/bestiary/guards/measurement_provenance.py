@@ -126,7 +126,7 @@ def run() -> list[Finding]:
     detail = f"{len(parsed)} of {len(files)} parsed as JSON objects"
     if bad:
         detail += f"; UNPARSEABLE: {'; '.join(bad)}"
-    out.append(Finding("every measurement JSON parses", not bad, detail))
+    out.append(Finding("every measurement JSON parses", not bad, detail, n=len(files)))
 
     # ---- 1. recorded hashes still hold -------------------------------------
     verified, missing, mismatched = [], [], []
@@ -161,10 +161,18 @@ def run() -> list[Finding]:
         f"absence is not a failure), {len(mismatched)} MISMATCHED"
         + (f" -- {'; '.join(mismatched)}" if mismatched else "")
         + (f". Not present: {'; '.join(missing)}" if missing else ""),
+        # The checkable set is the frozen copies actually ON this machine.
+        # `missing` is the uncheckable remainder -- named, never verified --
+        # so it is excluded, and n==0 here is exactly learnings/014's case.
+        n=len(verified) + len(mismatched),
     ))
 
     # ---- 2. new measurements record identity -------------------------------
     naming = [(p, doc) for p, doc in parsed if _blocks(doc)]
+    # The checkable set: JSONs naming a checkpoint that the grandfather list
+    # does NOT excuse. A grandfathered file is a declared exception, not a
+    # verification, so it does not count towards coverage.
+    checkable = sorted({p.name for p, _ in naming if p.name not in _GRANDFATHERED})
     delinquent = sorted({
         p.name for p, doc in naming
         for d in _blocks(doc)
@@ -178,6 +186,7 @@ def run() -> list[Finding]:
         f"{len(_GRANDFATHERED)} grandfathered (pre-2026-07-28, several of their artifacts "
         f"are permanently gone); {len(delinquent)} delinquent"
         + (f": {', '.join(delinquent)}" if delinquent else ""),
+        n=len(checkable),
     ))
 
     # ---- 2b. the grandfather list is debt, and must only shrink -------------
@@ -188,6 +197,7 @@ def run() -> list[Finding]:
         f"{len(_GRANDFATHERED)} grandfathered, all present"
         if not stale
         else f"{len(stale)} listed but absent -- remove them so the list keeps shrinking: {', '.join(stale)}",
+        n=len(_GRANDFATHERED),  # every listed name is looked up
     ))
 
     # ---- 3. truncated hashes agree with full ones --------------------------
@@ -204,6 +214,7 @@ def run() -> list[Finding]:
         not conflicts,
         f"{len(both)} file(s) carry both fields"
         + (f"; CONFLICT: {'; '.join(conflicts)}" if conflicts else "; no conflicts"),
+        n=len(both),  # files carrying BOTH fields; only those can be compared
     ))
 
     return out

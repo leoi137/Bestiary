@@ -50,7 +50,7 @@ def _event_dirs(run_dir: Path) -> list[Path]:
 
 def run() -> list[Finding]:
     if not paths.RUNS.exists():
-        return [Finding("runs/ exists", True, "no runs yet — nothing to check")]
+        return [Finding("runs/ exists", True, "no runs yet — nothing to check", n=0)]
 
     findings: list[Finding] = []
     for run_dir in sorted(p for p in paths.RUNS.iterdir() if p.is_dir()):
@@ -60,7 +60,7 @@ def run() -> list[Finding]:
             except Exception as exc:
                 findings.append(
                     Finding(f"{run_dir.name}: events readable", False,
-                            f"{type(exc).__name__}: {exc}")
+                            f"{type(exc).__name__}: {exc}", n=0)
                 )
                 continue
 
@@ -76,8 +76,9 @@ def run() -> list[Finding]:
                     f"{run_dir.name}: every logged metric varies",
                     not dead,
                     f"constant: {dead}" if dead else f"{len(scalars)} metrics checked",
+                    n=len(scalars),   # the metrics in this event dir
                 )
             )
     if not findings:
-        findings.append(Finding("event files found", True, "none on disk"))
+        findings.append(Finding("event files found", True, "none on disk", n=0))
     return findings
