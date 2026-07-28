@@ -112,14 +112,21 @@ def main() -> None:
     print(f"   income above the control arm: "
           f"{inc - zero['drive_grid_reward_track']:+.2f}")
 
-    print("\n7. DECOMPOSITION RESIDUAL — anomalies row 39 (the four reported "
-          "terms do not sum to the return)")
+    print("\n7. DECOMPOSITION RESIDUAL — anomalies row 39 (the reported terms "
+          "do not sum to the return)")
     for name, arm in (("policy", pol), ("zero_action", zero)):
-        s = sum(arm[f"drive_grid_reward_{t}"]
-                for t in ("track", "ctrl", "contact", "termination"))
+        # Discovered, not listed. This printed "the four reported terms" against
+        # a hardcoded four; on a measurement written after 2026-07-28's fix the
+        # file carries five and the residual is zero, which is the outcome this
+        # section exists to be able to show.
+        reported = [k for k in arm if k.startswith("drive_grid_reward_")]
+        s = sum(arm[k] for k in reported)
         r = arm["drive_grid_mean"] - s
-        print(f"   {name:<11} sum_of_4_terms={s:+.2f}  return={arm['drive_grid_mean']:+.2f}  "
-              f"residual={r:+.2f} ({abs(r) / abs(arm['drive_grid_mean']) * 100:.0f}% of the return)")
+        print(f"   {name:<11} sum_of_{len(reported)}_terms={s:+.2f}  "
+              f"return={arm['drive_grid_mean']:+.2f}  residual={r:+.2f} "
+              f"({abs(r) / abs(arm['drive_grid_mean']) * 100:.0f}% of the return "
+              f"— a ratio against a near-zero return, so read the absolute "
+              f"residual)")
 
 
     print("\n8. WHY ONE SPEED IS A RATIONAL OPTIMUM: Phi_v is a tolerance BAND")

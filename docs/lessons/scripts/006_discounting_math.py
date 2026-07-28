@@ -91,9 +91,29 @@ def rates(arm: str) -> dict[str, float]:
     """
     a = d[arm]
     n = a["drive_grid_steps"]
-    running = (a["drive_grid_reward_track"]
-               + a["drive_grid_reward_ctrl"]
-               + a["drive_grid_reward_contact"])
+    # The RUNNING terms are every reward term the measurement reports except
+    # the one-time termination penalty, discovered rather than listed.
+    # anomalies.jsonl row 39: this used to name track/ctrl/contact explicitly,
+    # which is correct only for the four-term env whose file it happens to
+    # read. Pointed at a HoundPDTrackRelDesert-v0 measurement it would have
+    # dropped reward_shaping silently and reported a net rate that is not one.
+    running_terms = [k for k in a
+                     if k.startswith("drive_grid_reward_")
+                     and k != "drive_grid_reward_termination"]
+    running = sum(a[k] for k in running_terms)
+    # The account must close: the running terms plus the termination penalty
+    # are the whole return, or this rate is being computed from a partial one.
+    if "drive_grid_reward_termination" in a and "drive_grid_mean" in a:
+        residual = (running + a["drive_grid_reward_termination"]
+                    - a["drive_grid_mean"])
+        if abs(residual) > 1e-6:
+            raise SystemExit(
+                f"{arm}: reward terms {running_terms} plus the termination "
+                f"penalty do not sum to drive_grid_mean "
+                f"(residual {residual:+.6f}). This measurement is a partial "
+                f"account of the return and no per-step rate from it is "
+                f"meaningful. anomalies.jsonl row 39."
+            )
     return {
         "steps": n,
         "track": a["drive_grid_reward_track"] / n,
