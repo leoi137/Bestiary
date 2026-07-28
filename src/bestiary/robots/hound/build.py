@@ -796,8 +796,12 @@ def actuator_xml(spec: Spec, control: str = "torque") -> str:
     "pd"      the twelve leg joints become <position> servos: ctrl is a
               TARGET ANGLE in radians and MuJoCo runs
                   tau = kp * (target - q) - kv * qdot
-              internally at the 200 Hz physics rate, five times per control
-              step. The four wheels stay <motor>, because a wheel that turns
+              internally at the 200 Hz physics rate, TEN times per control
+              step: frame_skip = 10 at timestep 0.005 s makes the policy act
+              at 20 Hz, and 200 / 20 = 10. (This said "five" until 2026-07-28,
+              when docs/lessons/scripts/pd_vs_torque_math.py read the two
+              constants off the source instead of trusting the sentence.)
+              The four wheels stay <motor>, because a wheel that turns
               forever has no pose to hold.
 
               forcerange keeps the same Go2 torque ceiling the torque model
