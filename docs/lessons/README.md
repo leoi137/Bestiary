@@ -50,17 +50,18 @@ which gets re-sorted as the set grows.
 ## Reading order
 
 1. [008 — What a policy is, and why it is a neural network](008-what-a-policy-is.md) — a policy is a function from 169 sensed numbers to 16 motor commands; a lookup table for it would be 10⁸⁹ times the atoms in the observable universe.
-2. [009 — Why one network is not enough](009-actor-and-critic.md) — the actor picks the move, the critic guesses what follows; the critic's first layer is `Linear(185, 256)` against the actor's `Linear(169, 256)`, and those 16 extra columns are the entire architecture.
-3. [001 — What a reward function is, and how ours told the robot to stand still](001-what-a-reward-function-is.md)
-4. [002 — Why one training run is not a result](002-why-one-seed-is-not-a-result.md)
-5. [004 — Why changing the reward poisons the replay buffer](004-why-a-reward-change-poisons-the-buffer.md)
-6. [003 — Why two rewards should be multiplied, not added](003-add-or-multiply.md)
-7. [006 — What γ = 0.99 is really saying about the future](006-what-gamma-is-saying-about-the-future.md)
-8. [007 — When a tolerance scales with the command, the command cancels](007-a-tolerance-that-cancels-the-command.md) — make the tolerance proportional to the command and a do-nothing machine is paid the same for every command you can give it.
-9. [005 — What `ent_coef` really measures](005-what-ent-coef-really-measures.md)
-10. [011 — Torque control versus PD position targets](011-torque-versus-pd-position-targets.md) — the same 16 numbers mean *how hard to push* in one env and *what angle to be at* in the other; `tau = 90.0 × 0.41973 = 37.776 N·m` is what the servo does for free, and it bought ~5x fewer samples and a slightly *lower* ceiling.
-11. [010 — Why a test can pass without testing anything](010-the-empty-set-says-yes.md) — "every X has property P" is true when there are no X, so 3 of this suite's 111 set-quantified assertions were reporting `PASS` over an empty set; one of them had coverage 0/9 while green.
-12. [012 — When an average hides a single winner](012-when-an-average-hides-a-single-winner.md) — one of six cells was 98.8% of the total gap, so a 5.04x headline becomes 1.05x when it is dropped and undefined when a different one is; always compute leave-one-out before believing an aggregate.
+2. [013 — What an observation is, and why its width is a one-way door](013-what-an-observation-is.md) — the array the policy is handed each step *is* its whole world; its width is a column count in `W1`, so 113 → 169 is 14,336 weights that do not exist in the old checkpoint and `SAC.load()` raises rather than degrades.
+3. [009 — Why one network is not enough](009-actor-and-critic.md) — the actor picks the move, the critic guesses what follows; the critic's first layer is `Linear(185, 256)` against the actor's `Linear(169, 256)`, and those 16 extra columns are the entire architecture.
+4. [001 — What a reward function is, and how ours told the robot to stand still](001-what-a-reward-function-is.md)
+5. [002 — Why one training run is not a result](002-why-one-seed-is-not-a-result.md)
+6. [004 — Why changing the reward poisons the replay buffer](004-why-a-reward-change-poisons-the-buffer.md)
+7. [003 — Why two rewards should be multiplied, not added](003-add-or-multiply.md)
+8. [006 — What γ = 0.99 is really saying about the future](006-what-gamma-is-saying-about-the-future.md)
+9. [007 — When a tolerance scales with the command, the command cancels](007-a-tolerance-that-cancels-the-command.md) — make the tolerance proportional to the command and a do-nothing machine is paid the same for every command you can give it.
+10. [005 — What `ent_coef` really measures](005-what-ent-coef-really-measures.md)
+11. [011 — Torque control versus PD position targets](011-torque-versus-pd-position-targets.md) — the same 16 numbers mean *how hard to push* in one env and *what angle to be at* in the other; `tau = 90.0 × 0.41973 = 37.776 N·m` is what the servo does for free, and it bought ~5x fewer samples and a slightly *lower* ceiling.
+12. [010 — Why a test can pass without testing anything](010-the-empty-set-says-yes.md) — "every X has property P" is true when there are no X, so 3 of this suite's 111 set-quantified assertions were reporting `PASS` over an empty set; one of them had coverage 0/9 while green.
+13. [012 — When an average hides a single winner](012-when-an-average-hides-a-single-winner.md) — one of six cells was 98.8% of the total gap, so a 5.04x headline becomes 1.05x when it is dropped and undefined when a different one is; always compute leave-one-out before believing an aggregate.
 
 Note the reading order is not the file order: 004 explains the machinery that
 003's reward change had to be built around, so it reads first. 006 reads after
@@ -78,13 +79,37 @@ dynamics *across* two rewards.
 - ~~What a policy is, and why it is a neural network~~ → [008](008-what-a-policy-is.md)
 - ~~Actor and critic: why one network is not enough~~ → [009](009-actor-and-critic.md)
 - ~~Torque control versus PD position targets~~ → [011](011-torque-versus-pd-position-targets.md)
-- What an observation is, and why its width is a one-way door
+- ~~What an observation is, and why its width is a one-way door~~ → [013](013-what-an-observation-is.md)
 - ~~Discounting: what γ = 0.99 is really saying about the future~~ → [006](006-what-gamma-is-saying-about-the-future.md)
 - Why parallel environments change everything
 
 Each lands when the project needs it to decide something, not before.
 
-**The planned list is still 2 after 012, and that cycle did not draw it down.**
+**The planned list is down to 1 after 013, and cycle 012's debt is paid.** 013 was
+taken strictly in queue order — off the top of the list, on the weaker
+queue-order-only justification rather than the both-tests one. The cycle that
+commissioned it was spent on a reward decomposition, not on observations; the
+observation list is simply what the queue said was next, and the queue is what
+a cycle owes when the previous one skipped it. Where it earns its place anyway
+is that three earlier lessons — 008, 009 and 011 — have all leaned on
+`Linear(obs, 256)` without the reader ever being shown what `obs` *contains*,
+or why a checkpoint dies rather than degrades when it changes.
+
+Its own correction, in the pattern the number rule keeps producing — and this
+time it is a number that is easy to read out of this repo as current when it
+never was. `research/CORE_PLAN.md` computes `141 × 256 = 36,096` first-layer
+weights, and `CLAUDE.md` repeats the 141, both of them describing a *Spyder*
+plan that was never applied. Spyder is still **113**, three terms, no reserved
+block. The reserved command and height slots landed on the **Hound** instead,
+which is **169** — in every one of its six envs,
+including the two tracking envs, all sharing hash `11093686ef09fe13`. 141 does
+exist on disk, but only as a fossil: `runs/hound_desert_test150k/` carries a
+`(256, 141)` first layer against a live env of 169, which is precisely why it
+is the dead run. Caught by
+`docs/lessons/scripts/013_observation_width_math.py` building every env and
+reading its declared spec instead of trusting the prose.
+
+**The planned list was 2 after 012, and that cycle did not draw it down.**
 *When an average hides a single winner* is not on the list and was written
 anyway, on the basis 007 and 010 used: it is the idea the cycle's work actually
 turned on. The cycle's entire result was a `drive_grid_mean` ratio measured
