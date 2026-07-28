@@ -176,6 +176,7 @@ because it reads exactly like a correct one and will be trusted later.
 - [011 — The crash count was 0.9% of the gap](011-the-crash-count-was-one-percent-of-the-gap.md)
 - [012 — The heading term is a tax on moving, not a tax on the terrain](012-heading-is-a-tax-on-moving-not-on-terrain.md)
 - [013 — A number is only as durable as the artifact it was computed from](013-a-number-is-only-as-durable-as-its-artifact.md)
+- [014 — A guard can be green, fully tested, and check nothing at all](014-a-green-guard-that-checked-nothing.md)
 
 > Lessons 001–005 predate the writing standard above. They are correct but
 > terse. Rewrite one to the new standard whenever a run touches its subject —
