@@ -7,9 +7,11 @@ story it tells only reads as one story in order; the current numbers always
 live in `research/ledger.jsonl`, never here.
 
 Every number here is pulled from `research/ledger.jsonl`, the run `config.json`
-files, `research/retired_runs.jsonl`, or learnings 001–011. Nothing is
-reconstructed from memory. Where the record does not contain a number, it says
-so instead of guessing.
+files, `research/retired_runs.jsonl`, or learnings 001–011 — with learnings
+012–014, written the same day, refining two of the run-7 conclusions inline
+where they bite. Peak-eval figures come from each run's own `ant_sac_best.txt`.
+Nothing is reconstructed from memory. Where the record does not contain a
+number, it says so instead of guessing.
 
 Ordered oldest → newest, because it reads as one story that way.
 
@@ -17,7 +19,7 @@ Ordered oldest → newest, because it reads as one story that way.
 
 ## The one-paragraph version
 
-Two robots, seven runs, nine weeks. The first five runs were all the same bug
+Two robots, seven runs, eight days. The first five runs were all the same bug
 wearing different clothes: **a reward function that paid the robot less to move
 than it cost to move**, so the best available strategy was to stand still. It
 took two robots and two training setups to prove the bug was in the reward and
@@ -161,8 +163,12 @@ Best episode, forward vs effort: **+88.7 vs −67.2**, a ratio of **1.3 : 1**
 against flat ground's 8.7 : 1. Same collapse as Spyder, different body.
 
 **Second finding, and it matters later:** with all motors at zero the Hound
-*drifts backwards* **−1.5 m per episode** on this terrain. Not a policy
+*drifts backwards* **−1.78 m per episode** on this terrain. Not a policy
 behaviour — the physics does it. Note this; run 7 depends on it.
+
+`learnings/005` first recorded this as −1.5 m. `learnings/009` later measured
+it properly at **−1.7761 ± 0.0276 m** and corrected the earlier figure; the
+measured number is the one used here and in the closing section.
 
 ### The rule that came out of it
 > **Run the standing check on every new robot and every new terrain, in the
@@ -381,8 +387,8 @@ result couldn't be rationalised afterwards — and it **failed, badly**. Drive-g
 score **−6.48** against a bar of 111.5, and against zero action's own **55.73**.
 Verdict: **inconclusive**.
 
-The obvious diagnosis: 71 of 120 drive episodes ended in a crash. It's falling
-over.
+The obvious diagnosis: at the 950k checkpoint, 71 of 120 drive episodes ended
+in a crash. It's falling over.
 
 **That diagnosis was wrong, and an independent refutation killed it.**
 
@@ -429,9 +435,16 @@ between 0 and 1.
 | Φ_v (speed match) | 0.240 | 0.350 | **×1.46** |
 | Φ_w (heading hold) | 0.513 | 0.245 | **×0.48** |
 
+(Zero action's 0.513 is a six-cell *mixture* mean; on the straight-drive cells
+alone it is 0.9705 — `learnings/012`.)
+
 A machine standing still holds its heading perfectly and gets near-full credit
-on Φ_w **for free**. A machine driving on rough desert yaws and loses about
-half of it. Because the terms multiply, the ×1.46 gained in speed is cancelled
+on Φ_w **for free**. A machine that *drives* loses about half of it — and the
+obvious reading, that the rough desert shakes the heading loose, is wrong.
+`learnings/012` tested exactly that and found the terrain is not the cause: the
+standing control holds Φ_w to within **0.29 %** from flat ground all the way to
+5.05 m of relief, while driving costs **31.5–57.7 %**. The heading term is a tax
+on *locomotion*, not on the ground. Because the terms multiply, the ×1.46 gained in speed is cancelled
 by the ×0.48 lost in heading. **Net tracking earned by driving: essentially the
 same as doing nothing.** And then it pays a control cost that doing nothing
 does not pay.
@@ -500,7 +513,7 @@ because it does not feel like a mistake while you are making it.
 
 | topic | file |
 |---|---|
-| all seven, one row each | `research/ledger.jsonl` (rows 1–4 only; 5–7 predate it) |
+| all seven, one row each | `research/ledger.jsonl` (runs 4–7 only; runs 1–3 predate it) |
 | the retired two | `research/retired_runs.jsonl` |
 | flat reward breaks on terrain | `research/learnings/001` |
 | no warm-start across a reward change | `research/learnings/002` |
