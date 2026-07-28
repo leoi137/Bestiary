@@ -35,8 +35,31 @@ cells divided by zero action's. Section 5 predicts >= 5x for a successful run,
 against 1.128x for the reward this replaces.
 
 `mean_track` per cell is the unitless one, E[Phi_v * Phi_w] in [0,1]. It
-survives cost-coefficient retuning and episode-length changes, so it is the
-number that will still mean something after the contact cost is fixed.
+survives cost-coefficient retuning, so it is the number that will still mean
+something after the contact cost is fixed.
+
+⚠️ **`mean_track` does NOT survive episode-length changes, and this docstring
+claimed it did until 2026-07-28.** It is a mean over episodes of each episode's
+own per-step mean, so every episode carries equal weight regardless of how long
+it lived. That is the RATE a policy tracks at *while it is still up*, and it is
+a real quantity — but it is not what the reward pays, because the reward is a
+per-step integral over a fixed horizon. A policy that crashes at step 300 at
+rate 0.30 and one that survives 1000 steps at rate 0.30 read identically here
+and bank income in a 1:3.33 ratio. Three numbers are now reported and they
+answer three different questions:
+
+| field | question it answers | length-biased? |
+|---|---|---|
+| `mean_track` | while up, how well does it track? | yes, by design |
+| `mean_track_stepw` | per step actually taken, how well? | no |
+| `track_per_horizon` | how much did it BANK, per unit of horizon? | no — this is the one comparable to `mean` |
+
+`track_per_horizon` is the tracking analogue of the return: total Phi integral
+divided by the env's own `max_episode_steps`, so a crash costs it exactly the
+steps it forfeited. **When `mean_track` and `track_per_horizon` disagree in
+direction, the disagreement IS the finding** — it says the arms differ in
+survival, not in competence, and the ledger's return-based numbers are tracking
+survival.
 
 `command_gain` is the cheapest lie-detector in the whole design. It regresses
 achieved forward velocity on commanded forward velocity across the drive
@@ -164,16 +187,64 @@ def rollout(env, seed: int, policy=None, forced_cmd=None, *,
         if term or trunc:
             terminated = term
             break
+    # The horizon is asked of the env, never assumed: `track_per_horizon`
+    # divides by it, so a hardcoded 1000 would silently mis-scale the moment a
+    # TimeLimit changes. Absent (an unwrapped env with no limit) -> the episode
+    # is its own horizon, which makes track_per_horizon degenerate to the
+    # step-weighted rate rather than to a wrong number.
+    horizon = getattr(getattr(env, "spec", None), "max_episode_steps", None) or steps
+    track = np.asarray(phi_v) * np.asarray(phi_w)
     return {
         "return": total,
         "steps": steps,
+        "horizon": int(horizon),
         "terminated": terminated,
         "mean_phi_v": float(np.mean(phi_v)),
         "mean_phi_w": float(np.mean(phi_w)),
-        "mean_track": float(np.mean(np.array(phi_v) * np.array(phi_w))),
+        "mean_track": float(track.mean()),
+        # The un-normalised integral. Every length-aware aggregate downstream is
+        # built from this and a step count, never from a mean of means.
+        "track_income": float(track.sum()),
         "achieved_vx": float(np.mean(achieved)),
         "commanded_vx": float(np.mean(commanded)),
         **term_sums,
+    }
+
+
+def aggregate_cell(cell, eps: list[dict]) -> dict:
+    """Aggregate one grid cell's episodes. Pure — no env, no physics, no policy.
+
+    Split out of `_arm` so `guards/track_length_bias.py` can assert the real
+    aggregation rather than a private reimplementation of it. A guard that
+    recomputes the arithmetic it is checking bounds nothing; `tracking-frame`
+    learned that about constants and it is just as true about formulas.
+    """
+    rets = np.array([e["return"] for e in eps])
+    steps = np.array([float(e["steps"]) for e in eps])
+    return {
+        "command": list(cell),
+        "mean": float(rets.mean()),
+        "sd": float(rets.std(ddof=1)) if len(rets) > 1 else 0.0,
+        "mean_track": float(np.mean([e["mean_track"] for e in eps])),
+        "mean_phi_v": float(np.mean([e["mean_phi_v"] for e in eps])),
+        "mean_phi_w": float(np.mean([e["mean_phi_w"] for e in eps])),
+        "achieved_vx": float(np.mean([e["achieved_vx"] for e in eps])),
+        "commanded_vx": float(cell[0]),
+        "crashes": int(sum(e["terminated"] for e in eps)),
+        "episodes": len(eps),
+        # anomalies.jsonl row 20: mean_track is a per-step mean over
+        # episodes of unequal length. Report the lengths next to it so the
+        # bias is visible rather than latent.
+        "mean_steps": float(steps.mean()),
+        "sd_steps": float(steps.std(ddof=1)) if len(eps) > 1 else 0.0,
+        # The two length-aware aggregates. Both are built from the summed
+        # integral and a step count -- NEVER from a mean of per-episode
+        # means, which is the bias being corrected here.
+        "mean_track_stepw": float(
+            sum(e["track_income"] for e in eps) / steps.sum()),
+        "track_per_horizon": float(
+            np.mean([e["track_income"] / e["horizon"] for e in eps])),
+        **{t: float(np.mean([e[t] for e in eps])) for t in TERMS},
     }
 
 
@@ -195,26 +266,7 @@ def _arm(env, policy, episodes: int, seed0: int, *,
                                     else action_seed0 + 1000 * ci + i),
                        on_step=on_step)
                for i in range(episodes)]
-        rets = np.array([e["return"] for e in eps])
-        steps = np.array([float(e["steps"]) for e in eps])
-        cells[str(cell)] = {
-            "command": list(cell),
-            "mean": float(rets.mean()),
-            "sd": float(rets.std(ddof=1)) if len(rets) > 1 else 0.0,
-            "mean_track": float(np.mean([e["mean_track"] for e in eps])),
-            "mean_phi_v": float(np.mean([e["mean_phi_v"] for e in eps])),
-            "mean_phi_w": float(np.mean([e["mean_phi_w"] for e in eps])),
-            "achieved_vx": float(np.mean([e["achieved_vx"] for e in eps])),
-            "commanded_vx": float(cell[0]),
-            "crashes": int(sum(e["terminated"] for e in eps)),
-            "episodes": len(eps),
-            # anomalies.jsonl row 20: mean_track is a per-step mean over
-            # episodes of unequal length. Report the lengths next to it so the
-            # bias is visible rather than latent.
-            "mean_steps": float(steps.mean()),
-            "sd_steps": float(steps.std(ddof=1)) if len(eps) > 1 else 0.0,
-            **{t: float(np.mean([e[t] for e in eps])) for t in TERMS},
-        }
+        cells[str(cell)] = aggregate_cell(cell, eps)
     drive = [c for c in cells.values() if tuple(c["command"]) != STOP_CELL]
     # Command gain: OLS slope of achieved on commanded forward velocity across
     # the drive cells. Failure mode 3 -- a dead command input reads ~0.
@@ -225,6 +277,10 @@ def _arm(env, policy, episodes: int, seed0: int, *,
         "cells": cells,
         "drive_grid_mean": float(np.mean([c["mean"] for c in drive])),
         "drive_grid_track": float(np.mean([c["mean_track"] for c in drive])),
+        "drive_grid_track_stepw": float(
+            np.mean([c["mean_track_stepw"] for c in drive])),
+        "drive_grid_track_per_horizon": float(
+            np.mean([c["track_per_horizon"] for c in drive])),
         "drive_grid_steps": float(np.mean([c["mean_steps"] for c in drive])),
         "stop_cell_mean": cells[str(STOP_CELL)]["mean"],
         "command_gain": slope,
