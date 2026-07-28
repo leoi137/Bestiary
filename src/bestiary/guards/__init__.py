@@ -145,12 +145,24 @@ def _registry() -> tuple[Guard, ...]:
         spawn_pad,
         standing,
         terrain_spec,
+        toolchain,
         track_length_bias,
         tracking_frame,
     )
 
     return (
-        # First, and first for a reason: the only irreversible failure here.
+        # Before everything, including privacy: every other guard assumes it is
+        # running inside the environment the training runs use, and a sourced
+        # `activate` breaks that assumption while making the gate exit 127 —
+        # nonzero, indistinguishable from a real failure it never performed.
+        Guard(
+            name="toolchain",
+            enforces="the interpreter is this repo's venv",
+            cost="fast",
+            run=toolchain.run,
+        ),
+        # First among the record guards, for a reason: the only irreversible
+        # failure here.
         Guard(
             name="privacy",
             enforces="the public/private boundary",
