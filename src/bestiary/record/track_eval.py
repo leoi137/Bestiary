@@ -352,14 +352,22 @@ def main() -> None:
 
     env = gym.make(track_env)
 
-    policy, checkpoint = None, None
+    policy, checkpoint, frozen = None, None, None
     if args.run:
         from stable_baselines3 import SAC
+
+        from bestiary.record.freeze import freeze_checkpoint
         run_dir: Path = paths.RUNS / args.run
         checkpoint = "ant_sac.zip" if args.latest else "ant_sac_best.zip"
         ckpt = run_dir / checkpoint
         if not ckpt.exists():
             raise SystemExit(f"no checkpoint at {ckpt}")
+        # Freeze BEFORE loading, and load from the frozen copy. ant_sac_best.zip
+        # is rewritten in place mid-run, so a number measured off that filename
+        # names a file that may not exist by the time anyone checks it. This has
+        # already cost the record a published conclusion -- anomalies 19/20/27,
+        # learnings/013. freeze.py's docstring has the whole argument.
+        frozen = freeze_checkpoint(ckpt, run_dir=run_dir)
         # Refuse to compare across a moved reward. The whole point of the
         # spec hash is that a number measured under one objective must not be
         # quoted against another.
@@ -372,7 +380,7 @@ def main() -> None:
                 "its training manifold -- undefined behaviour, not a baseline. "
                 "See docs/theory/command-tracking-reward.md section 5."
             )
-        policy = SAC.load(ckpt, device="cpu")
+        policy = SAC.load(frozen.frozen, device="cpu")
 
     zero = _arm(env, None, args.episodes, args.seed0)
     result = {
@@ -388,7 +396,7 @@ def main() -> None:
                        deterministic=not args.stochastic,
                        action_seed0=args.action_seed if args.stochastic else None)
         result["run"] = args.run
-        result["checkpoint"] = checkpoint
+        result.update(frozen.as_json_fields())
         result["trained"] = trained
         result["drive_grid_ratio"] = (
             trained["drive_grid_mean"] / zero["drive_grid_mean"]

@@ -221,14 +221,24 @@ def compare(run: str, episodes: int = EPISODES, seed0: int = SEED0,
     run_dir = _run_dir(run)
     env_id = _env_id(run_dir)
 
+    from bestiary.record.freeze import freeze_checkpoint
+
     name = "ant_sac.zip" if latest else "ant_sac_best.zip"
     checkpoint = run_dir / name
     if not checkpoint.exists():
         raise FileNotFoundError(f"{checkpoint} does not exist")
 
+    # Freeze BEFORE loading, and load the frozen copy. ant_sac_best.zip is
+    # rewritten in place whenever the training callback sees a better eval, so
+    # measuring it directly produces a number that names a file which may be
+    # gone -- twice now, including one published conclusion. See freeze.py.
+    # main() calls compare() once per checkpoint (learnings/010), so this runs
+    # per call and freezes both.
+    frozen = freeze_checkpoint(checkpoint, run_dir=run_dir)
+
     # CPU: inference on one env is not worth a CUDA context, and this must be
     # runnable while the GPU is held by a training run.
-    model = SAC.load(checkpoint, device="cpu")
+    model = SAC.load(frozen.frozen, device="cpu")
 
     trained = _rollout(env_id, model, episodes, seed0)
     standing = _rollout(env_id, None, episodes, seed0)
@@ -237,7 +247,7 @@ def compare(run: str, episodes: int = EPISODES, seed0: int = SEED0,
     return {
         "run": run,
         "env_id": env_id,
-        "checkpoint": checkpoint.name,
+        **frozen.as_json_fields(),
         "episodes": episodes,
         "seeds": list(range(seed0, seed0 + episodes)),
         "trained": asdict(trained) | {
