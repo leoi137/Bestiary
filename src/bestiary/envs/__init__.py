@@ -78,6 +78,21 @@ if "HoundPDTrackDesert-v0" not in registry:
         max_episode_steps=1000,
     )
 
+if "HoundPDTrackRelDesert-v0" not in registry:
+    register(
+        id="HoundPDTrackRelDesert-v0",
+        # SAME robot, SAME model XML, SAME 169-wide observation and SAME
+        # command distribution as HoundPDTrackDesert-v0. What differs is the
+        # SHAPE of the positive term: the tolerance scales with the command,
+        # and the old reward is retained as a potential-based shaping term
+        # rather than as income. A different env CLASS for the same reason the
+        # tracking env got one -- `research/learnings/004` is the record of
+        # what it costs to treat a reward-shape change as a retune.
+        entry_point="bestiary.envs.hound_track_rel:HoundTrackRelEnv",
+        kwargs={"xml_file": str(paths.HOUND_PD_DESERT_XML)},
+        max_episode_steps=1000,
+    )
+
 if "SpyderDesert-v0" not in registry:
     register(
         id="SpyderDesert-v0",
