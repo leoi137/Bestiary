@@ -1,0 +1,826 @@
+{
+  "run": "hound_track_desert_s0",
+  "checkpoint": "ant_sac.zip",
+  "checkpoint_sha256_16": "a30726fe3e0e602b",
+  "env": "HoundPDTrackDesert-v0",
+  "w_ctrl": 0.01,
+  "episodes_per_cell": 20,
+  "seed0": 1000,
+  "action_seed": 7000,
+  "num_timesteps": 1500000,
+  "ent_coef_at_save": 0.0026515675708651543,
+  "target_entropy": -16.0,
+  "ent_coef_trajectory": {
+    "points": 631,
+    "first": 0.991,
+    "first_step": 132,
+    "min": 0.000176,
+    "min_step": 125041,
+    "final": 0.00275,
+    "final_step": 1499378,
+    "recovery_from_min": 15.625
+  },
+  "action_distribution": {
+    "deterministic-arm states": {
+      "n_states": 1050,
+      "n_samples": 512,
+      "mean_sum_det_sq": 7.964293003082275,
+      "mean_sum_mean_sq": 6.781773567199707,
+      "mean_sum_var": 1.9133442640304565,
+      "mean_E_sum_sq": 8.695117950439453,
+      "ctrl_per_step_deterministic": 0.07964293003082276,
+      "ctrl_per_step_stochastic": 0.08695117950439453,
+      "sigma_pre_mean": 0.5895727276802063,
+      "sigma_pre_min": 0.035140011459589005,
+      "sigma_pre_max": 1.2070990800857544,
+      "sd_action_mean": 0.2951752245426178,
+      "mean_abs_det_action": 0.639752984046936,
+      "entropy_nats": -10.57741641998291,
+      "alpha_times_entropy_per_step": -0.02804673436276328
+    },
+    "stochastic-arm states": {
+      "n_states": 982,
+      "n_samples": 512,
+      "mean_sum_det_sq": 8.43498420715332,
+      "mean_sum_mean_sq": 7.292370319366455,
+      "mean_sum_var": 1.714737057685852,
+      "mean_E_sum_sq": 9.00710678100586,
+      "ctrl_per_step_deterministic": 0.0843498420715332,
+      "ctrl_per_step_stochastic": 0.0900710678100586,
+      "sigma_pre_mean": 0.573249876499176,
+      "sigma_pre_min": 0.03621945530176163,
+      "sigma_pre_max": 1.248684287071228,
+      "sd_action_mean": 0.2743791937828064,
+      "mean_abs_det_action": 0.661360502243042,
+      "entropy_nats": -12.536704063415527,
+      "alpha_times_entropy_per_step": -0.03324191794008602
+    }
+  },
+  "sampler_validation": {
+    "states_checked": 6,
+    "draws_per_state": 4000,
+    "max_abs_diff_mean_per_dim": 0.01443752646446228,
+    "max_abs_diff_sd_per_dim": 0.011590138077735901,
+    "max_abs_diff_E_sum_a2": 0.023607254028320312,
+    "mc_2sigma_mean_per_dim": 0.017620792122097783,
+    "mc_2sigma_E_sum_a2": 0.034246108208125785
+  },
+  "reproducibility_max_abs_diff": 0.0,
+  "arms": {
+    "zero_action": {
+      "cells": {
+        "(0.5, 0.0, 0.0)": {
+          "command": [
+            0.5,
+            0.0,
+            0.0
+          ],
+          "mean": 61.408900888466555,
+          "sd": 0.821375428072903,
+          "mean_track": 0.07069058907965207,
+          "mean_phi_v": 0.07284392401993982,
+          "mean_phi_w": 0.9704561561303118,
+          "achieved_vx": -0.03514346245329437,
+          "commanded_vx": 0.5,
+          "crashes": 0,
+          "episodes": 20,
+          "mean_steps": 1000.0,
+          "sd_steps": 0.0,
+          "reward_track": 70.69058907965209,
+          "reward_ctrl": 0.0,
+          "reward_contact": -9.28168819118552,
+          "reward_termination": 0.0
+        },
+        "(0.8, 0.0, 0.0)": {
+          "command": [
+            0.8,
+            0.0,
+            0.0
+          ],
+          "mean": 21.046235591775893,
+          "sd": 0.5341655975181884,
+          "mean_track": 0.030327923782961414,
+          "mean_phi_v": 0.03125157330060245,
+          "mean_phi_w": 0.9704561561303118,
+          "achieved_vx": -0.03514346245329437,
+          "commanded_vx": 0.8,
+          "crashes": 0,
+          "episodes": 20,
+          "mean_steps": 1000.0,
+          "sd_steps": 0.0,
+          "reward_track": 30.32792378296142,
+          "reward_ctrl": 0.0,
+          "reward_contact": -9.28168819118552,
+          "reward_termination": 0.0
+        },
+        "(-0.3, 0.0, 0.0)": {
+          "command": [
+            -0.3,
+            0.0,
+            0.0
+          ],
+          "mean": 226.3848792168307,
+          "sd": 2.3835266921083917,
+          "mean_track": 0.2356665674080162,
+          "mean_phi_v": 0.2428330137344891,
+          "mean_phi_w": 0.9704561561303118,
+          "achieved_vx": -0.03514346245329437,
+          "commanded_vx": -0.3,
+          "crashes": 0,
+          "episodes": 20,
+          "mean_steps": 1000.0,
+          "sd_steps": 0.0,
+          "reward_track": 235.66656740801622,
+          "reward_ctrl": 0.0,
+          "reward_contact": -9.28168819118552,
+          "reward_termination": 0.0
+        },
+        "(0.5, 0.0, 0.4)": {
+          "command": [
+            0.5,
+            0.0,
+            0.4
+          ],
+          "mean": -4.971922054109595,
+          "sd": 0.36976057999859474,
+          "mean_track": 0.004309766137075925,
+          "mean_phi_v": 0.07284392401993982,
+          "mean_phi_w": 0.059167020766092836,
+          "achieved_vx": -0.03514346245329437,
+          "commanded_vx": 0.5,
+          "crashes": 0,
+          "episodes": 20,
+          "mean_steps": 1000.0,
+          "sd_steps": 0.0,
+          "reward_track": 4.309766137075925,
+          "reward_ctrl": 0.0,
+          "reward_contact": -9.28168819118552,
+          "reward_termination": 0.0
+        },
+        "(0.5, 0.0, -0.4)": {
+          "command": [
+            0.5,
+            0.0,
+            -0.4
+          ],
+          "mean": -4.971079176367299,
+          "sd": 0.3768187816166492,
+          "mean_track": 0.004310609014818221,
+          "mean_phi_v": 0.07284392401993982,
+          "mean_phi_w": 0.05917465424047939,
+          "achieved_vx": -0.03514346245329437,
+          "commanded_vx": 0.5,
+          "crashes": 0,
+          "episodes": 20,
+          "mean_steps": 1000.0,
+          "sd_steps": 0.0,
+          "reward_track": 4.310609014818219,
+          "reward_ctrl": 0.0,
+          "reward_contact": -9.28168819118552,
+          "reward_termination": 0.0
+        },
+        "(0.0, 0.0, 0.45)": {
+          "command": [
+            0.0,
+            0.0,
+            0.45
+          ],
+          "mean": 35.45878770133086,
+          "sd": 0.42626932404196183,
+          "mean_track": 0.044740475892516375,
+          "mean_phi_v": 0.946489097151573,
+          "mean_phi_w": 0.04727713773992619,
+          "achieved_vx": -0.03514346245329437,
+          "commanded_vx": 0.0,
+          "crashes": 0,
+          "episodes": 20,
+          "mean_steps": 1000.0,
+          "sd_steps": 0.0,
+          "reward_track": 44.74047589251638,
+          "reward_ctrl": 0.0,
+          "reward_contact": -9.28168819118552,
+          "reward_termination": 0.0
+        },
+        "(0.0, 0.0, 0.0)": {
+          "command": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "mean": 909.3543320506367,
+          "sd": 8.231957721346987,
+          "mean_track": 0.9186360202418223,
+          "mean_phi_v": 0.946489097151573,
+          "mean_phi_w": 0.9704561561303118,
+          "achieved_vx": -0.03514346245329437,
+          "commanded_vx": 0.0,
+          "crashes": 0,
+          "episodes": 20,
+          "mean_steps": 1000.0,
+          "sd_steps": 0.0,
+          "reward_track": 918.6360202418224,
+          "reward_ctrl": 0.0,
+          "reward_contact": -9.28168819118552,
+          "reward_termination": 0.0
+        }
+      },
+      "drive_grid_mean": 55.72596702798785,
+      "drive_grid_track": 0.06500765521917337,
+      "drive_grid_steps": 1000.0,
+      "stop_cell_mean": 909.3543320506367,
+      "command_gain": 9.110484723392882e-18,
+      "crashes": 0,
+      "deterministic": true,
+      "drive_grid_reward_track": 65.00765521917337,
+      "drive_grid_reward_ctrl": 0.0,
+      "drive_grid_reward_contact": -9.281688191185522,
+      "drive_grid_reward_termination": 0.0
+    },
+    "deterministic": {
+      "cells": {
+        "(0.5, 0.0, 0.0)": {
+          "command": [
+            0.5,
+            0.0,
+            0.0
+          ],
+          "mean": 60.101061718882384,
+          "sd": 9.840885656366124,
+          "mean_track": 0.14685043563603953,
+          "mean_phi_v": 0.2710054704373982,
+          "mean_phi_w": 0.5078160044262429,
+          "achieved_vx": 0.129409165550767,
+          "commanded_vx": 0.5,
+          "crashes": 0,
+          "episodes": 20,
+          "mean_steps": 1000.0,
+          "sd_steps": 0.0,
+          "reward_track": 146.85043563603952,
+          "reward_ctrl": -78.87133342409135,
+          "reward_contact": -7.878040493065823,
+          "reward_termination": 0.0
+        },
+        "(0.8, 0.0, 0.0)": {
+          "command": [
+            0.8,
+            0.0,
+            0.0
+          ],
+          "mean": -20.21252953939057,
+          "sd": 8.322604499793238,
+          "mean_track": 0.05899628174000937,
+          "mean_phi_v": 0.12326834828638318,
+          "mean_phi_w": 0.51503944318898,
+          "achieved_vx": 0.12714215532125375,
+          "commanded_vx": 0.8,
+          "crashes": 0,
+          "episodes": 20,
+          "mean_steps": 1000.0,
+          "sd_steps": 0.0,
+          "reward_track": 58.996281740009394,
+          "reward_ctrl": -71.29102213621141,
+          "reward_contact": -7.9177891431885765,
+          "reward_termination": 0.0
+        },
+        "(-0.3, 0.0, 0.0)": {
+          "command": [
+            -0.3,
+            0.0,
+            0.0
+          ],
+          "mean": 40.26872022378076,
+          "sd": 3.0508091826093726,
+          "mean_track": 0.09737015146201466,
+          "mean_phi_v": 0.17647458353249365,
+          "mean_phi_w": 0.5374587480352713,
+          "achieved_vx": 0.0279054486630669,
+          "commanded_vx": -0.3,
+          "crashes": 0,
+          "episodes": 20,
+          "mean_steps": 1000.0,
+          "sd_steps": 0.0,
+          "reward_track": 97.37015146201466,
+          "reward_ctrl": -50.40578743946552,
+          "reward_contact": -6.695643798768406,
+          "reward_termination": 0.0
+        },
+        "(0.5, 0.0, 0.4)": {
+          "command": [
+            0.5,
+            0.0,
+            0.4
+          ],
+          "mean": -42.9613858505986,
+          "sd": 24.065009694173355,
+          "mean_track": 0.05087385221939703,
+          "mean_phi_v": 0.24196907712594692,
+          "mean_phi_w": 0.12599911239968054,
+          "achieved_vx": 0.28845653931483295,
+          "commanded_vx": 0.5,
+          "crashes": 7,
+          "episodes": 20,
+          "mean_steps": 713.05,
+          "sd_steps": 401.2704134830304,
+          "reward_track": 22.919930762540623,
+          "reward_ctrl": -56.730479928731924,
+          "reward_contact": -5.650836684407318,
+          "reward_termination": -3.5
+        },
+        "(0.5, 0.0, -0.4)": {
+          "command": [
+            0.5,
+            0.0,
+            -0.4
+          ],
+          "mean": -47.04808611121526,
+          "sd": 2.556030433752915,
+          "mean_track": 0.021723261663612332,
+          "mean_phi_v": 0.17791575426183187,
+          "mean_phi_w": 0.0995969216893153,
+          "achieved_vx": 0.11759780807997049,
+          "commanded_vx": 0.5,
+          "crashes": 0,
+          "episodes": 20,
+          "mean_steps": 1000.0,
+          "sd_steps": 0.0,
+          "reward_track": 21.72326166361234,
+          "reward_ctrl": -60.15622597312927,
+          "reward_contact": -8.615121801698335,
+          "reward_termination": 0.0
+        },
+        "(0.0, 0.0, 0.45)": {
+          "command": [
+            0.0,
+            0.0,
+            0.45
+          ],
+          "mean": -28.998651230824112,
+          "sd": 1.5266219825670804,
+          "mean_track": 0.054702667493760085,
+          "mean_phi_v": 0.7296737130867104,
+          "mean_phi_w": 0.0781569153033026,
+          "achieved_vx": -0.07941496776418007,
+          "commanded_vx": 0.0,
+          "crashes": 0,
+          "episodes": 20,
+          "mean_steps": 1000.0,
+          "sd_steps": 0.0,
+          "reward_track": 54.70266749376007,
+          "reward_ctrl": -76.11364702320098,
+          "reward_contact": -7.587671701383225,
+          "reward_termination": 0.0
+        },
+        "(0.0, 0.0, 0.0)": {
+          "command": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "mean": 755.1000824006435,
+          "sd": 2.9095588000014976,
+          "mean_track": 0.9023245926697518,
+          "mean_phi_v": 0.9636511545550768,
+          "mean_phi_w": 0.9300248777099454,
+          "achieved_vx": 0.013019367465182416,
+          "commanded_vx": 0.0,
+          "crashes": 0,
+          "episodes": 20,
+          "mean_steps": 1000.0,
+          "sd_steps": 0.0,
+          "reward_track": 902.3245926697516,
+          "reward_ctrl": -140.60589621973037,
+          "reward_contact": -6.618614049378332,
+          "reward_termination": 0.0
+        }
+      },
+      "drive_grid_mean": -6.4751451315609,
+      "drive_grid_track": 0.0717527750358055,
+      "drive_grid_steps": 952.1750000000001,
+      "stop_cell_mean": 755.1000824006435,
+      "command_gain": 0.19349401197823504,
+      "crashes": 7,
+      "deterministic": true,
+      "drive_grid_reward_track": 67.09378812632943,
+      "drive_grid_reward_ctrl": -65.59474932080508,
+      "drive_grid_reward_contact": -7.390850603751947,
+      "drive_grid_reward_termination": -0.5833333333333334
+    },
+    "stochastic": {
+      "cells": {
+        "(0.5, 0.0, 0.0)": {
+          "command": [
+            0.5,
+            0.0,
+            0.0
+          ],
+          "mean": 14.546866113941533,
+          "sd": 5.509709962524383,
+          "mean_track": 0.1109936079746651,
+          "mean_phi_v": 0.27690339112595763,
+          "mean_phi_w": 0.2445413483135615,
+          "achieved_vx": 0.14194245400032351,
+          "commanded_vx": 0.5,
+          "crashes": 1,
+          "episodes": 20,
+          "mean_steps": 975.2,
+          "sd_steps": 110.90897168398958,
+          "reward_track": 106.51106468787796,
+          "reward_ctrl": -85.86244604897499,
+          "reward_contact": -5.601752524961457,
+          "reward_termination": -0.5
+        },
+        "(0.8, 0.0, 0.0)": {
+          "command": [
+            0.8,
+            0.0,
+            0.0
+          ],
+          "mean": -43.87996564851463,
+          "sd": 16.13541383515099,
+          "mean_track": 0.05088465562996288,
+          "mean_phi_v": 0.14259616235913428,
+          "mean_phi_w": 0.2076032625757564,
+          "achieved_vx": 0.1687571198827756,
+          "commanded_vx": 0.8,
+          "crashes": 3,
+          "episodes": 20,
+          "mean_steps": 900.0,
+          "sd_steps": 250.0549413313213,
+          "reward_track": 37.96696688417953,
+          "reward_ctrl": -75.34579958760737,
+          "reward_contact": -5.00113294508678,
+          "reward_termination": -1.5
+        },
+        "(-0.3, 0.0, 0.0)": {
+          "command": [
+            -0.3,
+            0.0,
+            0.0
+          ],
+          "mean": -39.06364618692456,
+          "sd": 3.9209176625280735,
+          "mean_track": 0.034794044917281705,
+          "mean_phi_v": 0.23482667127127238,
+          "mean_phi_w": 0.14896160009407117,
+          "achieved_vx": -0.023182824328372265,
+          "commanded_vx": -0.3,
+          "crashes": 0,
+          "episodes": 20,
+          "mean_steps": 1000.0,
+          "sd_steps": 0.0,
+          "reward_track": 34.79404491728171,
+          "reward_ctrl": -68.676093547225,
+          "reward_contact": -5.181597556981261,
+          "reward_termination": 0.0
+        },
+        "(0.5, 0.0, 0.4)": {
+          "command": [
+            0.5,
+            0.0,
+            0.4
+          ],
+          "mean": -36.287131750083375,
+          "sd": 18.087524771543183,
+          "mean_track": 0.04429061344202041,
+          "mean_phi_v": 0.24637458321865902,
+          "mean_phi_w": 0.15851575652589844,
+          "achieved_vx": 0.34162747991040765,
+          "commanded_vx": 0.5,
+          "crashes": 14,
+          "episodes": 20,
+          "mean_steps": 530.6,
+          "sd_steps": 340.19304117391624,
+          "reward_track": 19.000682139122002,
+          "reward_ctrl": -45.197553322196015,
+          "reward_contact": -3.090260567009391,
+          "reward_termination": -7.0
+        },
+        "(0.5, 0.0, -0.4)": {
+          "command": [
+            0.5,
+            0.0,
+            -0.4
+          ],
+          "mean": -55.59995303524795,
+          "sd": 8.272239245270347,
+          "mean_track": 0.02925653377390064,
+          "mean_phi_v": 0.2161893279884894,
+          "mean_phi_w": 0.12722864013340318,
+          "achieved_vx": 0.14959626584499358,
+          "commanded_vx": 0.5,
+          "crashes": 5,
+          "episodes": 20,
+          "mean_steps": 924.75,
+          "sd_steps": 167.13778589440574,
+          "reward_track": 26.41047234577486,
+          "reward_ctrl": -74.8336299661398,
+          "reward_contact": -4.676795414882993,
+          "reward_termination": -2.5
+        },
+        "(0.0, 0.0, 0.45)": {
+          "command": [
+            0.0,
+            0.0,
+            0.45
+          ],
+          "mean": 0.2776473685433952,
+          "sd": 4.596321860902925,
+          "mean_track": 0.09170146571188083,
+          "mean_phi_v": 0.5859469622734745,
+          "mean_phi_w": 0.1505650502920926,
+          "achieved_vx": -0.07717007011948077,
+          "commanded_vx": 0.0,
+          "crashes": 0,
+          "episodes": 20,
+          "mean_steps": 1000.0,
+          "sd_steps": 0.0,
+          "reward_track": 91.70146571188084,
+          "reward_ctrl": -84.64700309300422,
+          "reward_contact": -6.77681525033322,
+          "reward_termination": 0.0
+        },
+        "(0.0, 0.0, 0.0)": {
+          "command": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "mean": 722.9933473937733,
+          "sd": 4.780516969919238,
+          "mean_track": 0.869229406875267,
+          "mean_phi_v": 0.9619179333462631,
+          "mean_phi_w": 0.8977214833933385,
+          "achieved_vx": 0.012190275427314181,
+          "commanded_vx": 0.0,
+          "crashes": 0,
+          "episodes": 20,
+          "mean_steps": 1000.0,
+          "sd_steps": 0.0,
+          "reward_track": 869.2294068752668,
+          "reward_ctrl": -139.60775309324262,
+          "reward_contact": -6.628306388250915,
+          "reward_termination": 0.0
+        }
+      },
+      "drive_grid_mean": -26.66769718971426,
+      "drive_grid_track": 0.06032015357495193,
+      "drive_grid_steps": 888.4249999999998,
+      "stop_cell_mean": 722.9933473937733,
+      "command_gain": 0.27625430494144937,
+      "crashes": 23,
+      "deterministic": false,
+      "drive_grid_reward_track": 52.730782781019485,
+      "drive_grid_reward_ctrl": -72.42708759419124,
+      "drive_grid_reward_contact": -5.05472570987585,
+      "drive_grid_reward_termination": -1.9166666666666667
+    },
+    "stochastic_repeat": {
+      "cells": {
+        "(0.5, 0.0, 0.0)": {
+          "command": [
+            0.5,
+            0.0,
+            0.0
+          ],
+          "mean": 14.546866113941533,
+          "sd": 5.509709962524383,
+          "mean_track": 0.1109936079746651,
+          "mean_phi_v": 0.27690339112595763,
+          "mean_phi_w": 0.2445413483135615,
+          "achieved_vx": 0.14194245400032351,
+          "commanded_vx": 0.5,
+          "crashes": 1,
+          "episodes": 20,
+          "mean_steps": 975.2,
+          "sd_steps": 110.90897168398958,
+          "reward_track": 106.51106468787796,
+          "reward_ctrl": -85.86244604897499,
+          "reward_contact": -5.601752524961457,
+          "reward_termination": -0.5
+        },
+        "(0.8, 0.0, 0.0)": {
+          "command": [
+            0.8,
+            0.0,
+            0.0
+          ],
+          "mean": -43.87996564851463,
+          "sd": 16.13541383515099,
+          "mean_track": 0.05088465562996288,
+          "mean_phi_v": 0.14259616235913428,
+          "mean_phi_w": 0.2076032625757564,
+          "achieved_vx": 0.1687571198827756,
+          "commanded_vx": 0.8,
+          "crashes": 3,
+          "episodes": 20,
+          "mean_steps": 900.0,
+          "sd_steps": 250.0549413313213,
+          "reward_track": 37.96696688417953,
+          "reward_ctrl": -75.34579958760737,
+          "reward_contact": -5.00113294508678,
+          "reward_termination": -1.5
+        },
+        "(-0.3, 0.0, 0.0)": {
+          "command": [
+            -0.3,
+            0.0,
+            0.0
+          ],
+          "mean": -39.06364618692456,
+          "sd": 3.9209176625280735,
+          "mean_track": 0.034794044917281705,
+          "mean_phi_v": 0.23482667127127238,
+          "mean_phi_w": 0.14896160009407117,
+          "achieved_vx": -0.023182824328372265,
+          "commanded_vx": -0.3,
+          "crashes": 0,
+          "episodes": 20,
+          "mean_steps": 1000.0,
+          "sd_steps": 0.0,
+          "reward_track": 34.79404491728171,
+          "reward_ctrl": -68.676093547225,
+          "reward_contact": -5.181597556981261,
+          "reward_termination": 0.0
+        },
+        "(0.5, 0.0, 0.4)": {
+          "command": [
+            0.5,
+            0.0,
+            0.4
+          ],
+          "mean": -36.287131750083375,
+          "sd": 18.087524771543183,
+          "mean_track": 0.04429061344202041,
+          "mean_phi_v": 0.24637458321865902,
+          "mean_phi_w": 0.15851575652589844,
+          "achieved_vx": 0.34162747991040765,
+          "commanded_vx": 0.5,
+          "crashes": 14,
+          "episodes": 20,
+          "mean_steps": 530.6,
+          "sd_steps": 340.19304117391624,
+          "reward_track": 19.000682139122002,
+          "reward_ctrl": -45.197553322196015,
+          "reward_contact": -3.090260567009391,
+          "reward_termination": -7.0
+        },
+        "(0.5, 0.0, -0.4)": {
+          "command": [
+            0.5,
+            0.0,
+            -0.4
+          ],
+          "mean": -55.59995303524795,
+          "sd": 8.272239245270347,
+          "mean_track": 0.02925653377390064,
+          "mean_phi_v": 0.2161893279884894,
+          "mean_phi_w": 0.12722864013340318,
+          "achieved_vx": 0.14959626584499358,
+          "commanded_vx": 0.5,
+          "crashes": 5,
+          "episodes": 20,
+          "mean_steps": 924.75,
+          "sd_steps": 167.13778589440574,
+          "reward_track": 26.41047234577486,
+          "reward_ctrl": -74.8336299661398,
+          "reward_contact": -4.676795414882993,
+          "reward_termination": -2.5
+        },
+        "(0.0, 0.0, 0.45)": {
+          "command": [
+            0.0,
+            0.0,
+            0.45
+          ],
+          "mean": 0.2776473685433952,
+          "sd": 4.596321860902925,
+          "mean_track": 0.09170146571188083,
+          "mean_phi_v": 0.5859469622734745,
+          "mean_phi_w": 0.1505650502920926,
+          "achieved_vx": -0.07717007011948077,
+          "commanded_vx": 0.0,
+          "crashes": 0,
+          "episodes": 20,
+          "mean_steps": 1000.0,
+          "sd_steps": 0.0,
+          "reward_track": 91.70146571188084,
+          "reward_ctrl": -84.64700309300422,
+          "reward_contact": -6.77681525033322,
+          "reward_termination": 0.0
+        },
+        "(0.0, 0.0, 0.0)": {
+          "command": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "mean": 722.9933473937733,
+          "sd": 4.780516969919238,
+          "mean_track": 0.869229406875267,
+          "mean_phi_v": 0.9619179333462631,
+          "mean_phi_w": 0.8977214833933385,
+          "achieved_vx": 0.012190275427314181,
+          "commanded_vx": 0.0,
+          "crashes": 0,
+          "episodes": 20,
+          "mean_steps": 1000.0,
+          "sd_steps": 0.0,
+          "reward_track": 869.2294068752668,
+          "reward_ctrl": -139.60775309324262,
+          "reward_contact": -6.628306388250915,
+          "reward_termination": 0.0
+        }
+      },
+      "drive_grid_mean": -26.66769718971426,
+      "drive_grid_track": 0.06032015357495193,
+      "drive_grid_steps": 888.4249999999998,
+      "stop_cell_mean": 722.9933473937733,
+      "command_gain": 0.27625430494144937,
+      "crashes": 23,
+      "deterministic": false,
+      "drive_grid_reward_track": 52.730782781019485,
+      "drive_grid_reward_ctrl": -72.42708759419124,
+      "drive_grid_reward_contact": -5.05472570987585,
+      "drive_grid_reward_termination": -1.9166666666666667
+    }
+  },
+  "common_prefix_steps": 150,
+  "per_step_rates": {
+    "zero": {
+      "mean_steps": 1000.0,
+      "min_steps": 1000.0,
+      "median_steps": 1000.0,
+      "a_track": 0.06500765521917337,
+      "a_ctrl": 0.0,
+      "b_track": 0.06500765521917337,
+      "b_ctrl": 0.0,
+      "c_track": 0.06495210312879898,
+      "c_ctrl": 0.0,
+      "sd_ctrl_per_ep": 0.0,
+      "sd_track_per_ep": 0.08006700396715476
+    },
+    "det": {
+      "mean_steps": 952.175,
+      "min_steps": 168.0,
+      "median_steps": 1000.0,
+      "a_track": 0.07046371531108193,
+      "a_ctrl": 0.06888938411616045,
+      "b_track": 0.07175207314975975,
+      "b_ctrl": 0.07025305258050371,
+      "c_track": 0.19703695082069458,
+      "c_ctrl": 0.09873923745340772,
+      "sd_ctrl_per_ep": 0.012456499346210227,
+      "sd_track_per_ep": 0.043138601246019044
+    },
+    "stoch": {
+      "mean_steps": 888.425,
+      "min_steps": 150.0,
+      "median_steps": 1000.0,
+      "a_track": 0.059353105530595696,
+      "a_ctrl": 0.0815230183686763,
+      "b_track": 0.06031862541392659,
+      "b_ctrl": 0.08277750299284445,
+      "c_track": 0.1733284471057515,
+      "c_ctrl": 0.10194387556354205,
+      "sd_ctrl_per_ep": 0.007853094724334611,
+      "sd_track_per_ep": 0.034721060535331826
+    }
+  },
+  "cost_gain_ratios": {
+    "det_a": {
+      "gain": 0.005456060091908563,
+      "cost": 0.06888938411616045,
+      "ratio": 12.626214329700048
+    },
+    "det_b": {
+      "gain": 0.006744417930586374,
+      "cost": 0.07025305258050371,
+      "ratio": 10.41647378670019
+    },
+    "det_c": {
+      "gain": 0.1320848476918956,
+      "cost": 0.09873923745340772,
+      "ratio": 0.747544015674904
+    },
+    "stoch_a": {
+      "gain": -0.005654549688577676,
+      "cost": 0.0815230183686763,
+      "ratio": -14.41724325693958
+    },
+    "stoch_b": {
+      "gain": -0.004689029805246783,
+      "cost": 0.08277750299284445,
+      "ratio": -17.653439289343112
+    },
+    "stoch_c": {
+      "gain": 0.1083763439769525,
+      "cost": 0.10194387556354205,
+      "ratio": 0.9406469329249711
+    }
+  },
+  "learnings_011_published": {
+    "track_rate": 0.00545,
+    "ctrl_rate": 0.06889,
+    "ratio": 12.6
+  }
+}

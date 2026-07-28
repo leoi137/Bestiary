@@ -1,0 +1,118 @@
+hound_track_desert_s0 [ant_sac.zip]  sha256:a30726fe3e0e602b  num_timesteps=1500000
+  ent_coef at save 2.652e-03   target_entropy -16.0
+  ent_coef in train.log (631 points): first 9.910e-01 @132, MIN 1.760e-04 @125041, final 2.750e-03 @1499378 (15.6x above its minimum)
+HoundPDTrackDesert-v0   w_ctrl=0.01   6 drive cells + stop cell,  20 episodes/cell, seeds 1000-1019
+
+==============================================================================
+1. THE ACTION DISTRIBUTION  (ctrl cost is w_ctrl * sum_i a_i^2)
+==============================================================================
+
+  states from the deterministic-arm states:  1050 states x 512 samples
+    sum_i a_det,i^2      (deterministic action)    7.9643
+    sum_i (E a_i)^2      (mean of the samples)     6.7818
+    sum_i Var(a_i)       THE UNDER-REPORT          1.9133
+    E[sum_i a_i^2]       (what SAC pays for)       8.6951
+      identity check  E[sum a^2] - sum(E a)^2 - sum Var = 2.44e-06
+      mean-shift piece  sum(E a)^2 - sum a_det^2 =   -1.1825
+    per-dim pre-squash sigma   mean 0.5896   min 0.0351   max 1.2071
+    per-dim sd of the ACTION   mean 0.2952   min 0.0000   max 0.6143
+    mean |a_det| per dim       0.6398   (1.0 = saturated)
+    => ctrl cost / step   deterministic 0.07964   stochastic 0.08695   ratio 1.092x
+    entropy H of that distribution  -10.577 nats/step   (target_entropy -16.0, uniform on the action box 11.09)
+      alpha*H = -0.02805/step; H - target = +5.423, so the policy is MORE stochastic than the target -> alpha is driven DOWN
+
+  states from the stochastic-arm states:  982 states x 512 samples
+    sum_i a_det,i^2      (deterministic action)    8.4350
+    sum_i (E a_i)^2      (mean of the samples)     7.2924
+    sum_i Var(a_i)       THE UNDER-REPORT          1.7147
+    E[sum_i a_i^2]       (what SAC pays for)       9.0071
+      identity check  E[sum a^2] - sum(E a)^2 - sum Var = 2.41e-06
+      mean-shift piece  sum(E a)^2 - sum a_det^2 =   -1.1426
+    per-dim pre-squash sigma   mean 0.5732   min 0.0362   max 1.2487
+    per-dim sd of the ACTION   mean 0.2744   min 0.0000   max 0.6885
+    mean |a_det| per dim       0.6614   (1.0 = saturated)
+    => ctrl cost / step   deterministic 0.08435   stochastic 0.09007   ratio 1.068x
+    entropy H of that distribution  -12.537 nats/step   (target_entropy -16.0, uniform on the action box 11.09)
+      alpha*H = -0.03324/step; H - target = +3.463, so the policy is MORE stochastic than the target -> alpha is driven DOWN
+
+  sampler validation against policy.predict(deterministic=False): 6 states x 4000 draws
+    max |mean_empirical - mean_model| per dim 0.01444   (MC 2-sigma 0.01762)
+    max |sd_empirical - sd_model| per dim   0.01159
+    max |E[sum a^2]_emp - E[sum a^2]_model| 0.02361   (MC 2-sigma 0.03425)
+
+==============================================================================
+2. BOTH ARMS, SAME GRID, SAME SEEDS
+==============================================================================
+
+  REPRODUCIBILITY: stochastic arm run twice on action seed 7000
+    max |run1 - run2| over every reported number: 0.000e+00   (REPRODUCIBLE)
+    run1 drive-grid mean   -26.668      run2   -26.668
+
+  INSTRUMENT REGRESSION vs hound_track_desert_s0_final_sac.json
+    max |zero arm now - committed| 0.000e+00
+    max |det  arm now - committed| 0.000e+00   (unchanged)
+
+             command    arm    return      sd   steps   track  ctrl/stp crash
+     (0.5, 0.0, 0.0)   zero     61.41    0.82  1000.0  0.0707  -0.00000     0
+                        det     60.10    9.84  1000.0  0.1469   0.07887     0
+                      stoch     14.55    5.51   975.2  0.1110   0.08805     1
+     (0.8, 0.0, 0.0)   zero     21.05    0.53  1000.0  0.0303  -0.00000     0
+                        det    -20.21    8.32  1000.0  0.0590   0.07129     0
+                      stoch    -43.88   16.14   900.0  0.0509   0.08372     3
+    (-0.3, 0.0, 0.0)   zero    226.38    2.38  1000.0  0.2357  -0.00000     0
+                        det     40.27    3.05  1000.0  0.0974   0.05041     0
+                      stoch    -39.06    3.92  1000.0  0.0348   0.06868     0
+     (0.5, 0.0, 0.4)   zero     -4.97    0.37  1000.0  0.0043  -0.00000     0
+                        det    -42.96   24.07   713.0  0.0509   0.07956     7
+                      stoch    -36.29   18.09   530.6  0.0443   0.08518    14
+    (0.5, 0.0, -0.4)   zero     -4.97    0.38  1000.0  0.0043  -0.00000     0
+                        det    -47.05    2.56  1000.0  0.0217   0.06016     0
+                      stoch    -55.60    8.27   924.8  0.0293   0.08092     5
+    (0.0, 0.0, 0.45)   zero     35.46    0.43  1000.0  0.0447  -0.00000     0
+                        det    -29.00    1.53  1000.0  0.0547   0.07611     0
+                      stoch      0.28    4.60  1000.0  0.0917   0.08465     0
+     (0.0, 0.0, 0.0)   zero    909.35    8.23  1000.0  0.9186  -0.00000     0   <- stop cell, EXCLUDED
+                        det    755.10    2.91  1000.0  0.9023   0.14061     0
+                      stoch    722.99    4.78  1000.0  0.8692   0.13961     0
+
+              drive_mean  drive_track    steps   crashes  (of 120)
+        zero      55.726       0.0650   1000.0         0
+         det      -6.475       0.0718    952.2         7
+       stoch     -26.668       0.0603    888.4        23
+
+==============================================================================
+3. THE HEADLINE RATIO, RECOMPUTED
+==============================================================================
+
+  drive grid only. common prefix = 150 steps (shortest drive episode in any arm)
+      arm   steps    min    med  track/stp  ctrl/stp   track_b    ctrl_b   track_c    ctrl_c
+     zero  1000.0   1000   1000    0.06501   0.00000   0.06501   0.00000   0.06495   0.00000
+      det   952.2    168   1000    0.07046   0.06889   0.07175   0.07025   0.19704   0.09874
+    stoch   888.4    150   1000    0.05935   0.08152   0.06032   0.08278   0.17333   0.10194
+    a = mean(total)/mean(steps)  [learnings/011's, = step-weighted]
+    b = mean(total/steps)        [episode-weighted, = mean_track's]
+    c = first 150 steps of every episode [length-matched, anomalies row 20]
+
+  per-episode spread of the per-step rates (sd across 120 drive episodes)
+       zero  track 0.08007   ctrl 0.00000
+        det  track 0.04314   ctrl 0.01246
+      stoch  track 0.03472   ctrl 0.00785
+
+  cost of driving vs gain from driving, against zero action:
+      arm  conv   gain/step   cost/step     RATIO
+      det     a     0.00546     0.06889     12.63
+      det     b     0.00674     0.07025     10.42
+      det     c     0.13208     0.09874      0.75
+    stoch     a    -0.00565     0.08152    -14.42   (gain <= 0: driving buys NOTHING)
+    stoch     b    -0.00469     0.08278    -17.65   (gain <= 0: driving buys NOTHING)
+    stoch     c     0.10838     0.10194      0.94
+
+  learnings/011 published, convention a: gain 0.00545, cost 0.06889, ratio 12.6
+  this script,     convention a: gain 0.00546, cost 0.06889, ratio 12.63   [deterministic]
+  this script,     convention a: gain -0.00565, cost 0.08152, ratio -14.42   [stochastic]
+
+  predicted extra ctrl cost/step from the action distribution alone: +0.00731
+  observed  extra ctrl cost/step, stochastic - deterministic:     +0.01263
+  (the gap between those two is the STATE distribution moving, not the action noise)
+
+  wrote /home/leandro/Desktop/Resources/Robotics/Bestiary/research/measurements/hound_track_desert_s0_deterministic_vs_stochastic.json

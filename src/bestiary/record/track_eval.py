@@ -91,14 +91,37 @@ STOP_CELL = (0.0, 0.0, 0.0)
 TRACK_ENV = "HoundPDTrackDesert-v0"
 
 
-def rollout(env, seed: int, policy=None, forced_cmd=None) -> dict:
+TERMS = ("reward_track", "reward_ctrl", "reward_contact", "reward_termination")
+
+
+def rollout(env, seed: int, policy=None, forced_cmd=None, *,
+            deterministic: bool = True, action_seed: int | None = None,
+            on_step=None) -> dict:
     """One episode. `policy=None` means zero action; `forced_cmd` pins the command.
 
-    Deterministic on both arms: zero action is deterministic by definition and
-    the policy is queried with `deterministic=True`, so the two are compared
-    like with like. `learnings/007` is the record of what happens when a noisy
-    statistic is compared against a clean one.
+    Deterministic on both arms by default: zero action is deterministic by
+    definition and the policy is queried with `deterministic=True`, so the two
+    are compared like with like. `learnings/007` is the record of what happens
+    when a noisy statistic is compared against a clean one.
+
+    `deterministic=False` samples from the actor's squashed Gaussian instead --
+    the policy SAC actually optimised, entropy bonus included. It is a strictly
+    noisier statistic, so it is only meaningful with `action_seed` set (the
+    episode is then reproducible) and reported with its spread. The control cost
+    is quadratic, so a sampled action pays E[sum a^2] = sum (E a)^2 + sum Var(a)
+    -- strictly more than its own MEAN action. It is not strictly more than the
+    DETERMINISTIC action, because tanh(mu) is the median of a squashed Gaussian
+    and not its mean; the two effects are measured separately in
+    `research/scripts/deterministic_vs_stochastic.py`.
+
+    `on_step(step_index, obs_before, action, info)` is an optional observer, so a
+    caller that needs the visited states or per-step terms does not have to
+    reimplement the protocol.
     """
+    if action_seed is not None:
+        import torch  # local: only the stochastic arm needs a seeded sampler
+        torch.manual_seed(action_seed)
+
     obs, _ = env.reset(seed=seed)
     if forced_cmd is not None:
         env.unwrapped._cmd = np.array(forced_cmd, dtype=float)
@@ -110,16 +133,25 @@ def rollout(env, seed: int, policy=None, forced_cmd=None) -> dict:
 
     zero = np.zeros(env.action_space.shape[0])
     total = 0.0
+    term_sums = dict.fromkeys(TERMS, 0.0)
     phi_v, phi_w, achieved, commanded = [], [], [], []
     steps, terminated = 0, False
     while True:
-        action = zero if policy is None else policy.predict(obs, deterministic=True)[0]
+        if policy is None:
+            action = zero
+        else:
+            action = policy.predict(obs, deterministic=deterministic)[0]
+        obs_before = obs
         obs, r, term, trunc, info = env.step(action)
         total += r
+        for t in TERMS:
+            term_sums[t] += float(info[t])
         phi_v.append(info["track_phi_v"])
         phi_w.append(info["track_phi_w"])
         achieved.append(info["achieved_vx"])
         commanded.append(info["cmd_vx"])
+        if on_step is not None:
+            on_step(steps, obs_before, action, info)
         steps += 1
         if term or trunc:
             terminated = term
@@ -133,16 +165,30 @@ def rollout(env, seed: int, policy=None, forced_cmd=None) -> dict:
         "mean_track": float(np.mean(np.array(phi_v) * np.array(phi_w))),
         "achieved_vx": float(np.mean(achieved)),
         "commanded_vx": float(np.mean(commanded)),
+        **term_sums,
     }
 
 
-def _arm(env, policy, episodes: int, seed0: int) -> dict:
-    """Run one arm over the whole grid. Both arms get the same seeds."""
+def _arm(env, policy, episodes: int, seed0: int, *,
+         deterministic: bool = True, action_seed0: int | None = None,
+         on_step=None) -> dict:
+    """Run one arm over the whole grid. Both arms get the same seeds.
+
+    `action_seed0` seeds the action sampler per episode (cell index and episode
+    index both enter it), so a `deterministic=False` arm is reproducible.
+    `on_step` is forwarded to `rollout`, so a caller can keep the per-step trace
+    of the very same rollouts these aggregates are computed from.
+    """
     cells = {}
-    for cell in EVAL_GRID:
-        eps = [rollout(env, seed=seed0 + i, policy=policy, forced_cmd=cell)
+    for ci, cell in enumerate(EVAL_GRID):
+        eps = [rollout(env, seed=seed0 + i, policy=policy, forced_cmd=cell,
+                       deterministic=deterministic,
+                       action_seed=(None if action_seed0 is None
+                                    else action_seed0 + 1000 * ci + i),
+                       on_step=on_step)
                for i in range(episodes)]
         rets = np.array([e["return"] for e in eps])
+        steps = np.array([float(e["steps"]) for e in eps])
         cells[str(cell)] = {
             "command": list(cell),
             "mean": float(rets.mean()),
@@ -154,6 +200,12 @@ def _arm(env, policy, episodes: int, seed0: int) -> dict:
             "commanded_vx": float(cell[0]),
             "crashes": int(sum(e["terminated"] for e in eps)),
             "episodes": len(eps),
+            # anomalies.jsonl row 20: mean_track is a per-step mean over
+            # episodes of unequal length. Report the lengths next to it so the
+            # bias is visible rather than latent.
+            "mean_steps": float(steps.mean()),
+            "sd_steps": float(steps.std(ddof=1)) if len(eps) > 1 else 0.0,
+            **{t: float(np.mean([e[t] for e in eps])) for t in TERMS},
         }
     drive = [c for c in cells.values() if tuple(c["command"]) != STOP_CELL]
     # Command gain: OLS slope of achieved on commanded forward velocity across
@@ -165,9 +217,13 @@ def _arm(env, policy, episodes: int, seed0: int) -> dict:
         "cells": cells,
         "drive_grid_mean": float(np.mean([c["mean"] for c in drive])),
         "drive_grid_track": float(np.mean([c["mean_track"] for c in drive])),
+        "drive_grid_steps": float(np.mean([c["mean_steps"] for c in drive])),
         "stop_cell_mean": cells[str(STOP_CELL)]["mean"],
         "command_gain": slope,
         "crashes": int(sum(c["crashes"] for c in cells.values())),
+        "deterministic": deterministic,
+        **{f"drive_grid_{t}": float(np.mean([c[t] for c in drive]))
+           for t in TERMS},
     }
 
 
@@ -179,6 +235,12 @@ def main() -> None:
     ap.add_argument("--seed0", type=int, default=1000)
     ap.add_argument("--latest", action="store_true",
                     help="use ant_sac.zip instead of ant_sac_best.zip")
+    ap.add_argument("--stochastic", action="store_true",
+                    help="sample the actor instead of taking its mean action; "
+                         "noisier, so --action-seed pins it and the spread is "
+                         "what to read")
+    ap.add_argument("--action-seed", type=int, default=7000,
+                    help="seed for the action sampler under --stochastic")
     ap.add_argument("--json", action="store_true")
     args = ap.parse_args()
 
@@ -215,10 +277,14 @@ def main() -> None:
         "env": TRACK_ENV,
         "episodes_per_cell": args.episodes,
         "seed0": args.seed0,
+        "deterministic": not args.stochastic,
+        "action_seed": args.action_seed if args.stochastic else None,
         "zero_action": zero,
     }
     if policy is not None:
-        trained = _arm(env, policy, args.episodes, args.seed0)
+        trained = _arm(env, policy, args.episodes, args.seed0,
+                       deterministic=not args.stochastic,
+                       action_seed0=args.action_seed if args.stochastic else None)
         result["run"] = args.run
         result["checkpoint"] = checkpoint
         result["trained"] = trained
@@ -237,6 +303,9 @@ def main() -> None:
 
     print(f"{TRACK_ENV}   {args.episodes} episodes per cell, seeds "
           f"{args.seed0}-{args.seed0 + args.episodes - 1}, both arms identical")
+    if args.stochastic:
+        print(f"  policy arm SAMPLED (deterministic=False), "
+              f"action seed {args.action_seed}")
     header = f"  {'command':>18}  {'zero':>9}"
     if policy is not None:
         header += f"  {'policy':>9}  {'ratio':>7}  {'track':>7}"
