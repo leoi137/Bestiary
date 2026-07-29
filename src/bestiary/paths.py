@@ -43,6 +43,13 @@ NULLS = RESEARCH / "nulls.jsonl"
 TERRAIN_DIR = ASSETS / "terrain"
 MESH_DIR = ASSETS / "meshes"
 
+# The compiled desert itself, named here rather than rebuilt at each call site.
+# `terrain/generate.py` writes it, `terrain/spec.py` hashes it, and
+# `terrain/isaac_hf.py` reads it from a *different interpreter* — three places
+# that must agree on one filename, which is the case this module exists for.
+DESERT_HFIELD = TERRAIN_DIR / "desert_hfield.bin"
+DESERT_TEXTURE = TERRAIN_DIR / "desert_texture.png"
+
 HOUND_XML = ASSETS / "hound16.xml"
 HOUND_DESERT_XML = ASSETS / "hound16_desert.xml"
 
