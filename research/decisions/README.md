@@ -31,3 +31,4 @@ write the next one and mark this one `superseded by NNNN`.
 - [0002 — The backward eval cell is off-distribution; report it separately](0002-off-manifold-eval-cell.md)
 - [0003 — On Isaac Lab, PPO at high env count over SAC at low](0003-ppo-at-scale-over-sac-at-small-scale.md)
 - [0004 — Inherit the Isaac reward knowingly; re-scope it for Hound](0004-inherit-the-isaac-reward-knowingly.md)
+- [0005 — The Isaac Hound stack: what survives an adversarial pass](0005-the-isaac-hound-stack-what-survives.md)
