@@ -28,3 +28,4 @@ write the next one and mark this one `superseded by NNNN`.
 ## Index
 
 - [0001 — Defer Isaac Lab; stay on MuJoCo, port to MJX](0001-defer-isaac-lab.md)
+- [0003 — On Isaac Lab, PPO at high env count over SAC at low](0003-ppo-at-scale-over-sac-at-small-scale.md)
