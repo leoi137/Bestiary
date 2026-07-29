@@ -70,6 +70,27 @@ parser.add_argument(
     ),
 )
 parser.add_argument(
+    "--terrain-color",
+    type=float,
+    nargs=3,
+    metavar=("R", "G", "B"),
+    default=(1.0, 1.0, 1.0),
+    help=(
+        "Terrain diffuse colour, 0-1 per channel. Defaults to white because "
+        "TerrainImporterCfg.visual_material defaults to "
+        "PreviewSurfaceCfg(diffuse_color=(0.0, 0.0, 0.0)) -- literally black, which "
+        "makes real relief nearly invisible under a dome light. Try 0.85 0.82 0.72 "
+        "for something desert-coloured, or lower values if pure white washes out "
+        "the shading that shows slope."
+    ),
+)
+parser.add_argument(
+    "--light-intensity",
+    type=float,
+    default=3000.0,
+    help="Dome light intensity (default 3000). Raise if the terrain reads flat.",
+)
+parser.add_argument(
     "--robots",
     type=int,
     default=4,
@@ -167,7 +188,7 @@ def main() -> None:
     sim_cfg = sim_utils.SimulationCfg(dt=0.005)
     sim = sim_utils.SimulationContext(sim_cfg)
 
-    light = sim_utils.DomeLightCfg(intensity=2000.0, color=(0.75, 0.75, 0.75))
+    light = sim_utils.DomeLightCfg(intensity=args_cli.light_intensity, color=(1.0, 1.0, 1.0))
     light.func("/World/Light", light)
 
     terrain_cfg = TerrainImporterCfg(
@@ -182,6 +203,10 @@ def main() -> None:
     if args_cli.color_scheme in ("height", "random"):
         # A visual material would paint over the colour scheme we asked for.
         terrain_cfg.visual_material = None
+    else:
+        terrain_cfg.visual_material = sim_utils.PreviewSurfaceCfg(
+            diffuse_color=tuple(args_cli.terrain_color)
+        )
     terrain = TerrainImporter(terrain_cfg)
 
     # Stand quadrupeds on the tiles. See --robots: without at least one
