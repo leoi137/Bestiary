@@ -32,6 +32,7 @@ Example:
 from __future__ import annotations
 
 import argparse
+import sys
 
 from isaaclab.app import AppLauncher
 
@@ -59,8 +60,27 @@ parser.add_argument(
 parser.add_argument(
     "--color-scheme",
     choices=["height", "random", "none"],
-    default="height",
-    help="Tile colouring. 'height' makes relief obvious and is the default here.",
+    default="none",
+    help=(
+        "Tile colouring. Defaults to 'none' because 'height' is BROKEN in this "
+        "install: Isaac Lab's color_meshes_by_height passes a colormap name that "
+        "the installed trimesh rejects ('Included color maps are: magma, inferno, "
+        "plasma, viridis'), and TerrainImporter raises before a window opens. "
+        "Not our bug and not worth patching theirs -- the robots give scale."
+    ),
+)
+parser.add_argument(
+    "--robots",
+    type=int,
+    default=4,
+    help=(
+        "Quadrupeds to stand on the terrain, for scale (default 4). "
+        "NOT cosmetic: the Newton visualizer builds its render model by walking the "
+        "stage for articulated bodies, and refuses to initialize on a scene that has "
+        "none -- 'Model must be set before calling set_visible_worlds()'. So a "
+        "terrain-only scene is only viewable under --viz kit. 0 is allowed for "
+        "headless geometry checks."
+    ),
 )
 AppLauncher.add_app_launcher_args(parser)
 # The whole point of this script is to look at something, so a visualizer is the
@@ -75,8 +95,10 @@ simulation_app = app_launcher.app
 
 import isaaclab.sim as sim_utils  # noqa: E402
 import isaaclab.terrains as terrain_gen  # noqa: E402
+from isaaclab.assets import Articulation  # noqa: E402
 from isaaclab.terrains import TerrainImporter, TerrainImporterCfg  # noqa: E402
 from isaaclab.terrains.terrain_generator_cfg import TerrainGeneratorCfg  # noqa: E402
+from isaaclab_assets.robots.anymal import ANYMAL_C_CFG  # noqa: E402
 
 from bestiary import paths  # noqa: E402
 from bestiary.terrain.isaac_hf import (  # noqa: E402
@@ -152,7 +174,7 @@ def main() -> None:
         prim_path="/World/ground",
         terrain_type="generator",
         terrain_generator=build_terrain_cfg(),
-        num_envs=1,
+        num_envs=max(args_cli.robots, 1),
         env_spacing=args_cli.tile_m,
         max_init_terrain_level=None,
         debug_vis=False,
@@ -160,21 +182,66 @@ def main() -> None:
     if args_cli.color_scheme in ("height", "random"):
         # A visual material would paint over the colour scheme we asked for.
         terrain_cfg.visual_material = None
-    TerrainImporter(terrain_cfg)
+    terrain = TerrainImporter(terrain_cfg)
 
-    # Park the camera above the middle of the grid, looking down the diagonal,
-    # so the whole tiled area is in frame at whatever --rows/--cols was asked.
+    # Stand quadrupeds on the tiles. See --robots: without at least one
+    # articulation the Newton visualizer has no model and raises rather than
+    # opening a window. They also give the relief a human scale, which is the
+    # difference between "that looks bumpy" and "that dune is taller than the dog".
+    robots: list[Articulation] = []
+    origins = terrain.env_origins
+    for i in range(args_cli.robots):
+        cfg = ANYMAL_C_CFG.replace(prim_path=f"/World/envs/env_{i}/Robot")
+        x, y, z = (float(v) for v in origins[i])
+        # 0.6 m of clearance: ANYMAL_C_CFG's own default standing height is ~0.6 m,
+        # and a spawn intersecting the mesh is resolved by the solver as an
+        # explosion rather than a placement.
+        cfg.init_state.pos = (x, y, z + 0.6)
+        robots.append(Articulation(cfg))
+    print(f"[bestiary] robots      : {len(robots)} ANYmal-C on the tiles", flush=True)
+
+    # Frame the whole tiled area. Guarded because camera control is a
+    # visualizer-dependent capability, and a viewer that cannot aim is not a
+    # reason to abandon a scene that built correctly.
     span = max(args_cli.rows, args_cli.cols) * args_cli.tile_m
-    sim.set_camera_view(eye=(span * 0.7, span * 0.7, span * 0.5), target=(0.0, 0.0, 0.0))
+    try:
+        sim.set_camera_view(eye=(span * 0.7, span * 0.7, span * 0.5), target=(0.0, 0.0, 0.0))
+    except Exception as exc:  # noqa: BLE001
+        print(f"[bestiary] camera not settable ({type(exc).__name__}: {exc}); "
+              "use the viewer's own controls", flush=True)
 
     sim.reset()
     print("[bestiary] terrain built. Ctrl+C in this terminal to quit.", flush=True)
+
+    dt = sim.get_physics_dt()
     while simulation_app.is_running():
+        # Hold the default stance. This is a terrain viewer, not a controller --
+        # the robots are here for scale and to give the renderer a model, so they
+        # are commanded to their nominal joint angles and left to settle.
+        for robot in robots:
+            robot.set_joint_position_target(robot.data.default_joint_pos)
+            robot.write_data_to_sim()
         sim.step()
+        for robot in robots:
+            robot.update(dt)
 
 
 if __name__ == "__main__":
+    # The traceback is printed and flushed HERE rather than left to propagate.
+    # `simulation_app.close()` can end the process without draining Python's
+    # buffers, so a bare `finally: close()` turns any failure into a silent
+    # exit 0 with no window and no message -- which is exactly how the missing
+    # Newton render model presented the first time.
+    import traceback
+
     try:
         main()
-    finally:
+    except KeyboardInterrupt:
+        print("[bestiary] interrupted", flush=True)
+    except Exception:
+        traceback.print_exc()
+        sys.stdout.flush()
+        sys.stderr.flush()
         simulation_app.close()
+        raise SystemExit(1)
+    simulation_app.close()
