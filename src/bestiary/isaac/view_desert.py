@@ -47,6 +47,19 @@ parser.add_argument(
     "--tile-m", type=float, default=8.0, help="Square sub-terrain size in metres (default 8.0)."
 )
 parser.add_argument(
+    "--horizontal-scale",
+    type=float,
+    default=None,
+    help=(
+        "Terrain sampling in metres. Defaults to the desert's native 0.078125 m "
+        "(hardcoded here rather than imported: isaac_hf pulls in isaaclab, which must "
+        "not be imported before AppLauncher runs). Native is what you want for "
+        "INSPECTING the asset; pass 0.1 to see what actually TRAINS -- native "
+        "segfaults PhysX above ~64 envs at 200 tiles, so training uses 0.1 m. Viewing "
+        "both is the only way to judge what the coarser grid costs visually."
+    ),
+)
+parser.add_argument(
     "--rows", type=int, default=5, help="Sub-terrain grid rows (default 5)."
 )
 parser.add_argument(
@@ -155,12 +168,15 @@ def build_terrain_cfg() -> TerrainGeneratorCfg:
             proportion=0.25, noise_range=(0.02, 0.10), noise_step=0.02, border_width=0.25
         )
 
+    h_scale = (
+        DESERT_NATIVE_CELL_M if args_cli.horizontal_scale is None else args_cli.horizontal_scale
+    )
     return TerrainGeneratorCfg(
         size=(args_cli.tile_m, args_cli.tile_m),
         border_width=20.0,
         num_rows=args_cli.rows,
         num_cols=args_cli.cols,
-        horizontal_scale=DESERT_NATIVE_CELL_M,
+        horizontal_scale=h_scale,
         vertical_scale=0.005,
         slope_threshold=0.75,
         use_cache=False,
@@ -181,6 +197,13 @@ def main() -> None:
     print(f"[bestiary] desert      : {desert.shape[0]}x{desert.shape[1]} cells, "
           f"{DESERT_NATIVE_CELL_M * 100:.4f} cm/cell, relief {desert.max():.3f} m", flush=True)
     print(f"[bestiary] tile        : {args_cli.tile_m:.2f} m = {cells}x{cells} native cells",
+          flush=True)
+    h_scale = (
+        DESERT_NATIVE_CELL_M if args_cli.horizontal_scale is None else args_cli.horizontal_scale
+    )
+    print(f"[bestiary] sampling    : {h_scale:.6f} m/cell "
+          f"({'NATIVE' if args_cli.horizontal_scale is None else 'resampled'}) -> "
+          f"{int(args_cli.tile_m / h_scale)}x{int(args_cli.tile_m / h_scale)} px per tile",
           flush=True)
     print(f"[bestiary] grid        : {args_cli.rows}x{args_cli.cols} tiles, mix={args_cli.mix}, "
           f"curriculum={args_cli.curriculum}", flush=True)
