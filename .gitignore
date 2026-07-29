@@ -76,3 +76,7 @@ MUJOCO_LOG.TXT
 # working copy rather than of the project, so it is installed per-machine and
 # not carried to anyone else's clone.
 .githooks/prepare-commit-msg
+
+# Isaac Lab / Newton viewer runtime state. The imgui window layout is written
+# into the CWD on exit, so it appears wherever a viewer was launched from.
+imgui.ini
