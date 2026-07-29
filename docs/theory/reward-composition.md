@@ -461,3 +461,166 @@ the three literature-lineage findings and the Mysore measurement in §1d
   and shaping this note analyses.
 - `src/bestiary/envs/hound_track.py:138-153` — the Cauchy kernel.
 - `research/anomalies.jsonl` row 46 — the mis-conditioned noise floor.
+
+---
+
+# Refutation — 2026-07-29, an independent Opus 5 pass
+
+This note was committed (`30f3730`) stating that no refuter had run. One has now
+run, and **it killed the central claim.** Per this record's convention a
+falsified argument is superseded rather than deleted: everything above stands as
+written, and what follows is what survives it.
+
+## §4's empty α_w window is WITHDRAWN
+
+The arithmetic reproduces exactly. **The error is which side of the inequality
+the number was placed on.**
+
+`command-tracking-reward.md` §2 had already considered and explicitly rejected
+the substitution §4 makes:
+
+> The trap arose from feeding the moving figure into the *noise-side* rule; but
+> the moving figure is the sum of unremovable noise and exactly the error the
+> policy exists to remove, so it belongs on the freeride side as a thing to
+> *exclude*, never on the noise side as a thing to *tolerate*.
+
+0.0808 rad/s is the **total driving yaw residual of one undertrained,
+single-seed, non-converged probe** — `learnings/012` says so itself. It bounds
+the unremovable noise floor from **above**, not below. So §4 declared a
+published derivation defective for a mistake that derivation had anticipated in
+writing.
+
+**Corrected statement.** The window is `[3n, 0.0905]`, where `n` is the
+driving-conditioned unremovable noise floor and **has never been measured**.
+The noise side is **unpinned, not violated**. Measuring `n` is the whole
+question.
+
+Three compounding defects:
+
+- **The 3× multiplier is this repo's own convention, not a law.** The window is
+  empty *iff* that multiplier exceeds **1.760**. At a 20%-cost operating point
+  it is non-empty. "Infeasible as specified" was really "these two arbitrary
+  operating points are jointly infeasible, at a residual that is the wrong
+  quantity."
+- **The two sides were computed on different statistical arms** — the noise side
+  inverts a *mean kernel*, the freeride side applies a *point kernel to an rms*.
+  Both on the expectation arm, freeride becomes **α ≤ 0.0905**, not 0.142. This
+  is precisely what `learnings/012` warns about: *when a falsifier quotes a
+  threshold, it must quote the arm the threshold came from.*
+- **`policy_yaw_err_rad_s` is not a measurement.** `heading_ceiling.py:235`
+  computes it by the same point inversion. **No committed artifact holds a raw
+  yaw trace**, so §5's "integrate the traces already in the run logs" experiment
+  does not exist — it needs a re-roll with a trace hook.
+
+**One attack that failed, and it favours the note:** Jensen. Φ_w is a mean of
+per-step kernels and 1/(1+u²) is convex in u², so the point inversion is a
+*lower* bound — the Gaussian-model rms reproducing E[Cauchy] = 0.6052 is
+**0.1174 rad/s, 1.45× larger**. The window dies on the conditioning error, not
+on the statistics. §4's figure should read "**at least** 0.0808".
+
+## §4's 0.659 "confirmation" is wrong twice
+
+`Φ_w = 0.6052` was measured under the **Cauchy** kernel
+(`hound_track.py:138`); §4 computed a **Gaussian** expectation. On the correct
+kernel, `E[Cauchy] at s = 0.0808, σ = 0.10` = **0.7203** — *further* from
+0.6052, not closer. And the exercise is circular regardless, since `s` was
+derived *from* 0.6052 by point inversion, so the round trip measures the Jensen
+gap and nothing else.
+
+## §3's ρ = 0.5 was never measured
+
+A bare number-rule violation: `exp(−(0.5/0.5)²) = 0.368` appears in a headline
+conclusion and no computation produced it. The measured values are 0.46 / 0.61 /
+0.76.
+
+At the actual measured ρ = 0.458, the honest tracker earns **0.4321** against
+the fake's **0.4332** — **a tie to three decimals**, not 0.368 vs 0.433.
+
+And the tie is an **identity**, not a coincidence: ρ = |0.271 − 0.50| / 0.50 is
+the relative error *of the fixed 0.271 trot itself*, so §3 compares the fake
+against **itself in a different parameterisation** and concludes the fake wins.
+**A command-following policy's relative control error has never been measured.**
+`learnings/015`'s "rational optimum" should stay unquantified until one exists.
+
+## §1d's Mysore transfer does not apply
+
+Their operator is **not a product**. Equation (8) is a **geometric mean with an
+ε offset and a min-clamp**: `r = (∏ min(1, rₖ+ε))^(1/K)`. The K-th root and the
+ε are both mitigations of the exact pathology §1d invokes — and **the ε is a
+floor.** By this note's own §1d.4 taxonomy, Mysore is the *floored* case, which
+defeats the §1d.3 inference. Seed count is never stated.
+
+**Cite it as a caution about composing rewards multiplicatively; not as a
+measurement of this repo's configuration.**
+
+## §5's loop separates responsive from unresponsive, not bias from noise
+
+Simulated at `k_ψ = 0.5`, `ω_sat = 1.0`, `α_ω = 0.25`, dt = 0.05, T = 20 s:
+
+| driver | mean K | outcome |
+|---|---|---|
+| responsive, pure rate bias 0.0808 | 0.9008 | heading converges to a **bounded** −9.3° = −b/k_ψ; **rate error settles back at exactly b**; never saturates |
+| responsive, zero-mean noise 0.0808 | 0.9238 | ‖ψ_e‖max 0.046 rad |
+| **unresponsive**, bias 0.127 | 0.0834 | −2.54 rad, ω_c saturates, K → 0 ✓ |
+
+A rate bias in a driver that *does* follow ω_c becomes a bounded heading offset
+and **the scored rate error is unchanged**. So `learnings/015`'s 42.32-point
+handedness — a bias by measurement — is **still not priced.**
+
+The 0.91 is bought by widening α from 0.10 to 0.25, not by the loop: open-loop
+at α = 0.25 already gives 0.9095. The loop's contribution is that the widening
+now clears the freeride side.
+
+Note also an internal inconsistency: §4 explains the 0.6052-vs-0.659 gap by
+asserting the residual is *partly bias*, while §5 assumes it is *entirely
+zero-mean noise*. The same quantity, modelled two contradictory ways in adjacent
+sections.
+
+**The saturation attack failed** — the law does not saturate on a biased honest
+driver. That worry was unfounded.
+
+## §2's F = 0.441 is a 1-D integral labelled as a 2-D command set
+
+Production commands `lin_vel_x ∈ (−1,1)` **and** `lin_vel_y ∈ (−1,1)`, and the
+kernel sums `e_x² + e_y²` inside the exponent. The true separable value is
+**0.441² = 0.1945**.
+
+And 0.441 vs our 0.764 is not like-for-like — a two-sided 2-D range against a
+one-sided forward-only conditional. `learnings/015` already computed this repo's
+best single speed over its own six-cell grid at **F = 0.411**, i.e. *lower* than
+production's 1-D 0.441. The conclusion's direction survives, and only against
+the true 2-D 0.1945.
+
+Two smaller corrections: **"best fake is standing still" is an artifact of range
+symmetry**, not of including zero — for fixed α the span law gives
+v\* = (a+b)/2 exactly. And §2b's ratio law holds **only where the α floor is
+inactive** (F = 0.9056 on [0.10, 0.267], where it is not).
+
+## What survived
+
+- **The F table's arithmetic** — all thirteen values, the analytic span law, the
+  ratio-law twin and the four-point floor sequence, reproduced to four decimals
+  by an independently written integrator, and it reproduces `learnings/015`'s
+  env-computed 0.764 / 0.433. **Still no committed script**, so under the number
+  rule these figures may not be cited downstream until one exists.
+- **The gradient identity and the product-of-kernels identity** (§0, §1a).
+- **The floor claim — measured, and stronger than this note claimed.** On 12
+  random-action episodes (1677 healthy steps): max `u_w` **40.23 while
+  healthy**, `k_w` **exactly 0.0 in float64 on 1.61%** of healthy steps, and
+  `k_v·k_w < 1e-12` on **60.8%**. The Cauchy PBRS potential is **never** zero
+  (min 1.88e-5). The underflow is reached in under two thousand steps. One
+  caveat this note should carry: the Cauchy far-field gradient at u = 40 is
+  ~3e-5 — nonzero, but "points home" is a statement about sign, not magnitude.
+
+## Newly found, not previously recorded
+
+**The incumbent `α_w = 0.10` fails its own freeride cap on the expectation
+arm.** `hound_track_rel.py:155` comments that the unsteered freerider "scores
+that freeride at 0.20, comfortably tighter than the 0.45 cap" — a *point*
+kernel applied to an rms. On the expectation arm the same freerider scores
+**0.4866** and **misses the cap.** The same arm defect as §4's, already latent
+in shipped code.
+
+**A stale docstring:** `hound_track_rel.py`'s module docstring states
+`alpha_w(c) = max(0.10, 0.75·|w_cmd|)` while `BETA_W = 0.5` at line 186 — the
+very constant whose 0.75 incident this note cites at `:157-186`.
