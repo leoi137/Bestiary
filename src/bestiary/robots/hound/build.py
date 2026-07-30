@@ -750,12 +750,28 @@ def leg_xml(spec: Spec, name: str, sx: int, sy: int) -> str:
       </body>"""
 
 
-def robot_xml(spec: Spec) -> str:
-    """The trunk plus its four legs, identical in both worlds."""
+def robot_xml(spec: Spec, trunk_z: float | None = None) -> str:
+    """The trunk plus its four legs, identical in both worlds.
+
+    `trunk_z` is where the trunk body is authored, in metres. None means
+    `spec.stand_z` — wheels resting on z = 0 — which is what both MuJoCo worlds
+    want and is why it is the default. Nothing in this repository passes
+    anything else except the Isaac Lab conversion input.
+
+    That override exists because Isaac Lab spawns a USD asset by creating a prim
+    at `init_state.pos` and referencing the asset underneath it, so an authored
+    trunk height is ADDED to the requested spawn height instead of replacing it.
+    A 0.3634 m stance baked into the asset would put the machine 0.3634 m above
+    where the caller asked for it and let it fall that far before the first
+    reset writes a root pose. The stand height belongs to whoever places the
+    robot, so `isaac/hound_usd.py` authors the trunk at the origin and
+    `isaac/hound_cfg.py` supplies `spec.stand_z` as the spawn height.
+    """
     hx, hy, hz = spec.trunk_half
+    z = spec.stand_z if trunk_z is None else trunk_z
     legs = "".join(leg_xml(spec, n, sx, sy) for n, (sx, sy) in spec.legs.items())
     return f"""
-    <body name="trunk" pos="0 0 {spec.stand_z:.4f}">
+    <body name="trunk" pos="0 0 {z:.4f}">
       <!-- Gymnasium's offscreen renderer looks up a camera named "track" when
            none is given (same as ant.xml); without it, eval videos fall back
            to a static free camera and the dog drives out of frame. -->

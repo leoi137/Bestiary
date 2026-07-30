@@ -1,0 +1,1297 @@
+#usda 1.0
+(
+    customLayerData = {
+        string creator = "MuJoCo USD Converter v0.2.0"
+    }
+    defaultPrim = "hound16pd_isaac"
+    doc = """Generated from Composed Stage of root layer /tmp/tmp1wkxk2iw/hound16pd_isaac.usdc
+
+
+Generated from Composed Stage of root layer /tmp/mjcf_import_hound16pd_isaac_apr2pb73/usdex_hound16pd_isaac/hound16pd_isaac.usdc
+
+
+Generated from Composed Stage of root layer /tmp/mjcf_import_hound16pd_isaac_apr2pb73/temp_hound16pd_isaac/hound16pd_isaac.usd
+
+
+Generated from Composed Stage of root layer /home/leandro/Desktop/Resources/Robotics/Bestiary/assets/hound/isaac/hound16pd_isaac/payloads/base.usd
+"""
+    kilogramsPerUnit = 1
+    metersPerUnit = 1
+    subLayers = [
+        @./robot.usda@
+    ]
+    upAxis = "Z"
+)
+
+def Xform "hound16pd_isaac" (
+    prepend apiSchemas = ["GeomModelAPI", "IsaacRobotAPI"]
+    assetInfo = {
+        string name = "hound16pd_isaac"
+    }
+    kind = "component"
+)
+{
+    float3[] extentsHint = [(-0.2784, -0.18200001, -0.488), (0.2841, 0.18200001, 0.14183895)]
+    custom rel isaac:physics:robotJoints
+    custom rel isaac:physics:robotLinks
+    custom token isaac:robotType = "Quadruped"
+
+    def Scope "Geometry"
+    {
+        def Xform "trunk" (
+            prepend apiSchemas = ["IsaacLinkAPI"]
+        )
+        {
+            quatf xformOp:orient = (1, 0, 0, 0)
+            float3 xformOp:scale = (1, 1, 1)
+            double3 xformOp:translate = (0, 0, 0)
+            uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:orient", "xformOp:scale"]
+
+            def Cube "trunk_geom" (
+                prepend apiSchemas = ["PhysicsCollisionAPI", "MaterialBindingAPI"]
+            )
+            {
+                float3[] extent = [(-1, -1, -1), (1, 1, 1)]
+                rel material:binding:physics = </hound16pd_isaac/Physics/PhysicsMaterial>
+                color3f[] primvars:displayColor = [(0.22, 0.23, 0.26)] (
+                    interpolation = "constant"
+                )
+                int[] primvars:displayColor:indices = None
+                float[] primvars:displayOpacity = [1] (
+                    interpolation = "constant"
+                )
+                int[] primvars:displayOpacity:indices = None
+                double size = 2
+                quatf xformOp:orient = (1, 0, 0, 0)
+                float3 xformOp:scale = (0.1881, 0.04675, 0.057)
+                double3 xformOp:translate = (0, 0, 0)
+                uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:orient", "xformOp:scale"]
+            }
+
+            def Cube "head_pod" (
+                prepend apiSchemas = ["MaterialBindingAPI"]
+            )
+            {
+                float3[] extent = [(-1, -1, -1), (1, 1, 1)]
+                rel material:binding = </hound16pd_isaac/Materials/MatShell>
+                color3f[] primvars:displayColor = [(0.5, 0.5, 0.5)] (
+                    interpolation = "constant"
+                )
+                int[] primvars:displayColor:indices = None
+                float[] primvars:displayOpacity = [1] (
+                    interpolation = "constant"
+                )
+                int[] primvars:displayOpacity:indices = None
+                double size = 2
+                quatf xformOp:orient = (1, 0, 0, 0)
+                float3 xformOp:scale = (0.055, 0.052, 0.04)
+                double3 xformOp:translate = (0.2231, 0, 0.03)
+                uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:orient", "xformOp:scale"]
+            }
+
+            def Cube "head_lens" (
+                prepend apiSchemas = ["MaterialBindingAPI"]
+            )
+            {
+                float3[] extent = [(-1, -1, -1), (1, 1, 1)]
+                rel material:binding = </hound16pd_isaac/Materials/MatLens>
+                color3f[] primvars:displayColor = [(0.5, 0.5, 0.5)] (
+                    interpolation = "constant"
+                )
+                int[] primvars:displayColor:indices = None
+                float[] primvars:displayOpacity = [1] (
+                    interpolation = "constant"
+                )
+                int[] primvars:displayOpacity:indices = None
+                double size = 2
+                quatf xformOp:orient = (1, 0, 0, 0)
+                float3 xformOp:scale = (0.008, 0.038, 0.018)
+                double3 xformOp:translate = (0.2761, 0, 0.034)
+                uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:orient", "xformOp:scale"]
+            }
+
+            def Cube "deck" (
+                prepend apiSchemas = ["MaterialBindingAPI"]
+            )
+            {
+                float3[] extent = [(-1, -1, -1), (1, 1, 1)]
+                rel material:binding = </hound16pd_isaac/Materials/MatShell>
+                color3f[] primvars:displayColor = [(0.5, 0.5, 0.5)] (
+                    interpolation = "constant"
+                )
+                int[] primvars:displayColor:indices = None
+                float[] primvars:displayOpacity = [1] (
+                    interpolation = "constant"
+                )
+                int[] primvars:displayOpacity:indices = None
+                double size = 2
+                quatf xformOp:orient = (1, 0, 0, 0)
+                float3 xformOp:scale = (0.1681, 0.0427, 0.014)
+                double3 xformOp:translate = (-0.01, 0, 0.069)
+                uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:orient", "xformOp:scale"]
+            }
+
+            def Capsule "tail_mast" (
+                prepend apiSchemas = ["MaterialBindingAPI"]
+            )
+            {
+                uniform token axis = "Z"
+                float3[] extent = [(-0.007, -0.007, -0.05502343), (0.007, 0.007, 0.05502343)]
+                double height = 0.09604686356149274
+                rel material:binding = </hound16pd_isaac/Materials/MatShell>
+                color3f[] primvars:displayColor = [(0.5, 0.5, 0.5)] (
+                    interpolation = "constant"
+                )
+                int[] primvars:displayColor:indices = None
+                float[] primvars:displayOpacity = [1] (
+                    interpolation = "constant"
+                )
+                int[] primvars:displayOpacity:indices = None
+                double radius = 0.007
+                quatf xformOp:orient = (0.9436283, 0, -0.33100697, 0)
+                float3 xformOp:scale = (1, 1, 1)
+                double3 xformOp:translate = (-0.2281, 0, 0.0945)
+                uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:orient", "xformOp:scale"]
+            }
+
+            def Xform "FL_abduct" (
+                prepend apiSchemas = ["IsaacLinkAPI"]
+            )
+            {
+                quatf xformOp:orient = (1, 0, 0, 0)
+                float3 xformOp:scale = (1, 1, 1)
+                double3 xformOp:translate = (0.1934, 0.0465, 0)
+                uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:orient", "xformOp:scale"]
+
+                def Capsule "FL_abduct_geom" (
+                    prepend apiSchemas = ["PhysicsCollisionAPI", "MaterialBindingAPI"]
+                )
+                {
+                    uniform token axis = "Z"
+                    float3[] extent = [(-0.04, -0.04, -0.08775), (0.04, 0.04, 0.08775)]
+                    double height = 0.0955
+                    rel material:binding:physics = </hound16pd_isaac/Physics/PhysicsMaterial>
+                    color3f[] primvars:displayColor = [(0.2, 0.21, 0.24)] (
+                        interpolation = "constant"
+                    )
+                    int[] primvars:displayColor:indices = None
+                    float[] primvars:displayOpacity = [1] (
+                        interpolation = "constant"
+                    )
+                    int[] primvars:displayOpacity:indices = None
+                    double radius = 0.04
+                    quatf xformOp:orient = (0.7071068, -0.7071067, 0, 0)
+                    float3 xformOp:scale = (1, 1, 1)
+                    double3 xformOp:translate = (0, 0.04775, 0)
+                    uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:orient", "xformOp:scale"]
+                }
+
+                def Cylinder "FL_abduct_hub" (
+                    prepend apiSchemas = ["MaterialBindingAPI"]
+                )
+                {
+                    uniform token axis = "Z"
+                    float3[] extent = [(-0.044, -0.044, -0.04), (0.044, 0.044, 0.04)]
+                    double height = 0.08
+                    rel material:binding = </hound16pd_isaac/Materials/MatAbduct>
+                    color3f[] primvars:displayColor = [(0.5, 0.5, 0.5)] (
+                        interpolation = "constant"
+                    )
+                    int[] primvars:displayColor:indices = None
+                    float[] primvars:displayOpacity = [1] (
+                        interpolation = "constant"
+                    )
+                    int[] primvars:displayOpacity:indices = None
+                    double radius = 0.044
+                    quatf xformOp:orient = (0.7071068, 0, 0.7071067, 0)
+                    float3 xformOp:scale = (1, 1, 1)
+                    double3 xformOp:translate = (0, 0, 0)
+                    uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:orient", "xformOp:scale"]
+                }
+
+                def Xform "FL_thigh" (
+                    prepend apiSchemas = ["IsaacLinkAPI"]
+                )
+                {
+                    quatf xformOp:orient = (1, 0, 0, 0)
+                    float3 xformOp:scale = (1, 1, 1)
+                    double3 xformOp:translate = (0, 0.0955, 0)
+                    uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:orient", "xformOp:scale"]
+
+                    def Capsule "FL_thigh_geom" (
+                        prepend apiSchemas = ["PhysicsCollisionAPI", "MaterialBindingAPI"]
+                    )
+                    {
+                        uniform token axis = "Z"
+                        float3[] extent = [(-0.028, -0.028, -0.1345), (0.028, 0.028, 0.1345)]
+                        double height = 0.213
+                        rel material:binding:physics = </hound16pd_isaac/Physics/PhysicsMaterial>
+                        color3f[] primvars:displayColor = [(0.24, 0.25, 0.28)] (
+                            interpolation = "constant"
+                        )
+                        int[] primvars:displayColor:indices = None
+                        float[] primvars:displayOpacity = [1] (
+                            interpolation = "constant"
+                        )
+                        int[] primvars:displayOpacity:indices = None
+                        double radius = 0.028
+                        quatf xformOp:orient = (6.123234e-17, 1, 0, 0)
+                        float3 xformOp:scale = (1, 1, 1)
+                        double3 xformOp:translate = (0, 0, -0.1065)
+                        uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:orient", "xformOp:scale"]
+                    }
+
+                    def Cylinder "FL_hip_hub" (
+                        prepend apiSchemas = ["MaterialBindingAPI"]
+                    )
+                    {
+                        uniform token axis = "Z"
+                        float3[] extent = [(-0.042, -0.042, -0.014), (0.042, 0.042, 0.014)]
+                        double height = 0.028
+                        rel material:binding = </hound16pd_isaac/Materials/MatHip>
+                        color3f[] primvars:displayColor = [(0.5, 0.5, 0.5)] (
+                            interpolation = "constant"
+                        )
+                        int[] primvars:displayColor:indices = None
+                        float[] primvars:displayOpacity = [1] (
+                            interpolation = "constant"
+                        )
+                        int[] primvars:displayOpacity:indices = None
+                        double radius = 0.042
+                        quatf xformOp:orient = (0.7071068, -0.7071067, 0, 0)
+                        float3 xformOp:scale = (1, 1, 1)
+                        double3 xformOp:translate = (0, 0, 0)
+                        uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:orient", "xformOp:scale"]
+                    }
+
+                    def Xform "FL_calf" (
+                        prepend apiSchemas = ["IsaacLinkAPI"]
+                    )
+                    {
+                        quatf xformOp:orient = (1, 0, 0, 0)
+                        float3 xformOp:scale = (1, 1, 1)
+                        double3 xformOp:translate = (0, 0, -0.213)
+                        uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:orient", "xformOp:scale"]
+
+                        def Capsule "FL_calf_geom" (
+                            prepend apiSchemas = ["PhysicsCollisionAPI", "MaterialBindingAPI"]
+                        )
+                        {
+                            uniform token axis = "Z"
+                            float3[] extent = [(-0.022, -0.022, -0.117), (0.022, 0.022, 0.117)]
+                            double height = 0.19
+                            rel material:binding:physics = </hound16pd_isaac/Physics/PhysicsMaterial>
+                            color3f[] primvars:displayColor = [(0.2, 0.21, 0.24)] (
+                                interpolation = "constant"
+                            )
+                            int[] primvars:displayColor:indices = None
+                            float[] primvars:displayOpacity = [1] (
+                                interpolation = "constant"
+                            )
+                            int[] primvars:displayOpacity:indices = None
+                            double radius = 0.022
+                            quatf xformOp:orient = (6.123234e-17, 1, 0, 0)
+                            float3 xformOp:scale = (1, 1, 1)
+                            double3 xformOp:translate = (0, 0, -0.095)
+                            uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:orient", "xformOp:scale"]
+                        }
+
+                        def Cylinder "FL_knee_hub" (
+                            prepend apiSchemas = ["MaterialBindingAPI"]
+                        )
+                        {
+                            uniform token axis = "Z"
+                            float3[] extent = [(-0.034, -0.034, -0.013), (0.034, 0.034, 0.013)]
+                            double height = 0.026
+                            rel material:binding = </hound16pd_isaac/Materials/MatKnee>
+                            color3f[] primvars:displayColor = [(0.5, 0.5, 0.5)] (
+                                interpolation = "constant"
+                            )
+                            int[] primvars:displayColor:indices = None
+                            float[] primvars:displayOpacity = [1] (
+                                interpolation = "constant"
+                            )
+                            int[] primvars:displayOpacity:indices = None
+                            double radius = 0.034
+                            quatf xformOp:orient = (0.7071068, -0.7071067, 0, 0)
+                            float3 xformOp:scale = (1, 1, 1)
+                            double3 xformOp:translate = (0, 0, 0)
+                            uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:orient", "xformOp:scale"]
+                        }
+
+                        def Xform "FL_wheel" (
+                            prepend apiSchemas = ["IsaacLinkAPI"]
+                        )
+                        {
+                            quatf xformOp:orient = (1, 0, 0, 0)
+                            float3 xformOp:scale = (1, 1, 1)
+                            double3 xformOp:translate = (0, 0, -0.19)
+                            uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:orient", "xformOp:scale"]
+
+                            def Cylinder "FL_wheel_geom" (
+                                prepend apiSchemas = ["PhysicsCollisionAPI", "MaterialBindingAPI"]
+                            )
+                            {
+                                uniform token axis = "Z"
+                                float3[] extent = [(-0.085, -0.085, -0.025), (0.085, 0.085, 0.025)]
+                                double height = 0.05
+                                rel material:binding = </hound16pd_isaac/Materials/MatTyre>
+                                rel material:binding:physics = </hound16pd_isaac/Physics/PhysicsMaterial_1>
+                                color3f[] primvars:displayColor = [(0.5, 0.5, 0.5)] (
+                                    interpolation = "constant"
+                                )
+                                int[] primvars:displayColor:indices = None
+                                float[] primvars:displayOpacity = [1] (
+                                    interpolation = "constant"
+                                )
+                                int[] primvars:displayOpacity:indices = None
+                                double radius = 0.085
+                                quatf xformOp:orient = (0.7071068, -0.7071067, 0, 0)
+                                float3 xformOp:scale = (1, 1, 1)
+                                double3 xformOp:translate = (0, 0, 0)
+                                uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:orient", "xformOp:scale"]
+                            }
+
+                            def Cylinder "FL_rim" (
+                                prepend apiSchemas = ["MaterialBindingAPI"]
+                            )
+                            {
+                                uniform token axis = "Z"
+                                float3[] extent = [(-0.0468, -0.0468, -0.027), (0.0468, 0.0468, 0.027)]
+                                double height = 0.054
+                                rel material:binding = </hound16pd_isaac/Materials/MatWheel>
+                                color3f[] primvars:displayColor = [(0.5, 0.5, 0.5)] (
+                                    interpolation = "constant"
+                                )
+                                int[] primvars:displayColor:indices = None
+                                float[] primvars:displayOpacity = [1] (
+                                    interpolation = "constant"
+                                )
+                                int[] primvars:displayOpacity:indices = None
+                                double radius = 0.0468
+                                quatf xformOp:orient = (0.7071068, -0.7071067, 0, 0)
+                                float3 xformOp:scale = (1, 1, 1)
+                                double3 xformOp:translate = (0, 0, 0)
+                                uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:orient", "xformOp:scale"]
+                            }
+
+                            def Cube "FL_spoke_a" (
+                                prepend apiSchemas = ["MaterialBindingAPI"]
+                            )
+                            {
+                                float3[] extent = [(-1, -1, -1), (1, 1, 1)]
+                                rel material:binding = </hound16pd_isaac/Materials/MatSpoke>
+                                color3f[] primvars:displayColor = [(0.5, 0.5, 0.5)] (
+                                    interpolation = "constant"
+                                )
+                                int[] primvars:displayColor:indices = None
+                                float[] primvars:displayOpacity = [1] (
+                                    interpolation = "constant"
+                                )
+                                int[] primvars:displayOpacity:indices = None
+                                double size = 2
+                                quatf xformOp:orient = (1, 0, 0, 0)
+                                float3 xformOp:scale = (0.068, 0.028, 0.006)
+                                double3 xformOp:translate = (0, 0, 0)
+                                uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:orient", "xformOp:scale"]
+                            }
+
+                            def Cube "FL_spoke_b" (
+                                prepend apiSchemas = ["MaterialBindingAPI"]
+                            )
+                            {
+                                float3[] extent = [(-1, -1, -1), (1, 1, 1)]
+                                rel material:binding = </hound16pd_isaac/Materials/MatSpoke>
+                                color3f[] primvars:displayColor = [(0.5, 0.5, 0.5)] (
+                                    interpolation = "constant"
+                                )
+                                int[] primvars:displayColor:indices = None
+                                float[] primvars:displayOpacity = [1] (
+                                    interpolation = "constant"
+                                )
+                                int[] primvars:displayOpacity:indices = None
+                                double size = 2
+                                quatf xformOp:orient = (1, 0, 0, 0)
+                                float3 xformOp:scale = (0.006, 0.028, 0.068)
+                                double3 xformOp:translate = (0, 0, 0)
+                                uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:orient", "xformOp:scale"]
+                            }
+                        }
+                    }
+                }
+            }
+
+            def Xform "FR_abduct" (
+                prepend apiSchemas = ["IsaacLinkAPI"]
+            )
+            {
+                quatf xformOp:orient = (1, 0, 0, 0)
+                float3 xformOp:scale = (1, 1, 1)
+                double3 xformOp:translate = (0.1934, -0.0465, 0)
+                uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:orient", "xformOp:scale"]
+
+                def Capsule "FR_abduct_geom" (
+                    prepend apiSchemas = ["PhysicsCollisionAPI", "MaterialBindingAPI"]
+                )
+                {
+                    uniform token axis = "Z"
+                    float3[] extent = [(-0.04, -0.04, -0.08775), (0.04, 0.04, 0.08775)]
+                    double height = 0.0955
+                    rel material:binding:physics = </hound16pd_isaac/Physics/PhysicsMaterial>
+                    color3f[] primvars:displayColor = [(0.2, 0.21, 0.24)] (
+                        interpolation = "constant"
+                    )
+                    int[] primvars:displayColor:indices = None
+                    float[] primvars:displayOpacity = [1] (
+                        interpolation = "constant"
+                    )
+                    int[] primvars:displayOpacity:indices = None
+                    double radius = 0.04
+                    quatf xformOp:orient = (0.7071068, 0.7071067, 0, 0)
+                    float3 xformOp:scale = (1, 1, 1)
+                    double3 xformOp:translate = (0, -0.04775, 0)
+                    uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:orient", "xformOp:scale"]
+                }
+
+                def Cylinder "FR_abduct_hub" (
+                    prepend apiSchemas = ["MaterialBindingAPI"]
+                )
+                {
+                    uniform token axis = "Z"
+                    float3[] extent = [(-0.044, -0.044, -0.04), (0.044, 0.044, 0.04)]
+                    double height = 0.08
+                    rel material:binding = </hound16pd_isaac/Materials/MatAbduct>
+                    color3f[] primvars:displayColor = [(0.5, 0.5, 0.5)] (
+                        interpolation = "constant"
+                    )
+                    int[] primvars:displayColor:indices = None
+                    float[] primvars:displayOpacity = [1] (
+                        interpolation = "constant"
+                    )
+                    int[] primvars:displayOpacity:indices = None
+                    double radius = 0.044
+                    quatf xformOp:orient = (0.7071068, 0, 0.7071067, 0)
+                    float3 xformOp:scale = (1, 1, 1)
+                    double3 xformOp:translate = (0, 0, 0)
+                    uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:orient", "xformOp:scale"]
+                }
+
+                def Xform "FR_thigh" (
+                    prepend apiSchemas = ["IsaacLinkAPI"]
+                )
+                {
+                    quatf xformOp:orient = (1, 0, 0, 0)
+                    float3 xformOp:scale = (1, 1, 1)
+                    double3 xformOp:translate = (0, -0.0955, 0)
+                    uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:orient", "xformOp:scale"]
+
+                    def Capsule "FR_thigh_geom" (
+                        prepend apiSchemas = ["PhysicsCollisionAPI", "MaterialBindingAPI"]
+                    )
+                    {
+                        uniform token axis = "Z"
+                        float3[] extent = [(-0.028, -0.028, -0.1345), (0.028, 0.028, 0.1345)]
+                        double height = 0.213
+                        rel material:binding:physics = </hound16pd_isaac/Physics/PhysicsMaterial>
+                        color3f[] primvars:displayColor = [(0.24, 0.25, 0.28)] (
+                            interpolation = "constant"
+                        )
+                        int[] primvars:displayColor:indices = None
+                        float[] primvars:displayOpacity = [1] (
+                            interpolation = "constant"
+                        )
+                        int[] primvars:displayOpacity:indices = None
+                        double radius = 0.028
+                        quatf xformOp:orient = (6.123234e-17, 1, 0, 0)
+                        float3 xformOp:scale = (1, 1, 1)
+                        double3 xformOp:translate = (0, 0, -0.1065)
+                        uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:orient", "xformOp:scale"]
+                    }
+
+                    def Cylinder "FR_hip_hub" (
+                        prepend apiSchemas = ["MaterialBindingAPI"]
+                    )
+                    {
+                        uniform token axis = "Z"
+                        float3[] extent = [(-0.042, -0.042, -0.014), (0.042, 0.042, 0.014)]
+                        double height = 0.028
+                        rel material:binding = </hound16pd_isaac/Materials/MatHip>
+                        color3f[] primvars:displayColor = [(0.5, 0.5, 0.5)] (
+                            interpolation = "constant"
+                        )
+                        int[] primvars:displayColor:indices = None
+                        float[] primvars:displayOpacity = [1] (
+                            interpolation = "constant"
+                        )
+                        int[] primvars:displayOpacity:indices = None
+                        double radius = 0.042
+                        quatf xformOp:orient = (0.7071068, -0.7071067, 0, 0)
+                        float3 xformOp:scale = (1, 1, 1)
+                        double3 xformOp:translate = (0, 0, 0)
+                        uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:orient", "xformOp:scale"]
+                    }
+
+                    def Xform "FR_calf" (
+                        prepend apiSchemas = ["IsaacLinkAPI"]
+                    )
+                    {
+                        quatf xformOp:orient = (1, 0, 0, 0)
+                        float3 xformOp:scale = (1, 1, 1)
+                        double3 xformOp:translate = (0, 0, -0.213)
+                        uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:orient", "xformOp:scale"]
+
+                        def Capsule "FR_calf_geom" (
+                            prepend apiSchemas = ["PhysicsCollisionAPI", "MaterialBindingAPI"]
+                        )
+                        {
+                            uniform token axis = "Z"
+                            float3[] extent = [(-0.022, -0.022, -0.117), (0.022, 0.022, 0.117)]
+                            double height = 0.19
+                            rel material:binding:physics = </hound16pd_isaac/Physics/PhysicsMaterial>
+                            color3f[] primvars:displayColor = [(0.2, 0.21, 0.24)] (
+                                interpolation = "constant"
+                            )
+                            int[] primvars:displayColor:indices = None
+                            float[] primvars:displayOpacity = [1] (
+                                interpolation = "constant"
+                            )
+                            int[] primvars:displayOpacity:indices = None
+                            double radius = 0.022
+                            quatf xformOp:orient = (6.123234e-17, 1, 0, 0)
+                            float3 xformOp:scale = (1, 1, 1)
+                            double3 xformOp:translate = (0, 0, -0.095)
+                            uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:orient", "xformOp:scale"]
+                        }
+
+                        def Cylinder "FR_knee_hub" (
+                            prepend apiSchemas = ["MaterialBindingAPI"]
+                        )
+                        {
+                            uniform token axis = "Z"
+                            float3[] extent = [(-0.034, -0.034, -0.013), (0.034, 0.034, 0.013)]
+                            double height = 0.026
+                            rel material:binding = </hound16pd_isaac/Materials/MatKnee>
+                            color3f[] primvars:displayColor = [(0.5, 0.5, 0.5)] (
+                                interpolation = "constant"
+                            )
+                            int[] primvars:displayColor:indices = None
+                            float[] primvars:displayOpacity = [1] (
+                                interpolation = "constant"
+                            )
+                            int[] primvars:displayOpacity:indices = None
+                            double radius = 0.034
+                            quatf xformOp:orient = (0.7071068, -0.7071067, 0, 0)
+                            float3 xformOp:scale = (1, 1, 1)
+                            double3 xformOp:translate = (0, 0, 0)
+                            uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:orient", "xformOp:scale"]
+                        }
+
+                        def Xform "FR_wheel" (
+                            prepend apiSchemas = ["IsaacLinkAPI"]
+                        )
+                        {
+                            quatf xformOp:orient = (1, 0, 0, 0)
+                            float3 xformOp:scale = (1, 1, 1)
+                            double3 xformOp:translate = (0, 0, -0.19)
+                            uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:orient", "xformOp:scale"]
+
+                            def Cylinder "FR_wheel_geom" (
+                                prepend apiSchemas = ["PhysicsCollisionAPI", "MaterialBindingAPI"]
+                            )
+                            {
+                                uniform token axis = "Z"
+                                float3[] extent = [(-0.085, -0.085, -0.025), (0.085, 0.085, 0.025)]
+                                double height = 0.05
+                                rel material:binding = </hound16pd_isaac/Materials/MatTyre>
+                                rel material:binding:physics = </hound16pd_isaac/Physics/PhysicsMaterial_1>
+                                color3f[] primvars:displayColor = [(0.5, 0.5, 0.5)] (
+                                    interpolation = "constant"
+                                )
+                                int[] primvars:displayColor:indices = None
+                                float[] primvars:displayOpacity = [1] (
+                                    interpolation = "constant"
+                                )
+                                int[] primvars:displayOpacity:indices = None
+                                double radius = 0.085
+                                quatf xformOp:orient = (0.7071068, -0.7071067, 0, 0)
+                                float3 xformOp:scale = (1, 1, 1)
+                                double3 xformOp:translate = (0, 0, 0)
+                                uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:orient", "xformOp:scale"]
+                            }
+
+                            def Cylinder "FR_rim" (
+                                prepend apiSchemas = ["MaterialBindingAPI"]
+                            )
+                            {
+                                uniform token axis = "Z"
+                                float3[] extent = [(-0.0468, -0.0468, -0.027), (0.0468, 0.0468, 0.027)]
+                                double height = 0.054
+                                rel material:binding = </hound16pd_isaac/Materials/MatWheel>
+                                color3f[] primvars:displayColor = [(0.5, 0.5, 0.5)] (
+                                    interpolation = "constant"
+                                )
+                                int[] primvars:displayColor:indices = None
+                                float[] primvars:displayOpacity = [1] (
+                                    interpolation = "constant"
+                                )
+                                int[] primvars:displayOpacity:indices = None
+                                double radius = 0.0468
+                                quatf xformOp:orient = (0.7071068, -0.7071067, 0, 0)
+                                float3 xformOp:scale = (1, 1, 1)
+                                double3 xformOp:translate = (0, 0, 0)
+                                uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:orient", "xformOp:scale"]
+                            }
+
+                            def Cube "FR_spoke_a" (
+                                prepend apiSchemas = ["MaterialBindingAPI"]
+                            )
+                            {
+                                float3[] extent = [(-1, -1, -1), (1, 1, 1)]
+                                rel material:binding = </hound16pd_isaac/Materials/MatSpoke>
+                                color3f[] primvars:displayColor = [(0.5, 0.5, 0.5)] (
+                                    interpolation = "constant"
+                                )
+                                int[] primvars:displayColor:indices = None
+                                float[] primvars:displayOpacity = [1] (
+                                    interpolation = "constant"
+                                )
+                                int[] primvars:displayOpacity:indices = None
+                                double size = 2
+                                quatf xformOp:orient = (1, 0, 0, 0)
+                                float3 xformOp:scale = (0.068, 0.028, 0.006)
+                                double3 xformOp:translate = (0, 0, 0)
+                                uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:orient", "xformOp:scale"]
+                            }
+
+                            def Cube "FR_spoke_b" (
+                                prepend apiSchemas = ["MaterialBindingAPI"]
+                            )
+                            {
+                                float3[] extent = [(-1, -1, -1), (1, 1, 1)]
+                                rel material:binding = </hound16pd_isaac/Materials/MatSpoke>
+                                color3f[] primvars:displayColor = [(0.5, 0.5, 0.5)] (
+                                    interpolation = "constant"
+                                )
+                                int[] primvars:displayColor:indices = None
+                                float[] primvars:displayOpacity = [1] (
+                                    interpolation = "constant"
+                                )
+                                int[] primvars:displayOpacity:indices = None
+                                double size = 2
+                                quatf xformOp:orient = (1, 0, 0, 0)
+                                float3 xformOp:scale = (0.006, 0.028, 0.068)
+                                double3 xformOp:translate = (0, 0, 0)
+                                uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:orient", "xformOp:scale"]
+                            }
+                        }
+                    }
+                }
+            }
+
+            def Xform "RL_abduct" (
+                prepend apiSchemas = ["IsaacLinkAPI"]
+            )
+            {
+                quatf xformOp:orient = (1, 0, 0, 0)
+                float3 xformOp:scale = (1, 1, 1)
+                double3 xformOp:translate = (-0.1934, 0.0465, 0)
+                uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:orient", "xformOp:scale"]
+
+                def Capsule "RL_abduct_geom" (
+                    prepend apiSchemas = ["PhysicsCollisionAPI", "MaterialBindingAPI"]
+                )
+                {
+                    uniform token axis = "Z"
+                    float3[] extent = [(-0.04, -0.04, -0.08775), (0.04, 0.04, 0.08775)]
+                    double height = 0.0955
+                    rel material:binding:physics = </hound16pd_isaac/Physics/PhysicsMaterial>
+                    color3f[] primvars:displayColor = [(0.2, 0.21, 0.24)] (
+                        interpolation = "constant"
+                    )
+                    int[] primvars:displayColor:indices = None
+                    float[] primvars:displayOpacity = [1] (
+                        interpolation = "constant"
+                    )
+                    int[] primvars:displayOpacity:indices = None
+                    double radius = 0.04
+                    quatf xformOp:orient = (0.7071068, -0.7071067, 0, 0)
+                    float3 xformOp:scale = (1, 1, 1)
+                    double3 xformOp:translate = (0, 0.04775, 0)
+                    uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:orient", "xformOp:scale"]
+                }
+
+                def Cylinder "RL_abduct_hub" (
+                    prepend apiSchemas = ["MaterialBindingAPI"]
+                )
+                {
+                    uniform token axis = "Z"
+                    float3[] extent = [(-0.044, -0.044, -0.04), (0.044, 0.044, 0.04)]
+                    double height = 0.08
+                    rel material:binding = </hound16pd_isaac/Materials/MatAbduct>
+                    color3f[] primvars:displayColor = [(0.5, 0.5, 0.5)] (
+                        interpolation = "constant"
+                    )
+                    int[] primvars:displayColor:indices = None
+                    float[] primvars:displayOpacity = [1] (
+                        interpolation = "constant"
+                    )
+                    int[] primvars:displayOpacity:indices = None
+                    double radius = 0.044
+                    quatf xformOp:orient = (0.7071068, 0, 0.7071067, 0)
+                    float3 xformOp:scale = (1, 1, 1)
+                    double3 xformOp:translate = (0, 0, 0)
+                    uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:orient", "xformOp:scale"]
+                }
+
+                def Xform "RL_thigh" (
+                    prepend apiSchemas = ["IsaacLinkAPI"]
+                )
+                {
+                    quatf xformOp:orient = (1, 0, 0, 0)
+                    float3 xformOp:scale = (1, 1, 1)
+                    double3 xformOp:translate = (0, 0.0955, 0)
+                    uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:orient", "xformOp:scale"]
+
+                    def Capsule "RL_thigh_geom" (
+                        prepend apiSchemas = ["PhysicsCollisionAPI", "MaterialBindingAPI"]
+                    )
+                    {
+                        uniform token axis = "Z"
+                        float3[] extent = [(-0.028, -0.028, -0.1345), (0.028, 0.028, 0.1345)]
+                        double height = 0.213
+                        rel material:binding:physics = </hound16pd_isaac/Physics/PhysicsMaterial>
+                        color3f[] primvars:displayColor = [(0.24, 0.25, 0.28)] (
+                            interpolation = "constant"
+                        )
+                        int[] primvars:displayColor:indices = None
+                        float[] primvars:displayOpacity = [1] (
+                            interpolation = "constant"
+                        )
+                        int[] primvars:displayOpacity:indices = None
+                        double radius = 0.028
+                        quatf xformOp:orient = (6.123234e-17, 1, 0, 0)
+                        float3 xformOp:scale = (1, 1, 1)
+                        double3 xformOp:translate = (0, 0, -0.1065)
+                        uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:orient", "xformOp:scale"]
+                    }
+
+                    def Cylinder "RL_hip_hub" (
+                        prepend apiSchemas = ["MaterialBindingAPI"]
+                    )
+                    {
+                        uniform token axis = "Z"
+                        float3[] extent = [(-0.042, -0.042, -0.014), (0.042, 0.042, 0.014)]
+                        double height = 0.028
+                        rel material:binding = </hound16pd_isaac/Materials/MatHip>
+                        color3f[] primvars:displayColor = [(0.5, 0.5, 0.5)] (
+                            interpolation = "constant"
+                        )
+                        int[] primvars:displayColor:indices = None
+                        float[] primvars:displayOpacity = [1] (
+                            interpolation = "constant"
+                        )
+                        int[] primvars:displayOpacity:indices = None
+                        double radius = 0.042
+                        quatf xformOp:orient = (0.7071068, -0.7071067, 0, 0)
+                        float3 xformOp:scale = (1, 1, 1)
+                        double3 xformOp:translate = (0, 0, 0)
+                        uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:orient", "xformOp:scale"]
+                    }
+
+                    def Xform "RL_calf" (
+                        prepend apiSchemas = ["IsaacLinkAPI"]
+                    )
+                    {
+                        quatf xformOp:orient = (1, 0, 0, 0)
+                        float3 xformOp:scale = (1, 1, 1)
+                        double3 xformOp:translate = (0, 0, -0.213)
+                        uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:orient", "xformOp:scale"]
+
+                        def Capsule "RL_calf_geom" (
+                            prepend apiSchemas = ["PhysicsCollisionAPI", "MaterialBindingAPI"]
+                        )
+                        {
+                            uniform token axis = "Z"
+                            float3[] extent = [(-0.022, -0.022, -0.117), (0.022, 0.022, 0.117)]
+                            double height = 0.19
+                            rel material:binding:physics = </hound16pd_isaac/Physics/PhysicsMaterial>
+                            color3f[] primvars:displayColor = [(0.2, 0.21, 0.24)] (
+                                interpolation = "constant"
+                            )
+                            int[] primvars:displayColor:indices = None
+                            float[] primvars:displayOpacity = [1] (
+                                interpolation = "constant"
+                            )
+                            int[] primvars:displayOpacity:indices = None
+                            double radius = 0.022
+                            quatf xformOp:orient = (6.123234e-17, 1, 0, 0)
+                            float3 xformOp:scale = (1, 1, 1)
+                            double3 xformOp:translate = (0, 0, -0.095)
+                            uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:orient", "xformOp:scale"]
+                        }
+
+                        def Cylinder "RL_knee_hub" (
+                            prepend apiSchemas = ["MaterialBindingAPI"]
+                        )
+                        {
+                            uniform token axis = "Z"
+                            float3[] extent = [(-0.034, -0.034, -0.013), (0.034, 0.034, 0.013)]
+                            double height = 0.026
+                            rel material:binding = </hound16pd_isaac/Materials/MatKnee>
+                            color3f[] primvars:displayColor = [(0.5, 0.5, 0.5)] (
+                                interpolation = "constant"
+                            )
+                            int[] primvars:displayColor:indices = None
+                            float[] primvars:displayOpacity = [1] (
+                                interpolation = "constant"
+                            )
+                            int[] primvars:displayOpacity:indices = None
+                            double radius = 0.034
+                            quatf xformOp:orient = (0.7071068, -0.7071067, 0, 0)
+                            float3 xformOp:scale = (1, 1, 1)
+                            double3 xformOp:translate = (0, 0, 0)
+                            uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:orient", "xformOp:scale"]
+                        }
+
+                        def Xform "RL_wheel" (
+                            prepend apiSchemas = ["IsaacLinkAPI"]
+                        )
+                        {
+                            quatf xformOp:orient = (1, 0, 0, 0)
+                            float3 xformOp:scale = (1, 1, 1)
+                            double3 xformOp:translate = (0, 0, -0.19)
+                            uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:orient", "xformOp:scale"]
+
+                            def Cylinder "RL_wheel_geom" (
+                                prepend apiSchemas = ["PhysicsCollisionAPI", "MaterialBindingAPI"]
+                            )
+                            {
+                                uniform token axis = "Z"
+                                float3[] extent = [(-0.085, -0.085, -0.025), (0.085, 0.085, 0.025)]
+                                double height = 0.05
+                                rel material:binding = </hound16pd_isaac/Materials/MatTyre>
+                                rel material:binding:physics = </hound16pd_isaac/Physics/PhysicsMaterial_1>
+                                color3f[] primvars:displayColor = [(0.5, 0.5, 0.5)] (
+                                    interpolation = "constant"
+                                )
+                                int[] primvars:displayColor:indices = None
+                                float[] primvars:displayOpacity = [1] (
+                                    interpolation = "constant"
+                                )
+                                int[] primvars:displayOpacity:indices = None
+                                double radius = 0.085
+                                quatf xformOp:orient = (0.7071068, -0.7071067, 0, 0)
+                                float3 xformOp:scale = (1, 1, 1)
+                                double3 xformOp:translate = (0, 0, 0)
+                                uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:orient", "xformOp:scale"]
+                            }
+
+                            def Cylinder "RL_rim" (
+                                prepend apiSchemas = ["MaterialBindingAPI"]
+                            )
+                            {
+                                uniform token axis = "Z"
+                                float3[] extent = [(-0.0468, -0.0468, -0.027), (0.0468, 0.0468, 0.027)]
+                                double height = 0.054
+                                rel material:binding = </hound16pd_isaac/Materials/MatWheel>
+                                color3f[] primvars:displayColor = [(0.5, 0.5, 0.5)] (
+                                    interpolation = "constant"
+                                )
+                                int[] primvars:displayColor:indices = None
+                                float[] primvars:displayOpacity = [1] (
+                                    interpolation = "constant"
+                                )
+                                int[] primvars:displayOpacity:indices = None
+                                double radius = 0.0468
+                                quatf xformOp:orient = (0.7071068, -0.7071067, 0, 0)
+                                float3 xformOp:scale = (1, 1, 1)
+                                double3 xformOp:translate = (0, 0, 0)
+                                uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:orient", "xformOp:scale"]
+                            }
+
+                            def Cube "RL_spoke_a" (
+                                prepend apiSchemas = ["MaterialBindingAPI"]
+                            )
+                            {
+                                float3[] extent = [(-1, -1, -1), (1, 1, 1)]
+                                rel material:binding = </hound16pd_isaac/Materials/MatSpoke>
+                                color3f[] primvars:displayColor = [(0.5, 0.5, 0.5)] (
+                                    interpolation = "constant"
+                                )
+                                int[] primvars:displayColor:indices = None
+                                float[] primvars:displayOpacity = [1] (
+                                    interpolation = "constant"
+                                )
+                                int[] primvars:displayOpacity:indices = None
+                                double size = 2
+                                quatf xformOp:orient = (1, 0, 0, 0)
+                                float3 xformOp:scale = (0.068, 0.028, 0.006)
+                                double3 xformOp:translate = (0, 0, 0)
+                                uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:orient", "xformOp:scale"]
+                            }
+
+                            def Cube "RL_spoke_b" (
+                                prepend apiSchemas = ["MaterialBindingAPI"]
+                            )
+                            {
+                                float3[] extent = [(-1, -1, -1), (1, 1, 1)]
+                                rel material:binding = </hound16pd_isaac/Materials/MatSpoke>
+                                color3f[] primvars:displayColor = [(0.5, 0.5, 0.5)] (
+                                    interpolation = "constant"
+                                )
+                                int[] primvars:displayColor:indices = None
+                                float[] primvars:displayOpacity = [1] (
+                                    interpolation = "constant"
+                                )
+                                int[] primvars:displayOpacity:indices = None
+                                double size = 2
+                                quatf xformOp:orient = (1, 0, 0, 0)
+                                float3 xformOp:scale = (0.006, 0.028, 0.068)
+                                double3 xformOp:translate = (0, 0, 0)
+                                uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:orient", "xformOp:scale"]
+                            }
+                        }
+                    }
+                }
+            }
+
+            def Xform "RR_abduct" (
+                prepend apiSchemas = ["IsaacLinkAPI"]
+            )
+            {
+                quatf xformOp:orient = (1, 0, 0, 0)
+                float3 xformOp:scale = (1, 1, 1)
+                double3 xformOp:translate = (-0.1934, -0.0465, 0)
+                uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:orient", "xformOp:scale"]
+
+                def Capsule "RR_abduct_geom" (
+                    prepend apiSchemas = ["PhysicsCollisionAPI", "MaterialBindingAPI"]
+                )
+                {
+                    uniform token axis = "Z"
+                    float3[] extent = [(-0.04, -0.04, -0.08775), (0.04, 0.04, 0.08775)]
+                    double height = 0.0955
+                    rel material:binding:physics = </hound16pd_isaac/Physics/PhysicsMaterial>
+                    color3f[] primvars:displayColor = [(0.2, 0.21, 0.24)] (
+                        interpolation = "constant"
+                    )
+                    int[] primvars:displayColor:indices = None
+                    float[] primvars:displayOpacity = [1] (
+                        interpolation = "constant"
+                    )
+                    int[] primvars:displayOpacity:indices = None
+                    double radius = 0.04
+                    quatf xformOp:orient = (0.7071068, 0.7071067, 0, 0)
+                    float3 xformOp:scale = (1, 1, 1)
+                    double3 xformOp:translate = (0, -0.04775, 0)
+                    uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:orient", "xformOp:scale"]
+                }
+
+                def Cylinder "RR_abduct_hub" (
+                    prepend apiSchemas = ["MaterialBindingAPI"]
+                )
+                {
+                    uniform token axis = "Z"
+                    float3[] extent = [(-0.044, -0.044, -0.04), (0.044, 0.044, 0.04)]
+                    double height = 0.08
+                    rel material:binding = </hound16pd_isaac/Materials/MatAbduct>
+                    color3f[] primvars:displayColor = [(0.5, 0.5, 0.5)] (
+                        interpolation = "constant"
+                    )
+                    int[] primvars:displayColor:indices = None
+                    float[] primvars:displayOpacity = [1] (
+                        interpolation = "constant"
+                    )
+                    int[] primvars:displayOpacity:indices = None
+                    double radius = 0.044
+                    quatf xformOp:orient = (0.7071068, 0, 0.7071067, 0)
+                    float3 xformOp:scale = (1, 1, 1)
+                    double3 xformOp:translate = (0, 0, 0)
+                    uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:orient", "xformOp:scale"]
+                }
+
+                def Xform "RR_thigh" (
+                    prepend apiSchemas = ["IsaacLinkAPI"]
+                )
+                {
+                    quatf xformOp:orient = (1, 0, 0, 0)
+                    float3 xformOp:scale = (1, 1, 1)
+                    double3 xformOp:translate = (0, -0.0955, 0)
+                    uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:orient", "xformOp:scale"]
+
+                    def Capsule "RR_thigh_geom" (
+                        prepend apiSchemas = ["PhysicsCollisionAPI", "MaterialBindingAPI"]
+                    )
+                    {
+                        uniform token axis = "Z"
+                        float3[] extent = [(-0.028, -0.028, -0.1345), (0.028, 0.028, 0.1345)]
+                        double height = 0.213
+                        rel material:binding:physics = </hound16pd_isaac/Physics/PhysicsMaterial>
+                        color3f[] primvars:displayColor = [(0.24, 0.25, 0.28)] (
+                            interpolation = "constant"
+                        )
+                        int[] primvars:displayColor:indices = None
+                        float[] primvars:displayOpacity = [1] (
+                            interpolation = "constant"
+                        )
+                        int[] primvars:displayOpacity:indices = None
+                        double radius = 0.028
+                        quatf xformOp:orient = (6.123234e-17, 1, 0, 0)
+                        float3 xformOp:scale = (1, 1, 1)
+                        double3 xformOp:translate = (0, 0, -0.1065)
+                        uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:orient", "xformOp:scale"]
+                    }
+
+                    def Cylinder "RR_hip_hub" (
+                        prepend apiSchemas = ["MaterialBindingAPI"]
+                    )
+                    {
+                        uniform token axis = "Z"
+                        float3[] extent = [(-0.042, -0.042, -0.014), (0.042, 0.042, 0.014)]
+                        double height = 0.028
+                        rel material:binding = </hound16pd_isaac/Materials/MatHip>
+                        color3f[] primvars:displayColor = [(0.5, 0.5, 0.5)] (
+                            interpolation = "constant"
+                        )
+                        int[] primvars:displayColor:indices = None
+                        float[] primvars:displayOpacity = [1] (
+                            interpolation = "constant"
+                        )
+                        int[] primvars:displayOpacity:indices = None
+                        double radius = 0.042
+                        quatf xformOp:orient = (0.7071068, -0.7071067, 0, 0)
+                        float3 xformOp:scale = (1, 1, 1)
+                        double3 xformOp:translate = (0, 0, 0)
+                        uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:orient", "xformOp:scale"]
+                    }
+
+                    def Xform "RR_calf" (
+                        prepend apiSchemas = ["IsaacLinkAPI"]
+                    )
+                    {
+                        quatf xformOp:orient = (1, 0, 0, 0)
+                        float3 xformOp:scale = (1, 1, 1)
+                        double3 xformOp:translate = (0, 0, -0.213)
+                        uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:orient", "xformOp:scale"]
+
+                        def Capsule "RR_calf_geom" (
+                            prepend apiSchemas = ["PhysicsCollisionAPI", "MaterialBindingAPI"]
+                        )
+                        {
+                            uniform token axis = "Z"
+                            float3[] extent = [(-0.022, -0.022, -0.117), (0.022, 0.022, 0.117)]
+                            double height = 0.19
+                            rel material:binding:physics = </hound16pd_isaac/Physics/PhysicsMaterial>
+                            color3f[] primvars:displayColor = [(0.2, 0.21, 0.24)] (
+                                interpolation = "constant"
+                            )
+                            int[] primvars:displayColor:indices = None
+                            float[] primvars:displayOpacity = [1] (
+                                interpolation = "constant"
+                            )
+                            int[] primvars:displayOpacity:indices = None
+                            double radius = 0.022
+                            quatf xformOp:orient = (6.123234e-17, 1, 0, 0)
+                            float3 xformOp:scale = (1, 1, 1)
+                            double3 xformOp:translate = (0, 0, -0.095)
+                            uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:orient", "xformOp:scale"]
+                        }
+
+                        def Cylinder "RR_knee_hub" (
+                            prepend apiSchemas = ["MaterialBindingAPI"]
+                        )
+                        {
+                            uniform token axis = "Z"
+                            float3[] extent = [(-0.034, -0.034, -0.013), (0.034, 0.034, 0.013)]
+                            double height = 0.026
+                            rel material:binding = </hound16pd_isaac/Materials/MatKnee>
+                            color3f[] primvars:displayColor = [(0.5, 0.5, 0.5)] (
+                                interpolation = "constant"
+                            )
+                            int[] primvars:displayColor:indices = None
+                            float[] primvars:displayOpacity = [1] (
+                                interpolation = "constant"
+                            )
+                            int[] primvars:displayOpacity:indices = None
+                            double radius = 0.034
+                            quatf xformOp:orient = (0.7071068, -0.7071067, 0, 0)
+                            float3 xformOp:scale = (1, 1, 1)
+                            double3 xformOp:translate = (0, 0, 0)
+                            uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:orient", "xformOp:scale"]
+                        }
+
+                        def Xform "RR_wheel" (
+                            prepend apiSchemas = ["IsaacLinkAPI"]
+                        )
+                        {
+                            quatf xformOp:orient = (1, 0, 0, 0)
+                            float3 xformOp:scale = (1, 1, 1)
+                            double3 xformOp:translate = (0, 0, -0.19)
+                            uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:orient", "xformOp:scale"]
+
+                            def Cylinder "RR_wheel_geom" (
+                                prepend apiSchemas = ["PhysicsCollisionAPI", "MaterialBindingAPI"]
+                            )
+                            {
+                                uniform token axis = "Z"
+                                float3[] extent = [(-0.085, -0.085, -0.025), (0.085, 0.085, 0.025)]
+                                double height = 0.05
+                                rel material:binding = </hound16pd_isaac/Materials/MatTyre>
+                                rel material:binding:physics = </hound16pd_isaac/Physics/PhysicsMaterial_1>
+                                color3f[] primvars:displayColor = [(0.5, 0.5, 0.5)] (
+                                    interpolation = "constant"
+                                )
+                                int[] primvars:displayColor:indices = None
+                                float[] primvars:displayOpacity = [1] (
+                                    interpolation = "constant"
+                                )
+                                int[] primvars:displayOpacity:indices = None
+                                double radius = 0.085
+                                quatf xformOp:orient = (0.7071068, -0.7071067, 0, 0)
+                                float3 xformOp:scale = (1, 1, 1)
+                                double3 xformOp:translate = (0, 0, 0)
+                                uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:orient", "xformOp:scale"]
+                            }
+
+                            def Cylinder "RR_rim" (
+                                prepend apiSchemas = ["MaterialBindingAPI"]
+                            )
+                            {
+                                uniform token axis = "Z"
+                                float3[] extent = [(-0.0468, -0.0468, -0.027), (0.0468, 0.0468, 0.027)]
+                                double height = 0.054
+                                rel material:binding = </hound16pd_isaac/Materials/MatWheel>
+                                color3f[] primvars:displayColor = [(0.5, 0.5, 0.5)] (
+                                    interpolation = "constant"
+                                )
+                                int[] primvars:displayColor:indices = None
+                                float[] primvars:displayOpacity = [1] (
+                                    interpolation = "constant"
+                                )
+                                int[] primvars:displayOpacity:indices = None
+                                double radius = 0.0468
+                                quatf xformOp:orient = (0.7071068, -0.7071067, 0, 0)
+                                float3 xformOp:scale = (1, 1, 1)
+                                double3 xformOp:translate = (0, 0, 0)
+                                uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:orient", "xformOp:scale"]
+                            }
+
+                            def Cube "RR_spoke_a" (
+                                prepend apiSchemas = ["MaterialBindingAPI"]
+                            )
+                            {
+                                float3[] extent = [(-1, -1, -1), (1, 1, 1)]
+                                rel material:binding = </hound16pd_isaac/Materials/MatSpoke>
+                                color3f[] primvars:displayColor = [(0.5, 0.5, 0.5)] (
+                                    interpolation = "constant"
+                                )
+                                int[] primvars:displayColor:indices = None
+                                float[] primvars:displayOpacity = [1] (
+                                    interpolation = "constant"
+                                )
+                                int[] primvars:displayOpacity:indices = None
+                                double size = 2
+                                quatf xformOp:orient = (1, 0, 0, 0)
+                                float3 xformOp:scale = (0.068, 0.028, 0.006)
+                                double3 xformOp:translate = (0, 0, 0)
+                                uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:orient", "xformOp:scale"]
+                            }
+
+                            def Cube "RR_spoke_b" (
+                                prepend apiSchemas = ["MaterialBindingAPI"]
+                            )
+                            {
+                                float3[] extent = [(-1, -1, -1), (1, 1, 1)]
+                                rel material:binding = </hound16pd_isaac/Materials/MatSpoke>
+                                color3f[] primvars:displayColor = [(0.5, 0.5, 0.5)] (
+                                    interpolation = "constant"
+                                )
+                                int[] primvars:displayColor:indices = None
+                                float[] primvars:displayOpacity = [1] (
+                                    interpolation = "constant"
+                                )
+                                int[] primvars:displayOpacity:indices = None
+                                double size = 2
+                                quatf xformOp:orient = (1, 0, 0, 0)
+                                float3 xformOp:scale = (0.006, 0.028, 0.068)
+                                double3 xformOp:translate = (0, 0, 0)
+                                uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:orient", "xformOp:scale"]
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    def Scope "Materials"
+    {
+        def Material "MatShell" (
+            instanceable = true
+            prepend references = @./materials.usda@</Materials/MatShell>
+        )
+        {
+        }
+
+        def Material "MatLens" (
+            instanceable = true
+            prepend references = @./materials.usda@</Materials/MatLens>
+        )
+        {
+        }
+
+        def Material "MatAbduct" (
+            instanceable = true
+            prepend references = @./materials.usda@</Materials/MatAbduct>
+        )
+        {
+        }
+
+        def Material "MatHip" (
+            instanceable = true
+            prepend references = @./materials.usda@</Materials/MatHip>
+        )
+        {
+        }
+
+        def Material "MatKnee" (
+            instanceable = true
+            prepend references = @./materials.usda@</Materials/MatKnee>
+        )
+        {
+        }
+
+        def Material "MatTyre" (
+            instanceable = true
+            prepend references = @./materials.usda@</Materials/MatTyre>
+        )
+        {
+        }
+
+        def Material "MatWheel" (
+            instanceable = true
+            prepend references = @./materials.usda@</Materials/MatWheel>
+        )
+        {
+        }
+
+        def Material "MatSpoke" (
+            instanceable = true
+            prepend references = @./materials.usda@</Materials/MatSpoke>
+        )
+        {
+        }
+    }
+
+    def Scope "Physics"
+    {
+        def Material "PhysicsMaterial"
+        {
+        }
+
+        def Material "PhysicsMaterial_1"
+        {
+        }
+    }
+}
+

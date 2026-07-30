@@ -80,3 +80,14 @@ MUJOCO_LOG.TXT
 # Isaac Lab / Newton viewer runtime state. The imgui window layout is written
 # into the CWD on exit, so it appears wherever a viewer was launched from.
 imgui.ini
+
+# Isaac Lab's MjcfConverter bookkeeping, written beside the USD it produces.
+# `config.yaml` records the ABSOLUTE input path on the machine that ran the
+# conversion and `.asset_hash` keys the laziness check against it, so both are
+# properties of one working copy rather than of the project — committing them
+# would put this machine's home directory in a public repo and would make a
+# clone elsewhere trust a hash it cannot reproduce. The generated MJCF and the
+# USD tree next to them ARE tracked; regenerate with
+#   PYTHONPATH=src ~/IsaacLab/isaaclab.sh -p -m bestiary.isaac.hound_usd
+assets/*/isaac/config.yaml
+assets/*/isaac/.asset_hash

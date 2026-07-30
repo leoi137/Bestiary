@@ -16,10 +16,18 @@ straight over to Isaac Lab's own `train_rsl_rl.run()`, instead of us
 reimplementing a PPO training loop. Import anything heavy here and that breaks:
 the config would be imported before the app is up.
 
-The agent configs are reused verbatim from Isaac Lab's anymal_c package. Our
-tasks differ from theirs in the terrain and nothing else, so the PPO
-hyperparameters should be identical -- otherwise a throughput or reward
-comparison against their rough task measures two changes at once.
+The agent configs are reused verbatim from Isaac Lab's anymal_c package. For the
+ANYmal tasks that is exactly right: they differ from theirs in the terrain and
+nothing else, so the PPO hyperparameters should be identical -- otherwise a
+throughput or reward comparison against their rough task measures two changes at
+once.
+
+For the HOUND tasks the same reuse is a placeholder, not a control. A 16-DoF
+wheel-legged machine with two action groups is not the robot those
+hyperparameters were tuned for, and the reward they optimise is ANYmal's too.
+The Hound ids exist so a viewer and an oracle can reach a config; see
+`hound_desert_env_cfg.py`'s docstring for what is still missing before either
+should be trained.
 """
 
 from __future__ import annotations
@@ -33,17 +41,24 @@ _RSL_RL_CFG = (
     ":AnymalCRoughPPORunnerCfg"
 )
 
-_ENV_CFG_MODULE = "bestiary.isaac.anymal_desert_env_cfg"
+_ANYMAL_CFG_MODULE = "bestiary.isaac.anymal_desert_env_cfg"
+_HOUND_CFG_MODULE = "bestiary.isaac.hound_desert_env_cfg"
 
 
 def register() -> None:
     """Register the Bestiary tasks. Idempotent -- safe to call more than once."""
     specs = (
-        ("Bestiary-Desert-Anymal-C-v0", "AnymalCDesertEnvCfg"),
-        ("Bestiary-Desert-Coarse-Anymal-C-v0", "AnymalCDesertCoarseEnvCfg"),
-        ("Bestiary-Desert-Anymal-C-Play-v0", "AnymalCDesertEnvCfg_PLAY"),
+        ("Bestiary-Desert-Anymal-C-v0", f"{_ANYMAL_CFG_MODULE}:AnymalCDesertEnvCfg"),
+        ("Bestiary-Desert-Coarse-Anymal-C-v0", f"{_ANYMAL_CFG_MODULE}:AnymalCDesertCoarseEnvCfg"),
+        ("Bestiary-Desert-Anymal-C-Play-v0", f"{_ANYMAL_CFG_MODULE}:AnymalCDesertEnvCfg_PLAY"),
+        # Hound. NOT ready to train: the reward is ANYmal-C's, inherited whole,
+        # and `feet_air_time` on a wheel pays the machine to hop. The env cfg's
+        # module docstring says so at length. Registered because a task id is
+        # how a viewer and an oracle reach a config, not because it is finished.
+        ("Bestiary-Desert-Hound-v0", f"{_HOUND_CFG_MODULE}:HoundDesertEnvCfg"),
+        ("Bestiary-Desert-Hound-Play-v0", f"{_HOUND_CFG_MODULE}:HoundDesertEnvCfg_PLAY"),
     )
-    for task_id, cls_name in specs:
+    for task_id, cfg_entry_point in specs:
         if task_id in gym.registry:
             continue
         gym.register(
@@ -51,7 +66,7 @@ def register() -> None:
             entry_point="isaaclab.envs:ManagerBasedRLEnv",
             disable_env_checker=True,
             kwargs={
-                "env_cfg_entry_point": f"{_ENV_CFG_MODULE}:{cls_name}",
+                "env_cfg_entry_point": cfg_entry_point,
                 "rsl_rl_cfg_entry_point": _RSL_RL_CFG,
             },
         )

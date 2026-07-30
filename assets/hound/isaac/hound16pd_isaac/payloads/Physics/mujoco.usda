@@ -1,0 +1,847 @@
+#usda 1.0
+(
+    customLayerData = {
+        string creator = "MuJoCo USD Converter v0.2.0"
+    }
+    defaultPrim = "hound16pd_isaac"
+    doc = """Generated from Composed Stage of root layer /tmp/tmp1wkxk2iw/hound16pd_isaac.usdc
+
+
+Generated from Composed Stage of root layer /tmp/mjcf_import_hound16pd_isaac_apr2pb73/usdex_hound16pd_isaac/hound16pd_isaac.usdc
+
+
+Generated from Composed Stage of root layer /tmp/mjcf_import_hound16pd_isaac_apr2pb73/temp_hound16pd_isaac/hound16pd_isaac.usd
+
+
+Generated from Composed Stage of root layer /home/leandro/Desktop/Resources/Robotics/Bestiary/assets/hound/isaac/hound16pd_isaac/payloads/base.usd
+"""
+    kilogramsPerUnit = 1
+    metersPerUnit = 1
+    subLayers = [
+        @./physics.usda@
+    ]
+    upAxis = "Z"
+)
+
+over "hound16pd_isaac"
+{
+    over "Geometry"
+    {
+        over "trunk"
+        {
+            over "trunk_geom" (
+                prepend apiSchemas = ["MjcCollisionAPI"]
+            )
+            {
+                uniform double mjc:margin = 0.001
+            }
+
+            over "head_pod" (
+                prepend apiSchemas = ["MjcImageableAPI"]
+            )
+            {
+                uniform int mjc:group = 2
+            }
+
+            over "head_lens" (
+                prepend apiSchemas = ["MjcImageableAPI"]
+            )
+            {
+                uniform int mjc:group = 2
+            }
+
+            over "deck" (
+                prepend apiSchemas = ["MjcImageableAPI"]
+            )
+            {
+                uniform int mjc:group = 2
+            }
+
+            over "tail_mast" (
+                prepend apiSchemas = ["MjcImageableAPI"]
+            )
+            {
+                uniform int mjc:group = 2
+            }
+
+            over "FL_abduct"
+            {
+                over "FL_abduct_geom" (
+                    prepend apiSchemas = ["MjcCollisionAPI"]
+                )
+                {
+                    uniform double mjc:margin = 0.001
+                }
+
+                over "FL_abduct_hub" (
+                    prepend apiSchemas = ["MjcImageableAPI"]
+                )
+                {
+                    uniform int mjc:group = 2
+                }
+
+                over "FL_thigh"
+                {
+                    over "FL_thigh_geom" (
+                        prepend apiSchemas = ["MjcCollisionAPI"]
+                    )
+                    {
+                        uniform double mjc:margin = 0.001
+                    }
+
+                    over "FL_hip_hub" (
+                        prepend apiSchemas = ["MjcImageableAPI"]
+                    )
+                    {
+                        uniform int mjc:group = 2
+                    }
+
+                    over "FL_calf"
+                    {
+                        over "FL_calf_geom" (
+                            prepend apiSchemas = ["MjcCollisionAPI"]
+                        )
+                        {
+                            uniform double mjc:margin = 0.001
+                        }
+
+                        over "FL_knee_hub" (
+                            prepend apiSchemas = ["MjcImageableAPI"]
+                        )
+                        {
+                            uniform int mjc:group = 2
+                        }
+
+                        over "FL_wheel"
+                        {
+                            over "FL_wheel_geom" (
+                                prepend apiSchemas = ["MjcCollisionAPI"]
+                            )
+                            {
+                                uniform int mjc:priority = 1
+                                uniform double[] mjc:solimp = [0.95, 0.99, 0.001, 0.5, 2]
+                            }
+
+                            over "FL_rim" (
+                                prepend apiSchemas = ["MjcImageableAPI"]
+                            )
+                            {
+                                uniform int mjc:group = 2
+                            }
+
+                            over "FL_spoke_a" (
+                                prepend apiSchemas = ["MjcImageableAPI"]
+                            )
+                            {
+                                uniform int mjc:group = 2
+                            }
+
+                            over "FL_spoke_b" (
+                                prepend apiSchemas = ["MjcImageableAPI"]
+                            )
+                            {
+                                uniform int mjc:group = 2
+                            }
+
+                            over "FL_wheel" (
+                                delete apiSchemas = ["PhysicsDriveAPI:angular", "PhysicsJointStateAPI:angular"]
+                                prepend apiSchemas = ["MjcJointAPI"]
+                            )
+                            {
+                                uniform double mjc:armature = 0.004
+                                uniform double mjc:damping = 0.05
+                                uniform double mjc:frictionloss = 0.399
+                            }
+                        }
+
+                        over "FL_knee" (
+                            delete apiSchemas = ["PhysicsDriveAPI:angular", "PhysicsJointStateAPI:angular"]
+                            prepend apiSchemas = ["MjcJointAPI"]
+                        )
+                        {
+                            uniform double mjc:armature = 0.01
+                            uniform double mjc:damping = 1.5
+                            uniform double mjc:frictionloss = 0.2
+                            uniform double mjc:springref = -1.459727
+                            uniform double mjc:stiffness = 32.77
+                        }
+                    }
+
+                    over "FL_hip" (
+                        delete apiSchemas = ["PhysicsDriveAPI:angular", "PhysicsJointStateAPI:angular"]
+                        prepend apiSchemas = ["MjcJointAPI"]
+                    )
+                    {
+                        uniform double mjc:armature = 0.01
+                        uniform double mjc:damping = 1.5
+                        uniform double mjc:frictionloss = 0.2
+                        uniform double mjc:springref = 0.8034
+                        uniform double mjc:stiffness = 18.58
+                    }
+                }
+
+                over "FL_abduct" (
+                    delete apiSchemas = ["PhysicsDriveAPI:angular", "PhysicsJointStateAPI:angular"]
+                    prepend apiSchemas = ["MjcJointAPI"]
+                )
+                {
+                    uniform double mjc:armature = 0.01
+                    uniform double mjc:damping = 1.5
+                    uniform double mjc:frictionloss = 0.2
+                    uniform double mjc:springref = -0.16
+                    uniform double mjc:stiffness = 12.12
+                }
+            }
+
+            over "FR_abduct"
+            {
+                over "FR_abduct_geom" (
+                    prepend apiSchemas = ["MjcCollisionAPI"]
+                )
+                {
+                    uniform double mjc:margin = 0.001
+                }
+
+                over "FR_abduct_hub" (
+                    prepend apiSchemas = ["MjcImageableAPI"]
+                )
+                {
+                    uniform int mjc:group = 2
+                }
+
+                over "FR_thigh"
+                {
+                    over "FR_thigh_geom" (
+                        prepend apiSchemas = ["MjcCollisionAPI"]
+                    )
+                    {
+                        uniform double mjc:margin = 0.001
+                    }
+
+                    over "FR_hip_hub" (
+                        prepend apiSchemas = ["MjcImageableAPI"]
+                    )
+                    {
+                        uniform int mjc:group = 2
+                    }
+
+                    over "FR_calf"
+                    {
+                        over "FR_calf_geom" (
+                            prepend apiSchemas = ["MjcCollisionAPI"]
+                        )
+                        {
+                            uniform double mjc:margin = 0.001
+                        }
+
+                        over "FR_knee_hub" (
+                            prepend apiSchemas = ["MjcImageableAPI"]
+                        )
+                        {
+                            uniform int mjc:group = 2
+                        }
+
+                        over "FR_wheel"
+                        {
+                            over "FR_wheel_geom" (
+                                prepend apiSchemas = ["MjcCollisionAPI"]
+                            )
+                            {
+                                uniform int mjc:priority = 1
+                                uniform double[] mjc:solimp = [0.95, 0.99, 0.001, 0.5, 2]
+                            }
+
+                            over "FR_rim" (
+                                prepend apiSchemas = ["MjcImageableAPI"]
+                            )
+                            {
+                                uniform int mjc:group = 2
+                            }
+
+                            over "FR_spoke_a" (
+                                prepend apiSchemas = ["MjcImageableAPI"]
+                            )
+                            {
+                                uniform int mjc:group = 2
+                            }
+
+                            over "FR_spoke_b" (
+                                prepend apiSchemas = ["MjcImageableAPI"]
+                            )
+                            {
+                                uniform int mjc:group = 2
+                            }
+
+                            over "FR_wheel" (
+                                delete apiSchemas = ["PhysicsDriveAPI:angular", "PhysicsJointStateAPI:angular"]
+                                prepend apiSchemas = ["MjcJointAPI"]
+                            )
+                            {
+                                uniform double mjc:armature = 0.004
+                                uniform double mjc:damping = 0.05
+                                uniform double mjc:frictionloss = 0.399
+                            }
+                        }
+
+                        over "FR_knee" (
+                            delete apiSchemas = ["PhysicsDriveAPI:angular", "PhysicsJointStateAPI:angular"]
+                            prepend apiSchemas = ["MjcJointAPI"]
+                        )
+                        {
+                            uniform double mjc:armature = 0.01
+                            uniform double mjc:damping = 1.5
+                            uniform double mjc:frictionloss = 0.2
+                            uniform double mjc:springref = -1.459727
+                            uniform double mjc:stiffness = 32.77
+                        }
+                    }
+
+                    over "FR_hip" (
+                        delete apiSchemas = ["PhysicsDriveAPI:angular", "PhysicsJointStateAPI:angular"]
+                        prepend apiSchemas = ["MjcJointAPI"]
+                    )
+                    {
+                        uniform double mjc:armature = 0.01
+                        uniform double mjc:damping = 1.5
+                        uniform double mjc:frictionloss = 0.2
+                        uniform double mjc:springref = 0.8034
+                        uniform double mjc:stiffness = 18.58
+                    }
+                }
+
+                over "FR_abduct" (
+                    delete apiSchemas = ["PhysicsDriveAPI:angular", "PhysicsJointStateAPI:angular"]
+                    prepend apiSchemas = ["MjcJointAPI"]
+                )
+                {
+                    uniform double mjc:armature = 0.01
+                    uniform double mjc:damping = 1.5
+                    uniform double mjc:frictionloss = 0.2
+                    uniform double mjc:springref = 0.16
+                    uniform double mjc:stiffness = 12.12
+                }
+            }
+
+            over "RL_abduct"
+            {
+                over "RL_abduct_geom" (
+                    prepend apiSchemas = ["MjcCollisionAPI"]
+                )
+                {
+                    uniform double mjc:margin = 0.001
+                }
+
+                over "RL_abduct_hub" (
+                    prepend apiSchemas = ["MjcImageableAPI"]
+                )
+                {
+                    uniform int mjc:group = 2
+                }
+
+                over "RL_thigh"
+                {
+                    over "RL_thigh_geom" (
+                        prepend apiSchemas = ["MjcCollisionAPI"]
+                    )
+                    {
+                        uniform double mjc:margin = 0.001
+                    }
+
+                    over "RL_hip_hub" (
+                        prepend apiSchemas = ["MjcImageableAPI"]
+                    )
+                    {
+                        uniform int mjc:group = 2
+                    }
+
+                    over "RL_calf"
+                    {
+                        over "RL_calf_geom" (
+                            prepend apiSchemas = ["MjcCollisionAPI"]
+                        )
+                        {
+                            uniform double mjc:margin = 0.001
+                        }
+
+                        over "RL_knee_hub" (
+                            prepend apiSchemas = ["MjcImageableAPI"]
+                        )
+                        {
+                            uniform int mjc:group = 2
+                        }
+
+                        over "RL_wheel"
+                        {
+                            over "RL_wheel_geom" (
+                                prepend apiSchemas = ["MjcCollisionAPI"]
+                            )
+                            {
+                                uniform int mjc:priority = 1
+                                uniform double[] mjc:solimp = [0.95, 0.99, 0.001, 0.5, 2]
+                            }
+
+                            over "RL_rim" (
+                                prepend apiSchemas = ["MjcImageableAPI"]
+                            )
+                            {
+                                uniform int mjc:group = 2
+                            }
+
+                            over "RL_spoke_a" (
+                                prepend apiSchemas = ["MjcImageableAPI"]
+                            )
+                            {
+                                uniform int mjc:group = 2
+                            }
+
+                            over "RL_spoke_b" (
+                                prepend apiSchemas = ["MjcImageableAPI"]
+                            )
+                            {
+                                uniform int mjc:group = 2
+                            }
+
+                            over "RL_wheel" (
+                                delete apiSchemas = ["PhysicsDriveAPI:angular", "PhysicsJointStateAPI:angular"]
+                                prepend apiSchemas = ["MjcJointAPI"]
+                            )
+                            {
+                                uniform double mjc:armature = 0.004
+                                uniform double mjc:damping = 0.05
+                                uniform double mjc:frictionloss = 0.399
+                            }
+                        }
+
+                        over "RL_knee" (
+                            delete apiSchemas = ["PhysicsDriveAPI:angular", "PhysicsJointStateAPI:angular"]
+                            prepend apiSchemas = ["MjcJointAPI"]
+                        )
+                        {
+                            uniform double mjc:armature = 0.01
+                            uniform double mjc:damping = 1.5
+                            uniform double mjc:frictionloss = 0.2
+                            uniform double mjc:springref = -1.459727
+                            uniform double mjc:stiffness = 32.77
+                        }
+                    }
+
+                    over "RL_hip" (
+                        delete apiSchemas = ["PhysicsDriveAPI:angular", "PhysicsJointStateAPI:angular"]
+                        prepend apiSchemas = ["MjcJointAPI"]
+                    )
+                    {
+                        uniform double mjc:armature = 0.01
+                        uniform double mjc:damping = 1.5
+                        uniform double mjc:frictionloss = 0.2
+                        uniform double mjc:springref = 0.8034
+                        uniform double mjc:stiffness = 18.58
+                    }
+                }
+
+                over "RL_abduct" (
+                    delete apiSchemas = ["PhysicsDriveAPI:angular", "PhysicsJointStateAPI:angular"]
+                    prepend apiSchemas = ["MjcJointAPI"]
+                )
+                {
+                    uniform double mjc:armature = 0.01
+                    uniform double mjc:damping = 1.5
+                    uniform double mjc:frictionloss = 0.2
+                    uniform double mjc:springref = -0.16
+                    uniform double mjc:stiffness = 12.12
+                }
+            }
+
+            over "RR_abduct"
+            {
+                over "RR_abduct_geom" (
+                    prepend apiSchemas = ["MjcCollisionAPI"]
+                )
+                {
+                    uniform double mjc:margin = 0.001
+                }
+
+                over "RR_abduct_hub" (
+                    prepend apiSchemas = ["MjcImageableAPI"]
+                )
+                {
+                    uniform int mjc:group = 2
+                }
+
+                over "RR_thigh"
+                {
+                    over "RR_thigh_geom" (
+                        prepend apiSchemas = ["MjcCollisionAPI"]
+                    )
+                    {
+                        uniform double mjc:margin = 0.001
+                    }
+
+                    over "RR_hip_hub" (
+                        prepend apiSchemas = ["MjcImageableAPI"]
+                    )
+                    {
+                        uniform int mjc:group = 2
+                    }
+
+                    over "RR_calf"
+                    {
+                        over "RR_calf_geom" (
+                            prepend apiSchemas = ["MjcCollisionAPI"]
+                        )
+                        {
+                            uniform double mjc:margin = 0.001
+                        }
+
+                        over "RR_knee_hub" (
+                            prepend apiSchemas = ["MjcImageableAPI"]
+                        )
+                        {
+                            uniform int mjc:group = 2
+                        }
+
+                        over "RR_wheel"
+                        {
+                            over "RR_wheel_geom" (
+                                prepend apiSchemas = ["MjcCollisionAPI"]
+                            )
+                            {
+                                uniform int mjc:priority = 1
+                                uniform double[] mjc:solimp = [0.95, 0.99, 0.001, 0.5, 2]
+                            }
+
+                            over "RR_rim" (
+                                prepend apiSchemas = ["MjcImageableAPI"]
+                            )
+                            {
+                                uniform int mjc:group = 2
+                            }
+
+                            over "RR_spoke_a" (
+                                prepend apiSchemas = ["MjcImageableAPI"]
+                            )
+                            {
+                                uniform int mjc:group = 2
+                            }
+
+                            over "RR_spoke_b" (
+                                prepend apiSchemas = ["MjcImageableAPI"]
+                            )
+                            {
+                                uniform int mjc:group = 2
+                            }
+
+                            over "RR_wheel" (
+                                delete apiSchemas = ["PhysicsDriveAPI:angular", "PhysicsJointStateAPI:angular"]
+                                prepend apiSchemas = ["MjcJointAPI"]
+                            )
+                            {
+                                uniform double mjc:armature = 0.004
+                                uniform double mjc:damping = 0.05
+                                uniform double mjc:frictionloss = 0.399
+                            }
+                        }
+
+                        over "RR_knee" (
+                            delete apiSchemas = ["PhysicsDriveAPI:angular", "PhysicsJointStateAPI:angular"]
+                            prepend apiSchemas = ["MjcJointAPI"]
+                        )
+                        {
+                            uniform double mjc:armature = 0.01
+                            uniform double mjc:damping = 1.5
+                            uniform double mjc:frictionloss = 0.2
+                            uniform double mjc:springref = -1.459727
+                            uniform double mjc:stiffness = 32.77
+                        }
+                    }
+
+                    over "RR_hip" (
+                        delete apiSchemas = ["PhysicsDriveAPI:angular", "PhysicsJointStateAPI:angular"]
+                        prepend apiSchemas = ["MjcJointAPI"]
+                    )
+                    {
+                        uniform double mjc:armature = 0.01
+                        uniform double mjc:damping = 1.5
+                        uniform double mjc:frictionloss = 0.2
+                        uniform double mjc:springref = 0.8034
+                        uniform double mjc:stiffness = 18.58
+                    }
+                }
+
+                over "RR_abduct" (
+                    delete apiSchemas = ["PhysicsDriveAPI:angular", "PhysicsJointStateAPI:angular"]
+                    prepend apiSchemas = ["MjcJointAPI"]
+                )
+                {
+                    uniform double mjc:armature = 0.01
+                    uniform double mjc:damping = 1.5
+                    uniform double mjc:frictionloss = 0.2
+                    uniform double mjc:springref = 0.16
+                    uniform double mjc:stiffness = 12.12
+                }
+            }
+        }
+    }
+
+    over "Physics"
+    {
+        over "PhysicsMaterial" (
+            prepend apiSchemas = ["MjcMaterialAPI"]
+        )
+        {
+            uniform double mjc:rollingfriction = 0.5
+            uniform double mjc:torsionalfriction = 0.5
+        }
+
+        over "PhysicsMaterial_1" (
+            prepend apiSchemas = ["MjcMaterialAPI"]
+        )
+        {
+            uniform double mjc:rollingfriction = 0.002
+            uniform double mjc:torsionalfriction = 0.03
+        }
+
+        def MjcActuator "FL_abduct"
+        {
+            uniform double[] mjc:biasPrm = [0, -60, -3, 0, 0, 0, 0, 0, 0, 0]
+            uniform token mjc:biasType = "affine"
+            uniform token mjc:ctrlLimited = "true"
+            uniform double mjc:ctrlRange:max = 0.8
+            uniform double mjc:ctrlRange:min = -0.8
+            uniform double mjc:forceRange:max = 23.7
+            uniform double mjc:forceRange:min = -23.7
+            uniform double[] mjc:gainPrm = [60, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+            custom rel mjc:target
+            prepend rel mjc:target = </hound16pd_isaac/Geometry/trunk/FL_abduct/FL_abduct>
+        }
+
+        def MjcActuator "FL_hip"
+        {
+            uniform double[] mjc:biasPrm = [0, -80, -4, 0, 0, 0, 0, 0, 0, 0]
+            uniform token mjc:biasType = "affine"
+            uniform token mjc:ctrlLimited = "true"
+            uniform double mjc:ctrlRange:max = 2.6
+            uniform double mjc:ctrlRange:min = -1.2
+            uniform double mjc:forceRange:max = 23.7
+            uniform double mjc:forceRange:min = -23.7
+            uniform double[] mjc:gainPrm = [80, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+            custom rel mjc:target
+            prepend rel mjc:target = </hound16pd_isaac/Geometry/trunk/FL_abduct/FL_thigh/FL_hip>
+        }
+
+        def MjcActuator "FL_knee"
+        {
+            uniform double[] mjc:biasPrm = [0, -90, -4.5, 0, 0, 0, 0, 0, 0, 0]
+            uniform token mjc:biasType = "affine"
+            uniform token mjc:ctrlLimited = "true"
+            uniform double mjc:ctrlRange:max = -0.6
+            uniform double mjc:ctrlRange:min = -2.6
+            uniform double mjc:forceRange:max = 40
+            uniform double mjc:forceRange:min = -40
+            uniform double[] mjc:gainPrm = [90, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+            custom rel mjc:target
+            prepend rel mjc:target = </hound16pd_isaac/Geometry/trunk/FL_abduct/FL_thigh/FL_calf/FL_knee>
+        }
+
+        def MjcActuator "FL_wheel"
+        {
+            uniform token mjc:ctrlLimited = "true"
+            uniform double mjc:ctrlRange:max = 1
+            uniform double mjc:ctrlRange:min = -1
+            uniform double[] mjc:gear = [3, 0, 0, 0, 0, 0]
+            custom rel mjc:target
+            prepend rel mjc:target = </hound16pd_isaac/Geometry/trunk/FL_abduct/FL_thigh/FL_calf/FL_wheel/FL_wheel>
+        }
+
+        def MjcActuator "FR_abduct"
+        {
+            uniform double[] mjc:biasPrm = [0, -60, -3, 0, 0, 0, 0, 0, 0, 0]
+            uniform token mjc:biasType = "affine"
+            uniform token mjc:ctrlLimited = "true"
+            uniform double mjc:ctrlRange:max = 0.8
+            uniform double mjc:ctrlRange:min = -0.8
+            uniform double mjc:forceRange:max = 23.7
+            uniform double mjc:forceRange:min = -23.7
+            uniform double[] mjc:gainPrm = [60, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+            custom rel mjc:target
+            prepend rel mjc:target = </hound16pd_isaac/Geometry/trunk/FR_abduct/FR_abduct>
+        }
+
+        def MjcActuator "FR_hip"
+        {
+            uniform double[] mjc:biasPrm = [0, -80, -4, 0, 0, 0, 0, 0, 0, 0]
+            uniform token mjc:biasType = "affine"
+            uniform token mjc:ctrlLimited = "true"
+            uniform double mjc:ctrlRange:max = 2.6
+            uniform double mjc:ctrlRange:min = -1.2
+            uniform double mjc:forceRange:max = 23.7
+            uniform double mjc:forceRange:min = -23.7
+            uniform double[] mjc:gainPrm = [80, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+            custom rel mjc:target
+            prepend rel mjc:target = </hound16pd_isaac/Geometry/trunk/FR_abduct/FR_thigh/FR_hip>
+        }
+
+        def MjcActuator "FR_knee"
+        {
+            uniform double[] mjc:biasPrm = [0, -90, -4.5, 0, 0, 0, 0, 0, 0, 0]
+            uniform token mjc:biasType = "affine"
+            uniform token mjc:ctrlLimited = "true"
+            uniform double mjc:ctrlRange:max = -0.6
+            uniform double mjc:ctrlRange:min = -2.6
+            uniform double mjc:forceRange:max = 40
+            uniform double mjc:forceRange:min = -40
+            uniform double[] mjc:gainPrm = [90, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+            custom rel mjc:target
+            prepend rel mjc:target = </hound16pd_isaac/Geometry/trunk/FR_abduct/FR_thigh/FR_calf/FR_knee>
+        }
+
+        def MjcActuator "FR_wheel"
+        {
+            uniform token mjc:ctrlLimited = "true"
+            uniform double mjc:ctrlRange:max = 1
+            uniform double mjc:ctrlRange:min = -1
+            uniform double[] mjc:gear = [3, 0, 0, 0, 0, 0]
+            custom rel mjc:target
+            prepend rel mjc:target = </hound16pd_isaac/Geometry/trunk/FR_abduct/FR_thigh/FR_calf/FR_wheel/FR_wheel>
+        }
+
+        def MjcActuator "RL_abduct"
+        {
+            uniform double[] mjc:biasPrm = [0, -60, -3, 0, 0, 0, 0, 0, 0, 0]
+            uniform token mjc:biasType = "affine"
+            uniform token mjc:ctrlLimited = "true"
+            uniform double mjc:ctrlRange:max = 0.8
+            uniform double mjc:ctrlRange:min = -0.8
+            uniform double mjc:forceRange:max = 23.7
+            uniform double mjc:forceRange:min = -23.7
+            uniform double[] mjc:gainPrm = [60, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+            custom rel mjc:target
+            prepend rel mjc:target = </hound16pd_isaac/Geometry/trunk/RL_abduct/RL_abduct>
+        }
+
+        def MjcActuator "RL_hip"
+        {
+            uniform double[] mjc:biasPrm = [0, -80, -4, 0, 0, 0, 0, 0, 0, 0]
+            uniform token mjc:biasType = "affine"
+            uniform token mjc:ctrlLimited = "true"
+            uniform double mjc:ctrlRange:max = 2.6
+            uniform double mjc:ctrlRange:min = -1.2
+            uniform double mjc:forceRange:max = 23.7
+            uniform double mjc:forceRange:min = -23.7
+            uniform double[] mjc:gainPrm = [80, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+            custom rel mjc:target
+            prepend rel mjc:target = </hound16pd_isaac/Geometry/trunk/RL_abduct/RL_thigh/RL_hip>
+        }
+
+        def MjcActuator "RL_knee"
+        {
+            uniform double[] mjc:biasPrm = [0, -90, -4.5, 0, 0, 0, 0, 0, 0, 0]
+            uniform token mjc:biasType = "affine"
+            uniform token mjc:ctrlLimited = "true"
+            uniform double mjc:ctrlRange:max = -0.6
+            uniform double mjc:ctrlRange:min = -2.6
+            uniform double mjc:forceRange:max = 40
+            uniform double mjc:forceRange:min = -40
+            uniform double[] mjc:gainPrm = [90, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+            custom rel mjc:target
+            prepend rel mjc:target = </hound16pd_isaac/Geometry/trunk/RL_abduct/RL_thigh/RL_calf/RL_knee>
+        }
+
+        def MjcActuator "RL_wheel"
+        {
+            uniform token mjc:ctrlLimited = "true"
+            uniform double mjc:ctrlRange:max = 1
+            uniform double mjc:ctrlRange:min = -1
+            uniform double[] mjc:gear = [3, 0, 0, 0, 0, 0]
+            custom rel mjc:target
+            prepend rel mjc:target = </hound16pd_isaac/Geometry/trunk/RL_abduct/RL_thigh/RL_calf/RL_wheel/RL_wheel>
+        }
+
+        def MjcActuator "RR_abduct"
+        {
+            uniform double[] mjc:biasPrm = [0, -60, -3, 0, 0, 0, 0, 0, 0, 0]
+            uniform token mjc:biasType = "affine"
+            uniform token mjc:ctrlLimited = "true"
+            uniform double mjc:ctrlRange:max = 0.8
+            uniform double mjc:ctrlRange:min = -0.8
+            uniform double mjc:forceRange:max = 23.7
+            uniform double mjc:forceRange:min = -23.7
+            uniform double[] mjc:gainPrm = [60, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+            custom rel mjc:target
+            prepend rel mjc:target = </hound16pd_isaac/Geometry/trunk/RR_abduct/RR_abduct>
+        }
+
+        def MjcActuator "RR_hip"
+        {
+            uniform double[] mjc:biasPrm = [0, -80, -4, 0, 0, 0, 0, 0, 0, 0]
+            uniform token mjc:biasType = "affine"
+            uniform token mjc:ctrlLimited = "true"
+            uniform double mjc:ctrlRange:max = 2.6
+            uniform double mjc:ctrlRange:min = -1.2
+            uniform double mjc:forceRange:max = 23.7
+            uniform double mjc:forceRange:min = -23.7
+            uniform double[] mjc:gainPrm = [80, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+            custom rel mjc:target
+            prepend rel mjc:target = </hound16pd_isaac/Geometry/trunk/RR_abduct/RR_thigh/RR_hip>
+        }
+
+        def MjcActuator "RR_knee"
+        {
+            uniform double[] mjc:biasPrm = [0, -90, -4.5, 0, 0, 0, 0, 0, 0, 0]
+            uniform token mjc:biasType = "affine"
+            uniform token mjc:ctrlLimited = "true"
+            uniform double mjc:ctrlRange:max = -0.6
+            uniform double mjc:ctrlRange:min = -2.6
+            uniform double mjc:forceRange:max = 40
+            uniform double mjc:forceRange:min = -40
+            uniform double[] mjc:gainPrm = [90, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+            custom rel mjc:target
+            prepend rel mjc:target = </hound16pd_isaac/Geometry/trunk/RR_abduct/RR_thigh/RR_calf/RR_knee>
+        }
+
+        def MjcActuator "RR_wheel"
+        {
+            uniform token mjc:ctrlLimited = "true"
+            uniform double mjc:ctrlRange:max = 1
+            uniform double mjc:ctrlRange:min = -1
+            uniform double[] mjc:gear = [3, 0, 0, 0, 0, 0]
+            custom rel mjc:target
+            prepend rel mjc:target = </hound16pd_isaac/Geometry/trunk/RR_abduct/RR_thigh/RR_calf/RR_wheel/RR_wheel>
+        }
+    }
+
+    over "Materials"
+    {
+        over "MatShell"
+        {
+        }
+
+        over "MatLens"
+        {
+        }
+
+        over "MatAbduct"
+        {
+        }
+
+        over "MatHip"
+        {
+        }
+
+        over "MatKnee"
+        {
+        }
+
+        over "MatTyre"
+        {
+        }
+
+        over "MatWheel"
+        {
+        }
+
+        over "MatSpoke"
+        {
+        }
+    }
+}
+

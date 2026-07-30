@@ -1,0 +1,602 @@
+#usda 1.0
+(
+    customLayerData = {
+        string creator = "MuJoCo USD Converter v0.2.0"
+    }
+    defaultPrim = "hound16pd_isaac"
+    doc = """Generated from Composed Stage of root layer /tmp/tmp1wkxk2iw/hound16pd_isaac.usdc
+
+
+Generated from Composed Stage of root layer /tmp/mjcf_import_hound16pd_isaac_apr2pb73/usdex_hound16pd_isaac/hound16pd_isaac.usdc
+
+
+Generated from Composed Stage of root layer /tmp/mjcf_import_hound16pd_isaac_apr2pb73/temp_hound16pd_isaac/hound16pd_isaac.usd
+
+
+Generated from Composed Stage of root layer /home/leandro/Desktop/Resources/Robotics/Bestiary/assets/hound/isaac/hound16pd_isaac/payloads/base.usd
+"""
+    kilogramsPerUnit = 1
+    metersPerUnit = 1
+    upAxis = "Z"
+)
+
+over "hound16pd_isaac"
+{
+    over "Geometry"
+    {
+        over "trunk" (
+            prepend apiSchemas = ["PhysicsRigidBodyAPI", "PhysicsArticulationRootAPI", "NewtonArticulationRootAPI"]
+        )
+        {
+            bool newton:selfCollisionEnabled = 0
+
+            over "trunk_geom" (
+                prepend apiSchemas = ["NewtonCollisionAPI", "PhysicsMassAPI"]
+            )
+            {
+                float newton:contactGap = 0
+                float newton:contactMargin = 0.001
+                float physics:density = 1000
+                float physics:mass = 6.921
+            }
+
+            over "FL_abduct" (
+                prepend apiSchemas = ["PhysicsRigidBodyAPI"]
+            )
+            {
+                over "FL_abduct_geom" (
+                    prepend apiSchemas = ["NewtonCollisionAPI", "PhysicsMassAPI"]
+                )
+                {
+                    float newton:contactGap = 0
+                    float newton:contactMargin = 0.001
+                    float physics:density = 1000
+                    float physics:mass = 0.678
+                }
+
+                over "FL_thigh" (
+                    prepend apiSchemas = ["PhysicsRigidBodyAPI"]
+                )
+                {
+                    over "FL_thigh_geom" (
+                        prepend apiSchemas = ["NewtonCollisionAPI", "PhysicsMassAPI"]
+                    )
+                    {
+                        float newton:contactGap = 0
+                        float newton:contactMargin = 0.001
+                        float physics:density = 1000
+                        float physics:mass = 1.152
+                    }
+
+                    over "FL_calf" (
+                        prepend apiSchemas = ["PhysicsRigidBodyAPI"]
+                    )
+                    {
+                        over "FL_calf_geom" (
+                            prepend apiSchemas = ["NewtonCollisionAPI", "PhysicsMassAPI"]
+                        )
+                        {
+                            float newton:contactGap = 0
+                            float newton:contactMargin = 0.001
+                            float physics:density = 1000
+                            float physics:mass = 0.241
+                        }
+
+                        over "FL_wheel" (
+                            prepend apiSchemas = ["PhysicsRigidBodyAPI"]
+                        )
+                        {
+                            over "FL_wheel_geom" (
+                                prepend apiSchemas = ["NewtonCollisionAPI", "PhysicsMassAPI"]
+                            )
+                            {
+                                float newton:contactGap = 0
+                                float physics:density = 1000
+                                float physics:mass = 0.45
+                            }
+
+                            def PhysicsRevoluteJoint "FL_wheel" (
+                                prepend apiSchemas = ["PhysicsDriveAPI:angular", "PhysicsJointStateAPI:angular"]
+                            )
+                            {
+                                uniform token physics:axis = "Y"
+                                custom rel physics:body0
+                                prepend rel physics:body0 = </hound16pd_isaac/Geometry/trunk/FL_abduct/FL_thigh/FL_calf>
+                                custom rel physics:body1
+                                prepend rel physics:body1 = </hound16pd_isaac/Geometry/trunk/FL_abduct/FL_thigh/FL_calf/FL_wheel>
+                                point3f physics:localPos0 = (0, 0, -0.19)
+                                point3f physics:localPos1 = (0, 0, 0)
+                                quatf physics:localRot0 = (1, 0, 0, 0)
+                                quatf physics:localRot1 = (1, 0, 0, 0)
+                            }
+                        }
+
+                        def PhysicsRevoluteJoint "FL_knee" (
+                            prepend apiSchemas = ["PhysicsDriveAPI:angular", "PhysicsJointStateAPI:angular"]
+                        )
+                        {
+                            float drive:angular:physics:damping = 4.5
+                            float drive:angular:physics:maxForce = 40
+                            float drive:angular:physics:stiffness = 90
+                            uniform token physics:axis = "Y"
+                            custom rel physics:body0
+                            prepend rel physics:body0 = </hound16pd_isaac/Geometry/trunk/FL_abduct/FL_thigh>
+                            custom rel physics:body1
+                            prepend rel physics:body1 = </hound16pd_isaac/Geometry/trunk/FL_abduct/FL_thigh/FL_calf>
+                            point3f physics:localPos0 = (0, 0, -0.213)
+                            point3f physics:localPos1 = (0, 0, 0)
+                            quatf physics:localRot0 = (1, 0, 0, 0)
+                            quatf physics:localRot1 = (1, 0, 0, 0)
+                            float physics:lowerLimit = -148.96902
+                            float physics:upperLimit = -34.37747
+                        }
+                    }
+
+                    def PhysicsRevoluteJoint "FL_hip" (
+                        prepend apiSchemas = ["PhysicsDriveAPI:angular", "PhysicsJointStateAPI:angular"]
+                    )
+                    {
+                        float drive:angular:physics:damping = 4
+                        float drive:angular:physics:maxForce = 23.7
+                        float drive:angular:physics:stiffness = 80
+                        uniform token physics:axis = "Y"
+                        custom rel physics:body0
+                        prepend rel physics:body0 = </hound16pd_isaac/Geometry/trunk/FL_abduct>
+                        custom rel physics:body1
+                        prepend rel physics:body1 = </hound16pd_isaac/Geometry/trunk/FL_abduct/FL_thigh>
+                        point3f physics:localPos0 = (0, 0.0955, 0)
+                        point3f physics:localPos1 = (0, 0, 0)
+                        quatf physics:localRot0 = (1, 0, 0, 0)
+                        quatf physics:localRot1 = (1, 0, 0, 0)
+                        float physics:lowerLimit = -68.75494
+                        float physics:upperLimit = 148.96902
+                    }
+                }
+
+                def PhysicsRevoluteJoint "FL_abduct" (
+                    prepend apiSchemas = ["PhysicsDriveAPI:angular", "PhysicsJointStateAPI:angular"]
+                )
+                {
+                    float drive:angular:physics:damping = 3
+                    float drive:angular:physics:maxForce = 23.7
+                    float drive:angular:physics:stiffness = 60
+                    uniform token physics:axis = "X"
+                    custom rel physics:body0
+                    prepend rel physics:body0 = </hound16pd_isaac/Geometry/trunk>
+                    custom rel physics:body1
+                    prepend rel physics:body1 = </hound16pd_isaac/Geometry/trunk/FL_abduct>
+                    point3f physics:localPos0 = (0.1934, 0.0465, 0)
+                    point3f physics:localPos1 = (0, 0, 0)
+                    quatf physics:localRot0 = (1, 0, 0, 0)
+                    quatf physics:localRot1 = (1, 0, 0, 0)
+                    float physics:lowerLimit = -45.836624
+                    float physics:upperLimit = 45.836624
+                }
+            }
+
+            over "FR_abduct" (
+                prepend apiSchemas = ["PhysicsRigidBodyAPI"]
+            )
+            {
+                over "FR_abduct_geom" (
+                    prepend apiSchemas = ["NewtonCollisionAPI", "PhysicsMassAPI"]
+                )
+                {
+                    float newton:contactGap = 0
+                    float newton:contactMargin = 0.001
+                    float physics:density = 1000
+                    float physics:mass = 0.678
+                }
+
+                over "FR_thigh" (
+                    prepend apiSchemas = ["PhysicsRigidBodyAPI"]
+                )
+                {
+                    over "FR_thigh_geom" (
+                        prepend apiSchemas = ["NewtonCollisionAPI", "PhysicsMassAPI"]
+                    )
+                    {
+                        float newton:contactGap = 0
+                        float newton:contactMargin = 0.001
+                        float physics:density = 1000
+                        float physics:mass = 1.152
+                    }
+
+                    over "FR_calf" (
+                        prepend apiSchemas = ["PhysicsRigidBodyAPI"]
+                    )
+                    {
+                        over "FR_calf_geom" (
+                            prepend apiSchemas = ["NewtonCollisionAPI", "PhysicsMassAPI"]
+                        )
+                        {
+                            float newton:contactGap = 0
+                            float newton:contactMargin = 0.001
+                            float physics:density = 1000
+                            float physics:mass = 0.241
+                        }
+
+                        over "FR_wheel" (
+                            prepend apiSchemas = ["PhysicsRigidBodyAPI"]
+                        )
+                        {
+                            over "FR_wheel_geom" (
+                                prepend apiSchemas = ["NewtonCollisionAPI", "PhysicsMassAPI"]
+                            )
+                            {
+                                float newton:contactGap = 0
+                                float physics:density = 1000
+                                float physics:mass = 0.45
+                            }
+
+                            def PhysicsRevoluteJoint "FR_wheel" (
+                                prepend apiSchemas = ["PhysicsDriveAPI:angular", "PhysicsJointStateAPI:angular"]
+                            )
+                            {
+                                uniform token physics:axis = "Y"
+                                custom rel physics:body0
+                                prepend rel physics:body0 = </hound16pd_isaac/Geometry/trunk/FR_abduct/FR_thigh/FR_calf>
+                                custom rel physics:body1
+                                prepend rel physics:body1 = </hound16pd_isaac/Geometry/trunk/FR_abduct/FR_thigh/FR_calf/FR_wheel>
+                                point3f physics:localPos0 = (0, 0, -0.19)
+                                point3f physics:localPos1 = (0, 0, 0)
+                                quatf physics:localRot0 = (1, 0, 0, 0)
+                                quatf physics:localRot1 = (1, 0, 0, 0)
+                            }
+                        }
+
+                        def PhysicsRevoluteJoint "FR_knee" (
+                            prepend apiSchemas = ["PhysicsDriveAPI:angular", "PhysicsJointStateAPI:angular"]
+                        )
+                        {
+                            float drive:angular:physics:damping = 4.5
+                            float drive:angular:physics:maxForce = 40
+                            float drive:angular:physics:stiffness = 90
+                            uniform token physics:axis = "Y"
+                            custom rel physics:body0
+                            prepend rel physics:body0 = </hound16pd_isaac/Geometry/trunk/FR_abduct/FR_thigh>
+                            custom rel physics:body1
+                            prepend rel physics:body1 = </hound16pd_isaac/Geometry/trunk/FR_abduct/FR_thigh/FR_calf>
+                            point3f physics:localPos0 = (0, 0, -0.213)
+                            point3f physics:localPos1 = (0, 0, 0)
+                            quatf physics:localRot0 = (1, 0, 0, 0)
+                            quatf physics:localRot1 = (1, 0, 0, 0)
+                            float physics:lowerLimit = -148.96902
+                            float physics:upperLimit = -34.37747
+                        }
+                    }
+
+                    def PhysicsRevoluteJoint "FR_hip" (
+                        prepend apiSchemas = ["PhysicsDriveAPI:angular", "PhysicsJointStateAPI:angular"]
+                    )
+                    {
+                        float drive:angular:physics:damping = 4
+                        float drive:angular:physics:maxForce = 23.7
+                        float drive:angular:physics:stiffness = 80
+                        uniform token physics:axis = "Y"
+                        custom rel physics:body0
+                        prepend rel physics:body0 = </hound16pd_isaac/Geometry/trunk/FR_abduct>
+                        custom rel physics:body1
+                        prepend rel physics:body1 = </hound16pd_isaac/Geometry/trunk/FR_abduct/FR_thigh>
+                        point3f physics:localPos0 = (0, -0.0955, 0)
+                        point3f physics:localPos1 = (0, 0, 0)
+                        quatf physics:localRot0 = (1, 0, 0, 0)
+                        quatf physics:localRot1 = (1, 0, 0, 0)
+                        float physics:lowerLimit = -68.75494
+                        float physics:upperLimit = 148.96902
+                    }
+                }
+
+                def PhysicsRevoluteJoint "FR_abduct" (
+                    prepend apiSchemas = ["PhysicsDriveAPI:angular", "PhysicsJointStateAPI:angular"]
+                )
+                {
+                    float drive:angular:physics:damping = 3
+                    float drive:angular:physics:maxForce = 23.7
+                    float drive:angular:physics:stiffness = 60
+                    uniform token physics:axis = "X"
+                    custom rel physics:body0
+                    prepend rel physics:body0 = </hound16pd_isaac/Geometry/trunk>
+                    custom rel physics:body1
+                    prepend rel physics:body1 = </hound16pd_isaac/Geometry/trunk/FR_abduct>
+                    point3f physics:localPos0 = (0.1934, -0.0465, 0)
+                    point3f physics:localPos1 = (0, 0, 0)
+                    quatf physics:localRot0 = (1, 0, 0, 0)
+                    quatf physics:localRot1 = (1, 0, 0, 0)
+                    float physics:lowerLimit = -45.836624
+                    float physics:upperLimit = 45.836624
+                }
+            }
+
+            over "RL_abduct" (
+                prepend apiSchemas = ["PhysicsRigidBodyAPI"]
+            )
+            {
+                over "RL_abduct_geom" (
+                    prepend apiSchemas = ["NewtonCollisionAPI", "PhysicsMassAPI"]
+                )
+                {
+                    float newton:contactGap = 0
+                    float newton:contactMargin = 0.001
+                    float physics:density = 1000
+                    float physics:mass = 0.678
+                }
+
+                over "RL_thigh" (
+                    prepend apiSchemas = ["PhysicsRigidBodyAPI"]
+                )
+                {
+                    over "RL_thigh_geom" (
+                        prepend apiSchemas = ["NewtonCollisionAPI", "PhysicsMassAPI"]
+                    )
+                    {
+                        float newton:contactGap = 0
+                        float newton:contactMargin = 0.001
+                        float physics:density = 1000
+                        float physics:mass = 1.152
+                    }
+
+                    over "RL_calf" (
+                        prepend apiSchemas = ["PhysicsRigidBodyAPI"]
+                    )
+                    {
+                        over "RL_calf_geom" (
+                            prepend apiSchemas = ["NewtonCollisionAPI", "PhysicsMassAPI"]
+                        )
+                        {
+                            float newton:contactGap = 0
+                            float newton:contactMargin = 0.001
+                            float physics:density = 1000
+                            float physics:mass = 0.241
+                        }
+
+                        over "RL_wheel" (
+                            prepend apiSchemas = ["PhysicsRigidBodyAPI"]
+                        )
+                        {
+                            over "RL_wheel_geom" (
+                                prepend apiSchemas = ["NewtonCollisionAPI", "PhysicsMassAPI"]
+                            )
+                            {
+                                float newton:contactGap = 0
+                                float physics:density = 1000
+                                float physics:mass = 0.45
+                            }
+
+                            def PhysicsRevoluteJoint "RL_wheel" (
+                                prepend apiSchemas = ["PhysicsDriveAPI:angular", "PhysicsJointStateAPI:angular"]
+                            )
+                            {
+                                uniform token physics:axis = "Y"
+                                custom rel physics:body0
+                                prepend rel physics:body0 = </hound16pd_isaac/Geometry/trunk/RL_abduct/RL_thigh/RL_calf>
+                                custom rel physics:body1
+                                prepend rel physics:body1 = </hound16pd_isaac/Geometry/trunk/RL_abduct/RL_thigh/RL_calf/RL_wheel>
+                                point3f physics:localPos0 = (0, 0, -0.19)
+                                point3f physics:localPos1 = (0, 0, 0)
+                                quatf physics:localRot0 = (1, 0, 0, 0)
+                                quatf physics:localRot1 = (1, 0, 0, 0)
+                            }
+                        }
+
+                        def PhysicsRevoluteJoint "RL_knee" (
+                            prepend apiSchemas = ["PhysicsDriveAPI:angular", "PhysicsJointStateAPI:angular"]
+                        )
+                        {
+                            float drive:angular:physics:damping = 4.5
+                            float drive:angular:physics:maxForce = 40
+                            float drive:angular:physics:stiffness = 90
+                            uniform token physics:axis = "Y"
+                            custom rel physics:body0
+                            prepend rel physics:body0 = </hound16pd_isaac/Geometry/trunk/RL_abduct/RL_thigh>
+                            custom rel physics:body1
+                            prepend rel physics:body1 = </hound16pd_isaac/Geometry/trunk/RL_abduct/RL_thigh/RL_calf>
+                            point3f physics:localPos0 = (0, 0, -0.213)
+                            point3f physics:localPos1 = (0, 0, 0)
+                            quatf physics:localRot0 = (1, 0, 0, 0)
+                            quatf physics:localRot1 = (1, 0, 0, 0)
+                            float physics:lowerLimit = -148.96902
+                            float physics:upperLimit = -34.37747
+                        }
+                    }
+
+                    def PhysicsRevoluteJoint "RL_hip" (
+                        prepend apiSchemas = ["PhysicsDriveAPI:angular", "PhysicsJointStateAPI:angular"]
+                    )
+                    {
+                        float drive:angular:physics:damping = 4
+                        float drive:angular:physics:maxForce = 23.7
+                        float drive:angular:physics:stiffness = 80
+                        uniform token physics:axis = "Y"
+                        custom rel physics:body0
+                        prepend rel physics:body0 = </hound16pd_isaac/Geometry/trunk/RL_abduct>
+                        custom rel physics:body1
+                        prepend rel physics:body1 = </hound16pd_isaac/Geometry/trunk/RL_abduct/RL_thigh>
+                        point3f physics:localPos0 = (0, 0.0955, 0)
+                        point3f physics:localPos1 = (0, 0, 0)
+                        quatf physics:localRot0 = (1, 0, 0, 0)
+                        quatf physics:localRot1 = (1, 0, 0, 0)
+                        float physics:lowerLimit = -68.75494
+                        float physics:upperLimit = 148.96902
+                    }
+                }
+
+                def PhysicsRevoluteJoint "RL_abduct" (
+                    prepend apiSchemas = ["PhysicsDriveAPI:angular", "PhysicsJointStateAPI:angular"]
+                )
+                {
+                    float drive:angular:physics:damping = 3
+                    float drive:angular:physics:maxForce = 23.7
+                    float drive:angular:physics:stiffness = 60
+                    uniform token physics:axis = "X"
+                    custom rel physics:body0
+                    prepend rel physics:body0 = </hound16pd_isaac/Geometry/trunk>
+                    custom rel physics:body1
+                    prepend rel physics:body1 = </hound16pd_isaac/Geometry/trunk/RL_abduct>
+                    point3f physics:localPos0 = (-0.1934, 0.0465, 0)
+                    point3f physics:localPos1 = (0, 0, 0)
+                    quatf physics:localRot0 = (1, 0, 0, 0)
+                    quatf physics:localRot1 = (1, 0, 0, 0)
+                    float physics:lowerLimit = -45.836624
+                    float physics:upperLimit = 45.836624
+                }
+            }
+
+            over "RR_abduct" (
+                prepend apiSchemas = ["PhysicsRigidBodyAPI"]
+            )
+            {
+                over "RR_abduct_geom" (
+                    prepend apiSchemas = ["NewtonCollisionAPI", "PhysicsMassAPI"]
+                )
+                {
+                    float newton:contactGap = 0
+                    float newton:contactMargin = 0.001
+                    float physics:density = 1000
+                    float physics:mass = 0.678
+                }
+
+                over "RR_thigh" (
+                    prepend apiSchemas = ["PhysicsRigidBodyAPI"]
+                )
+                {
+                    over "RR_thigh_geom" (
+                        prepend apiSchemas = ["NewtonCollisionAPI", "PhysicsMassAPI"]
+                    )
+                    {
+                        float newton:contactGap = 0
+                        float newton:contactMargin = 0.001
+                        float physics:density = 1000
+                        float physics:mass = 1.152
+                    }
+
+                    over "RR_calf" (
+                        prepend apiSchemas = ["PhysicsRigidBodyAPI"]
+                    )
+                    {
+                        over "RR_calf_geom" (
+                            prepend apiSchemas = ["NewtonCollisionAPI", "PhysicsMassAPI"]
+                        )
+                        {
+                            float newton:contactGap = 0
+                            float newton:contactMargin = 0.001
+                            float physics:density = 1000
+                            float physics:mass = 0.241
+                        }
+
+                        over "RR_wheel" (
+                            prepend apiSchemas = ["PhysicsRigidBodyAPI"]
+                        )
+                        {
+                            over "RR_wheel_geom" (
+                                prepend apiSchemas = ["NewtonCollisionAPI", "PhysicsMassAPI"]
+                            )
+                            {
+                                float newton:contactGap = 0
+                                float physics:density = 1000
+                                float physics:mass = 0.45
+                            }
+
+                            def PhysicsRevoluteJoint "RR_wheel" (
+                                prepend apiSchemas = ["PhysicsDriveAPI:angular", "PhysicsJointStateAPI:angular"]
+                            )
+                            {
+                                uniform token physics:axis = "Y"
+                                custom rel physics:body0
+                                prepend rel physics:body0 = </hound16pd_isaac/Geometry/trunk/RR_abduct/RR_thigh/RR_calf>
+                                custom rel physics:body1
+                                prepend rel physics:body1 = </hound16pd_isaac/Geometry/trunk/RR_abduct/RR_thigh/RR_calf/RR_wheel>
+                                point3f physics:localPos0 = (0, 0, -0.19)
+                                point3f physics:localPos1 = (0, 0, 0)
+                                quatf physics:localRot0 = (1, 0, 0, 0)
+                                quatf physics:localRot1 = (1, 0, 0, 0)
+                            }
+                        }
+
+                        def PhysicsRevoluteJoint "RR_knee" (
+                            prepend apiSchemas = ["PhysicsDriveAPI:angular", "PhysicsJointStateAPI:angular"]
+                        )
+                        {
+                            float drive:angular:physics:damping = 4.5
+                            float drive:angular:physics:maxForce = 40
+                            float drive:angular:physics:stiffness = 90
+                            uniform token physics:axis = "Y"
+                            custom rel physics:body0
+                            prepend rel physics:body0 = </hound16pd_isaac/Geometry/trunk/RR_abduct/RR_thigh>
+                            custom rel physics:body1
+                            prepend rel physics:body1 = </hound16pd_isaac/Geometry/trunk/RR_abduct/RR_thigh/RR_calf>
+                            point3f physics:localPos0 = (0, 0, -0.213)
+                            point3f physics:localPos1 = (0, 0, 0)
+                            quatf physics:localRot0 = (1, 0, 0, 0)
+                            quatf physics:localRot1 = (1, 0, 0, 0)
+                            float physics:lowerLimit = -148.96902
+                            float physics:upperLimit = -34.37747
+                        }
+                    }
+
+                    def PhysicsRevoluteJoint "RR_hip" (
+                        prepend apiSchemas = ["PhysicsDriveAPI:angular", "PhysicsJointStateAPI:angular"]
+                    )
+                    {
+                        float drive:angular:physics:damping = 4
+                        float drive:angular:physics:maxForce = 23.7
+                        float drive:angular:physics:stiffness = 80
+                        uniform token physics:axis = "Y"
+                        custom rel physics:body0
+                        prepend rel physics:body0 = </hound16pd_isaac/Geometry/trunk/RR_abduct>
+                        custom rel physics:body1
+                        prepend rel physics:body1 = </hound16pd_isaac/Geometry/trunk/RR_abduct/RR_thigh>
+                        point3f physics:localPos0 = (0, -0.0955, 0)
+                        point3f physics:localPos1 = (0, 0, 0)
+                        quatf physics:localRot0 = (1, 0, 0, 0)
+                        quatf physics:localRot1 = (1, 0, 0, 0)
+                        float physics:lowerLimit = -68.75494
+                        float physics:upperLimit = 148.96902
+                    }
+                }
+
+                def PhysicsRevoluteJoint "RR_abduct" (
+                    prepend apiSchemas = ["PhysicsDriveAPI:angular", "PhysicsJointStateAPI:angular"]
+                )
+                {
+                    float drive:angular:physics:damping = 3
+                    float drive:angular:physics:maxForce = 23.7
+                    float drive:angular:physics:stiffness = 60
+                    uniform token physics:axis = "X"
+                    custom rel physics:body0
+                    prepend rel physics:body0 = </hound16pd_isaac/Geometry/trunk>
+                    custom rel physics:body1
+                    prepend rel physics:body1 = </hound16pd_isaac/Geometry/trunk/RR_abduct>
+                    point3f physics:localPos0 = (-0.1934, -0.0465, 0)
+                    point3f physics:localPos1 = (0, 0, 0)
+                    quatf physics:localRot0 = (1, 0, 0, 0)
+                    quatf physics:localRot1 = (1, 0, 0, 0)
+                    float physics:lowerLimit = -45.836624
+                    float physics:upperLimit = 45.836624
+                }
+            }
+        }
+    }
+
+    over "Physics"
+    {
+        over "PhysicsMaterial" (
+            prepend apiSchemas = ["PhysicsMaterialAPI", "NewtonMaterialAPI"]
+        )
+        {
+            float newton:rollingFriction = 0.5
+            float newton:torsionalFriction = 0.5
+            float physics:dynamicFriction = 0.9
+        }
+
+        over "PhysicsMaterial_1" (
+            prepend apiSchemas = ["PhysicsMaterialAPI", "NewtonMaterialAPI"]
+        )
+        {
+            float newton:rollingFriction = 0.002
+            float newton:torsionalFriction = 0.03
+            float physics:dynamicFriction = 0.9
+        }
+    }
+}
+
