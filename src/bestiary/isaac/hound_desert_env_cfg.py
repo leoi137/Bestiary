@@ -423,7 +423,25 @@ class HoundDesertEnvCfg(LocomotionVelocityRoughEnvCfg):
         # with c_y == 0 the y channel becomes a calibrated price on uncontrolled
         # sideways SKID on a dune face. Reversible in config if a lateral stepping
         # gait is ever wanted.
-        self.commands.base_velocity.ranges.lin_vel_y = (0.0, 0.0)
+        # ARM 2: +/-0.3, NOT (0,0). An independent refutation showed the (0,0)
+        # collapse threw away a real capability. The axle algebra above is right
+        # (max |axle_x| = 1.665e-16 over the whole joint range, verified by FK),
+        # but the INFERENCE was wrong: rolling direction is axle x normal, whose
+        # body-frame y-component is sin(phi)*n_x, and n_x is nonzero whenever the
+        # trunk's pitch differs from the local ground plane -- which 12 leg joints
+        # control independently of the terrain. Measured: |v_y|/|v| = 0.332 at
+        # phi = 0.8 rad on a 20 deg slope. And because the abduct axis is GLOBAL
+        # (1,0,0) for all four legs, a common roll gives all four wheels the SAME
+        # axle, so the no-lateral-slip constraint has a 3-dimensional nullspace
+        # containing near-pure lateral translation. Sustained, purely rolling, no
+        # stepping gait required.
+        #
+        # +/-0.3 keeps 96.4% of the income the collapse bought (lin ceiling 0.8919,
+        # income 0.027838/step) while leaving the channel falsifiable and the
+        # capability priced. (0,0) also silently moved the terrain curriculum: the
+        # demote bar is proportional to ||command_xy||, so E||c_xy|| fell 0.7652 ->
+        # 0.5 and the bar dropped 34.7% with the promote bar unchanged.
+        self.commands.base_velocity.ranges.lin_vel_y = (-0.3, 0.3)
 
         # -- Body names. Every one of these is `base` or an ANYmal link upstream.
         retarget(self.events.add_base_mass, "asset_cfg", "robot", TRUNK_BODY)
