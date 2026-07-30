@@ -402,6 +402,29 @@ class HoundDesertEnvCfg(LocomotionVelocityRoughEnvCfg):
             "asset_cfg": SceneEntityCfg("robot", joint_names=LEG_JOINT_EXPR)
         }
 
+        # -- The command. `lin_vel_y` is inherited at +/-1.0 m/s (+/-3.3 ft/s) and
+        # this machine CANNOT PRODUCE IT. Verified from the generated MJCF: abduct
+        # turns about (1,0,0) and hip, knee and wheel all about (0,1,0), so the
+        # wheel axle is +Y in the leg frame and the only rotation that can tilt it
+        # is the abduct roll about X, which maps it to (0, cos phi, sin phi). The
+        # axle never acquires an x-component for ANY joint configuration, so the
+        # rolling direction is always sagittal and no joint steers. Hound is a
+        # skid-steer unicycle: its controllable command set is (v_x, omega_z).
+        #
+        # Left at +/-1.0 it charges the policy for failing at something
+        # geometrically impossible, and `check_hound.py` measured the cost: 46.87%
+        # of the largest reward term's income is unearnable at ANY competence,
+        # which is `research/learnings/011`'s "charging the unremovable" one level
+        # up -- on the term the whole table is built around.
+        #
+        # Set to zero rather than deleted, deliberately: the command slot stays in
+        # the observation (width, spec hash and every checkpoint untouched -- NOT a
+        # one-way door), and `track_lin_vel_xy_exp` keeps reading a 2-D error, so
+        # with c_y == 0 the y channel becomes a calibrated price on uncontrolled
+        # sideways SKID on a dune face. Reversible in config if a lateral stepping
+        # gait is ever wanted.
+        self.commands.base_velocity.ranges.lin_vel_y = (0.0, 0.0)
+
         # -- Body names. Every one of these is `base` or an ANYmal link upstream.
         retarget(self.events.add_base_mass, "asset_cfg", "robot", TRUNK_BODY)
         retarget(self.events.base_external_force_torque, "asset_cfg", "robot", TRUNK_BODY)

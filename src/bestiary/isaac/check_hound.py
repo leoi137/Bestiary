@@ -1201,7 +1201,20 @@ def check_reward_budget_against_011_and_015(robot) -> None:
     std = float(lin.params["std"])
     lo, hi = cfg.commands.base_velocity.ranges.lin_vel_y
     half = 0.5 * (hi - lo)
-    lin_ceiling = (std * math.sqrt(math.pi) / (2.0 * half)) * math.erf(half / std)
+    # Mean of exp(-(e/std)^2) over a command uniform on [-half, +half], where the
+    # policy holds the achievable axis perfectly and eats the unachievable one.
+    #
+    # half == 0 is not a degenerate case, it is the FIXED case: with the command
+    # pinned to a single value the machine can actually hold, the whole channel is
+    # earnable and the ceiling is 1. Taking the limit,
+    #     lim_{h->0} (std*sqrt(pi)/(2h)) * erf(h/std) = 1
+    # because erf(x) -> 2x/sqrt(pi) as x -> 0. Written out because the closed form
+    # divides by zero there, and a ZeroDivisionError inside the budget check is a
+    # confusing way to learn that a command range was correctly set to zero.
+    if half == 0.0:
+        lin_ceiling = 1.0
+    else:
+        lin_ceiling = (std * math.sqrt(math.pi) / (2.0 * half)) * math.erf(half / std)
     income = (lin.weight * lin_ceiling + ang.weight * 1.0) * dt
 
     # The wheel drive's own design acceleration: its time constant is one control
