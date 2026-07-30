@@ -216,7 +216,7 @@ assumptions travel with them.** Two are defects:
    therefore flatters the fake.
 
 **So the 1.0821× margin is a margin between a parker priced on the collapsed
-range and a driver priced at the fixed trot's own relative error under an
+range and a driver scored at the fixed trot's own relative error under an
 uncommitted table.** The direction survives all four corrections — the committed
 table gives 64.95%–103.40% — but the margin itself must never be quoted without
 them.

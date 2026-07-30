@@ -590,7 +590,7 @@ def section_4b(basket: float) -> None:
     print()
     print("  WHAT THIS MEANS FOR THE MARGIN. The claimed 1.08x driver-over-parker is")
     print("  a margin between a parker priced on the collapsed range and a driver")
-    print("  priced at the fixed trot's own relative error under a table that was")
+    print("  scored at the fixed trot's own relative error under a table that was")
     print("  never committed. The direction survives every one of those corrections")
     print("  -- section 4 gets 65%-103% on the committed table -- but the 1.08x")
     print("  itself must never be quoted without all four.")
