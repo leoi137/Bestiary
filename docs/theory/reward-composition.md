@@ -624,3 +624,130 @@ in shipped code.
 **A stale docstring:** `hound_track_rel.py`'s module docstring states
 `alpha_w(c) = max(0.10, 0.75·|w_cmd|)` while `BETA_W = 0.5` at line 186 — the
 very constant whose 0.75 incident this note cites at `:157-186`.
+
+---
+
+# Second refutation — 2026-07-30, a second independent Opus 5 pass
+
+The first refutation killed §4's empty window. A second pass, run against the
+Isaac Hound stack rather than against the MuJoCo track, kills something this note
+and its first refutation **share**: both of them price the freeride against a
+**stander**, and on the production command geometry the stander is not the
+binding fake. Everything above stands as written; what follows is what survives
+it. Arithmetic in
+`research/scripts/0006_reward_economics_refutation.py`; consequences in
+`research/decisions/0006`.
+
+## §1b's failure set and §2c's "best fake is standing still" both understate it
+
+Production ships `heading_command = True`, and this note's own §5 quotes the law:
+`ω_c = clip(k_ψ · wrap(ψ_target − ψ), ±1)`. §5 reads it as *the repair*. It is
+also **a second freeride**, and a larger one.
+
+A machine that yaws once to `ψ_target` and then **holds still** has heading error
+zero, therefore its own scored yaw command is zero, therefore — being still — its
+yaw error is zero and it collects the yaw kernel at **exactly 1.0, forever, for
+free.** Call it **point-and-park**. A plain stander cannot do this: it keeps
+whatever heading error it drew, and scores `E[exp(−(clip(0.5·U(−π,π), ±1)/0.5)²)]`
+= **0.287431**.
+
+Priced on the production command set (`lin_vel_x, lin_vel_y ∈ (−1,1)`, weights
+1.0/0.5, α = 0.5), as a fraction of nominal maximum:
+
+| behaviour | fraction of nominal max |
+|---|---|
+| stander (§1b's and §2c's fake) | **0.2255** |
+| **point-and-park** | **0.4630** |
+
+**2.05× the fake this note reasons about**, and it reproduces `decisions/0005`
+B1's independently computed 0.2255 exactly, which is how the machinery is checked.
+Net of a plausible penalty basket the parker earns **103.40%** of a competent
+driver's net — it out-earns driving outright.
+
+So §1b's holes (66.7%, 79.8%, 57.9%, 34.6%) are the *smaller* set, and §2c's
+bolded conclusion — *"the production recipe's best fake is standing still"* —
+is wrong in a way that matters: the production recipe's best fake **turns to face
+the commanded heading and then stops**, which is the one behaviour the
+command-zeroing, the stand draws and the air-time gate named in §1b do not
+fence. The gap is `0.5 · (1 − 0.287431) · dt = 0.006983/step`, and it is
+independent of the linear command range because the linear term cancels.
+
+**This is not a criticism of the product form.** Under a product, `K_v · K_ω`
+with `K_v` at the stander's value gates the parker's free `K_ω` exactly as it
+gates everything else — the immunity §1a claims is real here too. It is a
+criticism of every *additive* freeride figure in §1b, §2c and §3, and of the
+first refutation for reproducing the same stander framing.
+
+## §3's ρ is worse than circular — ρ = 1 *is* the stander
+
+The first refutation established that `ρ = |0.271 − 0.50| / 0.50 = 0.458` is the
+relative error *of the fixed trot*, so §3 compares the fake against itself. That
+is right, and there is an identity underneath it that makes the defect
+structural rather than incidental.
+
+For a tracker at constant relative error ρ over `c ~ U(−L, L)`, the mean squared-
+exponential kernel is
+
+    E[K] = (√π/2) · (α / (ρL)) · erf(ρL/α)
+
+At ρ = 1, L = 1, α = 0.5 this is **0.441041** — which is *exactly*
+`E[exp(−(c/α)²)]` over the same uniform, i.e. **the stander's own speed-channel
+factor.** ρ = 1 is not "a very bad driver": it is the stander, because a machine
+with 100% relative error has zero achieved speed. So **any policy parameterised
+by ρ is being compared to the fake along the same axis as the fake**, and a
+break-even in ρ is a statement about the yaw channel wearing a speed-channel
+disguise. `ρ = 0.46` has now been resurrected once as a driver's competence and
+must not be again; a command-following policy's relative control error is still
+unmeasured.
+
+## §2's width law is a real law about F and a misleading one about a run
+
+§2 closes: *"widening the command range always makes faking harder."* True of
+`F`. **False of the experiment**, because `‖command_xy‖` is also read by the
+terrain curriculum: `terrain_levels_vel`'s demote bar is
+`distance < ‖c_xy‖ · max_episode_length_s · 0.5`, while the promote bar
+(`size[0]/2`) is command-independent. `E‖c_xy‖` over the production square is
+**0.765196** (analytically `(√2 + asinh 1)/3`); pin `c_y = 0` and it is
+**0.500000** — the demote bar drops **34.66%** with the promote bar unchanged.
+
+So a command-range edit made to move `F` also moves which ground the machine ends
+up on, and the two effects are not separable after the fact. Any use of §2 as a
+lever has to declare both.
+
+## The first refutation's expectation-arm rule is now load-bearing twice
+
+`E[K] = 1/√(1 + 2s²/α²)` for zero-mean Gaussian error is the arm the first
+refutation insisted on, and the second pass needed it again — this time for a
+driver's residuals rather than a freerider's cap. The rule is holding up:
+**quote the arm the threshold came from, every time.** Two independent passes
+have now each found a place where a point kernel was applied to an rms.
+
+## What is now unbarred, and what is still barred
+
+§2c's F table was barred pending a committed script. Two of its rows are now
+computed by one:
+
+- the fixed `α = 0.50` over production's own `[−1, 1]`: **0.441041** (the note
+  says 0.441);
+- its true 2-D value, which the first refutation corrected to 0.1945:
+  **0.194517**.
+
+Both are printed by `research/scripts/0006_reward_economics_refutation.py`
+section 4 and may now be cited. **The other eleven rows — everything over this
+repo's own command-scaled kernel on `[0.30, 0.80]` and its variants, including
+`F = 0.764`, `J(0.271) = 0.433`, the ratio-law twin and the four-point floor
+sequence — remain barred**, because that script computes the fixed-width kernel
+only. `learnings/015`'s 0.764 and 0.433 are separately safe: they are
+env-computed and printed by
+`research/scripts/track_rel_command_independence.py`.
+
+## What survived, again
+
+- **The gradient identity and the product-of-kernels identity** (§0, §1a). Both
+  passes attacked them and neither dented them.
+- **The span law and the ratio law** as algebra.
+- **The flooring measurement** from the first refutation, unchanged.
+- **§1a's claim that the product's freeride immunity is structural.** The second
+  pass is the strongest evidence yet *for* it: the additive form just turned out
+  to have a freeride nobody had priced after two passes, and the product would
+  have gated it automatically.
