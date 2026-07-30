@@ -1,0 +1,977 @@
+{
+  "name": "whelp16",
+  "generated_by": "bestiary.robots.whelp.export",
+  "units": {
+    "length": "m",
+    "angle": "rad",
+    "mass": "kg",
+    "inertia": "kg m^2"
+  },
+  "convention": "+X forward, +Y left, +Z up, right-handed",
+  "servo_variant": "STS3215-C018",
+  "material": "PETG",
+  "root_link": "trunk",
+  "links": [
+    {
+      "name": "trunk",
+      "is_root": true,
+      "mass_kg": 0.8371479907199999,
+      "com_m": [
+        -0.0021007783802806947,
+        0.0,
+        -0.0006792692268507106
+      ],
+      "inertia": {
+        "ixx": 0.0008972357032847348,
+        "ixy": 0.0,
+        "ixz": 5.423589922121942e-05,
+        "iyy": 0.004127986228433392,
+        "iyz": 0.0,
+        "izz": 0.004656530934634814
+      },
+      "inertia_valid": true,
+      "inertia_problem": "",
+      "printed_cm3": 208.10707200000007,
+      "parts": [
+        "trunk_front",
+        "trunk_rear",
+        "trunk_lid",
+        "battery",
+        "compute",
+        "wiring"
+      ]
+    },
+    {
+      "name": "FL_hip",
+      "is_root": false,
+      "mass_kg": 0.09369155390148912,
+      "com_m": [
+        0.0,
+        0.02068559317359991,
+        0.0
+      ],
+      "inertia": {
+        "ixx": 5.744820689323345e-05,
+        "ixy": 0.0,
+        "ixz": 0.0,
+        "iyy": 3.136374172018675e-05,
+        "iyz": 0.0,
+        "izz": 6.346179524978706e-05
+      },
+      "inertia_valid": true,
+      "inertia_problem": "",
+      "printed_cm3": 47.54575417557342,
+      "parts": [
+        "FL_abduct_bracket",
+        "sts3215"
+      ]
+    },
+    {
+      "name": "FL_thigh",
+      "is_root": false,
+      "mass_kg": 0.09331886061030363,
+      "com_m": [
+        0.0,
+        -0.000667785859656573,
+        -0.08580130554531862
+      ],
+      "inertia": {
+        "ixx": 0.00016324005099932574,
+        "ixy": 0.0,
+        "ixz": 0.0,
+        "iyy": 0.0001695539250592422,
+        "iyz": 1.4120995860517863e-06,
+        "izz": 2.0194662681150585e-05
+      },
+      "inertia_valid": true,
+      "inertia_problem": "",
+      "printed_cm3": 46.95883560677737,
+      "parts": [
+        "FL_thigh",
+        "sts3215"
+      ]
+    },
+    {
+      "name": "FL_calf",
+      "is_root": false,
+      "mass_kg": 0.08806023810655852,
+      "com_m": [
+        0.0,
+        -0.000379094239139174,
+        -0.07957065246606862
+      ],
+      "inertia": {
+        "ixx": 0.00011717322366104022,
+        "ixy": 0.0,
+        "ixz": 0.0,
+        "iyy": 0.0001239198878015372,
+        "iyz": 7.17847874578266e-07,
+        "izz": 1.605244974488429e-05
+      },
+      "inertia_valid": true,
+      "inertia_problem": "",
+      "printed_cm3": 38.49754032528904,
+      "parts": [
+        "FL_calf",
+        "sts3215"
+      ]
+    },
+    {
+      "name": "FL_wheel",
+      "is_root": false,
+      "mass_kg": 0.06887234442226386,
+      "com_m": [
+        3.2240024176271916e-20,
+        -0.00035221861601268797,
+        -2.579201934101753e-20
+      ],
+      "inertia": {
+        "ixx": 4.7937981457908073e-05,
+        "ixy": -4.186986129220397e-25,
+        "ixz": 3.970466940254533e-23,
+        "iyy": 8.96948945305765e-05,
+        "iyz": 1.5757298091671732e-24,
+        "izz": 4.7937981457908073e-05
+      },
+      "inertia_valid": true,
+      "inertia_problem": "",
+      "printed_cm3": 93.70554825550657,
+      "parts": [
+        "FL_wheel_hub",
+        "FL_tire"
+      ]
+    },
+    {
+      "name": "FR_hip",
+      "is_root": false,
+      "mass_kg": 0.09369155390148912,
+      "com_m": [
+        0.0,
+        -0.02068559317359991,
+        0.0
+      ],
+      "inertia": {
+        "ixx": 5.744820689323345e-05,
+        "ixy": 0.0,
+        "ixz": 0.0,
+        "iyy": 3.136374172018675e-05,
+        "iyz": 0.0,
+        "izz": 6.346179524978706e-05
+      },
+      "inertia_valid": true,
+      "inertia_problem": "",
+      "printed_cm3": 47.54575417557342,
+      "parts": [
+        "FR_abduct_bracket",
+        "sts3215"
+      ]
+    },
+    {
+      "name": "FR_thigh",
+      "is_root": false,
+      "mass_kg": 0.09331886061030363,
+      "com_m": [
+        0.0,
+        0.000667785859656573,
+        -0.08580130554531862
+      ],
+      "inertia": {
+        "ixx": 0.00016324005099932574,
+        "ixy": 0.0,
+        "ixz": 0.0,
+        "iyy": 0.0001695539250592422,
+        "iyz": -1.4120995860517863e-06,
+        "izz": 2.0194662681150585e-05
+      },
+      "inertia_valid": true,
+      "inertia_problem": "",
+      "printed_cm3": 46.95883560677737,
+      "parts": [
+        "FR_thigh",
+        "sts3215"
+      ]
+    },
+    {
+      "name": "FR_calf",
+      "is_root": false,
+      "mass_kg": 0.08806023810655852,
+      "com_m": [
+        0.0,
+        0.000379094239139174,
+        -0.07957065246606862
+      ],
+      "inertia": {
+        "ixx": 0.00011717322366104022,
+        "ixy": 0.0,
+        "ixz": 0.0,
+        "iyy": 0.0001239198878015372,
+        "iyz": -7.17847874578266e-07,
+        "izz": 1.605244974488429e-05
+      },
+      "inertia_valid": true,
+      "inertia_problem": "",
+      "printed_cm3": 38.49754032528904,
+      "parts": [
+        "FR_calf",
+        "sts3215"
+      ]
+    },
+    {
+      "name": "FR_wheel",
+      "is_root": false,
+      "mass_kg": 0.06887234442226386,
+      "com_m": [
+        3.2240024176271916e-20,
+        0.00035221861601268797,
+        -2.579201934101753e-20
+      ],
+      "inertia": {
+        "ixx": 4.7937981457908073e-05,
+        "ixy": 4.186986129220397e-25,
+        "ixz": 3.970466940254533e-23,
+        "iyy": 8.96948945305765e-05,
+        "iyz": -1.5757298091671732e-24,
+        "izz": 4.7937981457908073e-05
+      },
+      "inertia_valid": true,
+      "inertia_problem": "",
+      "printed_cm3": 93.70554825550657,
+      "parts": [
+        "FR_wheel_hub",
+        "FR_tire"
+      ]
+    },
+    {
+      "name": "RL_hip",
+      "is_root": false,
+      "mass_kg": 0.09369155390148912,
+      "com_m": [
+        0.0,
+        0.02068559317359991,
+        0.0
+      ],
+      "inertia": {
+        "ixx": 5.744820689323345e-05,
+        "ixy": 0.0,
+        "ixz": 0.0,
+        "iyy": 3.136374172018675e-05,
+        "iyz": 0.0,
+        "izz": 6.346179524978706e-05
+      },
+      "inertia_valid": true,
+      "inertia_problem": "",
+      "printed_cm3": 47.54575417557342,
+      "parts": [
+        "RL_abduct_bracket",
+        "sts3215"
+      ]
+    },
+    {
+      "name": "RL_thigh",
+      "is_root": false,
+      "mass_kg": 0.09331886061030363,
+      "com_m": [
+        0.0,
+        -0.000667785859656573,
+        -0.08580130554531862
+      ],
+      "inertia": {
+        "ixx": 0.00016324005099932574,
+        "ixy": 0.0,
+        "ixz": 0.0,
+        "iyy": 0.0001695539250592422,
+        "iyz": 1.4120995860517863e-06,
+        "izz": 2.0194662681150585e-05
+      },
+      "inertia_valid": true,
+      "inertia_problem": "",
+      "printed_cm3": 46.95883560677737,
+      "parts": [
+        "RL_thigh",
+        "sts3215"
+      ]
+    },
+    {
+      "name": "RL_calf",
+      "is_root": false,
+      "mass_kg": 0.08806023810655852,
+      "com_m": [
+        0.0,
+        -0.000379094239139174,
+        -0.07957065246606862
+      ],
+      "inertia": {
+        "ixx": 0.00011717322366104022,
+        "ixy": 0.0,
+        "ixz": 0.0,
+        "iyy": 0.0001239198878015372,
+        "iyz": 7.17847874578266e-07,
+        "izz": 1.605244974488429e-05
+      },
+      "inertia_valid": true,
+      "inertia_problem": "",
+      "printed_cm3": 38.49754032528904,
+      "parts": [
+        "RL_calf",
+        "sts3215"
+      ]
+    },
+    {
+      "name": "RL_wheel",
+      "is_root": false,
+      "mass_kg": 0.06887234442226386,
+      "com_m": [
+        3.2240024176271916e-20,
+        -0.00035221861601268797,
+        -2.579201934101753e-20
+      ],
+      "inertia": {
+        "ixx": 4.7937981457908073e-05,
+        "ixy": -4.186986129220397e-25,
+        "ixz": 3.970466940254533e-23,
+        "iyy": 8.96948945305765e-05,
+        "iyz": 1.5757298091671732e-24,
+        "izz": 4.7937981457908073e-05
+      },
+      "inertia_valid": true,
+      "inertia_problem": "",
+      "printed_cm3": 93.70554825550657,
+      "parts": [
+        "RL_wheel_hub",
+        "RL_tire"
+      ]
+    },
+    {
+      "name": "RR_hip",
+      "is_root": false,
+      "mass_kg": 0.09369155390148912,
+      "com_m": [
+        0.0,
+        -0.02068559317359991,
+        0.0
+      ],
+      "inertia": {
+        "ixx": 5.744820689323345e-05,
+        "ixy": 0.0,
+        "ixz": 0.0,
+        "iyy": 3.136374172018675e-05,
+        "iyz": 0.0,
+        "izz": 6.346179524978706e-05
+      },
+      "inertia_valid": true,
+      "inertia_problem": "",
+      "printed_cm3": 47.54575417557342,
+      "parts": [
+        "RR_abduct_bracket",
+        "sts3215"
+      ]
+    },
+    {
+      "name": "RR_thigh",
+      "is_root": false,
+      "mass_kg": 0.09331886061030363,
+      "com_m": [
+        0.0,
+        0.000667785859656573,
+        -0.08580130554531862
+      ],
+      "inertia": {
+        "ixx": 0.00016324005099932574,
+        "ixy": 0.0,
+        "ixz": 0.0,
+        "iyy": 0.0001695539250592422,
+        "iyz": -1.4120995860517863e-06,
+        "izz": 2.0194662681150585e-05
+      },
+      "inertia_valid": true,
+      "inertia_problem": "",
+      "printed_cm3": 46.95883560677737,
+      "parts": [
+        "RR_thigh",
+        "sts3215"
+      ]
+    },
+    {
+      "name": "RR_calf",
+      "is_root": false,
+      "mass_kg": 0.08806023810655852,
+      "com_m": [
+        0.0,
+        0.000379094239139174,
+        -0.07957065246606862
+      ],
+      "inertia": {
+        "ixx": 0.00011717322366104022,
+        "ixy": 0.0,
+        "ixz": 0.0,
+        "iyy": 0.0001239198878015372,
+        "iyz": -7.17847874578266e-07,
+        "izz": 1.605244974488429e-05
+      },
+      "inertia_valid": true,
+      "inertia_problem": "",
+      "printed_cm3": 38.49754032528904,
+      "parts": [
+        "RR_calf",
+        "sts3215"
+      ]
+    },
+    {
+      "name": "RR_wheel",
+      "is_root": false,
+      "mass_kg": 0.06887234442226386,
+      "com_m": [
+        3.2240024176271916e-20,
+        0.00035221861601268797,
+        -2.579201934101753e-20
+      ],
+      "inertia": {
+        "ixx": 4.7937981457908073e-05,
+        "ixy": 4.186986129220397e-25,
+        "ixz": 3.970466940254533e-23,
+        "iyy": 8.96948945305765e-05,
+        "iyz": -1.5757298091671732e-24,
+        "izz": 4.7937981457908073e-05
+      },
+      "inertia_valid": true,
+      "inertia_problem": "",
+      "printed_cm3": 93.70554825550657,
+      "parts": [
+        "RR_wheel_hub",
+        "RR_tire"
+      ]
+    }
+  ],
+  "joints": [
+    {
+      "name": "FL_abduct",
+      "parent": "trunk",
+      "child": "FL_hip",
+      "type": "revolute",
+      "origin_xyz": [
+        0.092,
+        0.036,
+        0.0
+      ],
+      "origin_rpy": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "axis": [
+        1.0,
+        0.0,
+        0.0
+      ],
+      "limit_lower": -0.8,
+      "limit_upper": 0.8,
+      "effort_nm": 2.941995,
+      "velocity_rad_s": 4.71238898038469,
+      "damping": 0.56,
+      "friction": 0.068,
+      "armature_kgm2": 0.027,
+      "stance_rad": 0.0,
+      "leg": "FL",
+      "kind": "abduct"
+    },
+    {
+      "name": "FL_hip",
+      "parent": "FL_hip",
+      "child": "FL_thigh",
+      "type": "revolute",
+      "origin_xyz": [
+        0.0,
+        0.036,
+        -0.0
+      ],
+      "origin_rpy": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "axis": [
+        0.0,
+        1.0,
+        0.0
+      ],
+      "limit_lower": -1.2,
+      "limit_upper": 2.6,
+      "effort_nm": 2.941995,
+      "velocity_rad_s": 4.71238898038469,
+      "damping": 0.56,
+      "friction": 0.068,
+      "armature_kgm2": 0.027,
+      "stance_rad": 0.46,
+      "leg": "FL",
+      "kind": "hip"
+    },
+    {
+      "name": "FL_knee",
+      "parent": "FL_thigh",
+      "child": "FL_calf",
+      "type": "revolute",
+      "origin_xyz": [
+        0.0,
+        0.0,
+        -0.11
+      ],
+      "origin_rpy": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "axis": [
+        0.0,
+        1.0,
+        0.0
+      ],
+      "limit_lower": -2.6,
+      "limit_upper": -0.6,
+      "effort_nm": 2.941995,
+      "velocity_rad_s": 4.71238898038469,
+      "damping": 0.56,
+      "friction": 0.068,
+      "armature_kgm2": 0.027,
+      "stance_rad": -0.970189837432645,
+      "leg": "FL",
+      "kind": "knee"
+    },
+    {
+      "name": "FL_wheel",
+      "parent": "FL_calf",
+      "child": "FL_wheel",
+      "type": "continuous",
+      "origin_xyz": [
+        0.0,
+        0.017,
+        -0.1
+      ],
+      "origin_rpy": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "axis": [
+        0.0,
+        1.0,
+        0.0
+      ],
+      "limit_lower": null,
+      "limit_upper": null,
+      "effort_nm": 2.941995,
+      "velocity_rad_s": 4.71238898038469,
+      "damping": 0.1,
+      "friction": 0.03,
+      "armature_kgm2": 0.027,
+      "stance_rad": 0.0,
+      "leg": "FL",
+      "kind": "wheel"
+    },
+    {
+      "name": "FR_abduct",
+      "parent": "trunk",
+      "child": "FR_hip",
+      "type": "revolute",
+      "origin_xyz": [
+        0.092,
+        -0.036,
+        0.0
+      ],
+      "origin_rpy": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "axis": [
+        1.0,
+        0.0,
+        0.0
+      ],
+      "limit_lower": -0.8,
+      "limit_upper": 0.8,
+      "effort_nm": 2.941995,
+      "velocity_rad_s": 4.71238898038469,
+      "damping": 0.56,
+      "friction": 0.068,
+      "armature_kgm2": 0.027,
+      "stance_rad": 0.0,
+      "leg": "FR",
+      "kind": "abduct"
+    },
+    {
+      "name": "FR_hip",
+      "parent": "FR_hip",
+      "child": "FR_thigh",
+      "type": "revolute",
+      "origin_xyz": [
+        0.0,
+        -0.036,
+        -0.0
+      ],
+      "origin_rpy": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "axis": [
+        0.0,
+        1.0,
+        0.0
+      ],
+      "limit_lower": -1.2,
+      "limit_upper": 2.6,
+      "effort_nm": 2.941995,
+      "velocity_rad_s": 4.71238898038469,
+      "damping": 0.56,
+      "friction": 0.068,
+      "armature_kgm2": 0.027,
+      "stance_rad": 0.46,
+      "leg": "FR",
+      "kind": "hip"
+    },
+    {
+      "name": "FR_knee",
+      "parent": "FR_thigh",
+      "child": "FR_calf",
+      "type": "revolute",
+      "origin_xyz": [
+        0.0,
+        0.0,
+        -0.11
+      ],
+      "origin_rpy": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "axis": [
+        0.0,
+        1.0,
+        0.0
+      ],
+      "limit_lower": -2.6,
+      "limit_upper": -0.6,
+      "effort_nm": 2.941995,
+      "velocity_rad_s": 4.71238898038469,
+      "damping": 0.56,
+      "friction": 0.068,
+      "armature_kgm2": 0.027,
+      "stance_rad": -0.970189837432645,
+      "leg": "FR",
+      "kind": "knee"
+    },
+    {
+      "name": "FR_wheel",
+      "parent": "FR_calf",
+      "child": "FR_wheel",
+      "type": "continuous",
+      "origin_xyz": [
+        0.0,
+        -0.017,
+        -0.1
+      ],
+      "origin_rpy": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "axis": [
+        0.0,
+        1.0,
+        0.0
+      ],
+      "limit_lower": null,
+      "limit_upper": null,
+      "effort_nm": 2.941995,
+      "velocity_rad_s": 4.71238898038469,
+      "damping": 0.1,
+      "friction": 0.03,
+      "armature_kgm2": 0.027,
+      "stance_rad": 0.0,
+      "leg": "FR",
+      "kind": "wheel"
+    },
+    {
+      "name": "RL_abduct",
+      "parent": "trunk",
+      "child": "RL_hip",
+      "type": "revolute",
+      "origin_xyz": [
+        -0.092,
+        0.036,
+        0.0
+      ],
+      "origin_rpy": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "axis": [
+        1.0,
+        0.0,
+        0.0
+      ],
+      "limit_lower": -0.8,
+      "limit_upper": 0.8,
+      "effort_nm": 2.941995,
+      "velocity_rad_s": 4.71238898038469,
+      "damping": 0.56,
+      "friction": 0.068,
+      "armature_kgm2": 0.027,
+      "stance_rad": 0.0,
+      "leg": "RL",
+      "kind": "abduct"
+    },
+    {
+      "name": "RL_hip",
+      "parent": "RL_hip",
+      "child": "RL_thigh",
+      "type": "revolute",
+      "origin_xyz": [
+        0.0,
+        0.036,
+        -0.0
+      ],
+      "origin_rpy": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "axis": [
+        0.0,
+        1.0,
+        0.0
+      ],
+      "limit_lower": -1.2,
+      "limit_upper": 2.6,
+      "effort_nm": 2.941995,
+      "velocity_rad_s": 4.71238898038469,
+      "damping": 0.56,
+      "friction": 0.068,
+      "armature_kgm2": 0.027,
+      "stance_rad": 0.46,
+      "leg": "RL",
+      "kind": "hip"
+    },
+    {
+      "name": "RL_knee",
+      "parent": "RL_thigh",
+      "child": "RL_calf",
+      "type": "revolute",
+      "origin_xyz": [
+        0.0,
+        0.0,
+        -0.11
+      ],
+      "origin_rpy": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "axis": [
+        0.0,
+        1.0,
+        0.0
+      ],
+      "limit_lower": -2.6,
+      "limit_upper": -0.6,
+      "effort_nm": 2.941995,
+      "velocity_rad_s": 4.71238898038469,
+      "damping": 0.56,
+      "friction": 0.068,
+      "armature_kgm2": 0.027,
+      "stance_rad": -0.970189837432645,
+      "leg": "RL",
+      "kind": "knee"
+    },
+    {
+      "name": "RL_wheel",
+      "parent": "RL_calf",
+      "child": "RL_wheel",
+      "type": "continuous",
+      "origin_xyz": [
+        0.0,
+        0.017,
+        -0.1
+      ],
+      "origin_rpy": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "axis": [
+        0.0,
+        1.0,
+        0.0
+      ],
+      "limit_lower": null,
+      "limit_upper": null,
+      "effort_nm": 2.941995,
+      "velocity_rad_s": 4.71238898038469,
+      "damping": 0.1,
+      "friction": 0.03,
+      "armature_kgm2": 0.027,
+      "stance_rad": 0.0,
+      "leg": "RL",
+      "kind": "wheel"
+    },
+    {
+      "name": "RR_abduct",
+      "parent": "trunk",
+      "child": "RR_hip",
+      "type": "revolute",
+      "origin_xyz": [
+        -0.092,
+        -0.036,
+        0.0
+      ],
+      "origin_rpy": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "axis": [
+        1.0,
+        0.0,
+        0.0
+      ],
+      "limit_lower": -0.8,
+      "limit_upper": 0.8,
+      "effort_nm": 2.941995,
+      "velocity_rad_s": 4.71238898038469,
+      "damping": 0.56,
+      "friction": 0.068,
+      "armature_kgm2": 0.027,
+      "stance_rad": 0.0,
+      "leg": "RR",
+      "kind": "abduct"
+    },
+    {
+      "name": "RR_hip",
+      "parent": "RR_hip",
+      "child": "RR_thigh",
+      "type": "revolute",
+      "origin_xyz": [
+        0.0,
+        -0.036,
+        -0.0
+      ],
+      "origin_rpy": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "axis": [
+        0.0,
+        1.0,
+        0.0
+      ],
+      "limit_lower": -1.2,
+      "limit_upper": 2.6,
+      "effort_nm": 2.941995,
+      "velocity_rad_s": 4.71238898038469,
+      "damping": 0.56,
+      "friction": 0.068,
+      "armature_kgm2": 0.027,
+      "stance_rad": 0.46,
+      "leg": "RR",
+      "kind": "hip"
+    },
+    {
+      "name": "RR_knee",
+      "parent": "RR_thigh",
+      "child": "RR_calf",
+      "type": "revolute",
+      "origin_xyz": [
+        0.0,
+        0.0,
+        -0.11
+      ],
+      "origin_rpy": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "axis": [
+        0.0,
+        1.0,
+        0.0
+      ],
+      "limit_lower": -2.6,
+      "limit_upper": -0.6,
+      "effort_nm": 2.941995,
+      "velocity_rad_s": 4.71238898038469,
+      "damping": 0.56,
+      "friction": 0.068,
+      "armature_kgm2": 0.027,
+      "stance_rad": -0.970189837432645,
+      "leg": "RR",
+      "kind": "knee"
+    },
+    {
+      "name": "RR_wheel",
+      "parent": "RR_calf",
+      "child": "RR_wheel",
+      "type": "continuous",
+      "origin_xyz": [
+        0.0,
+        -0.017,
+        -0.1
+      ],
+      "origin_rpy": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "axis": [
+        0.0,
+        1.0,
+        0.0
+      ],
+      "limit_lower": null,
+      "limit_upper": null,
+      "effort_nm": 2.941995,
+      "velocity_rad_s": 4.71238898038469,
+      "damping": 0.1,
+      "friction": 0.03,
+      "armature_kgm2": 0.027,
+      "stance_rad": 0.0,
+      "leg": "RR",
+      "kind": "wheel"
+    }
+  ],
+  "stance": {
+    "FL_abduct": 0.0,
+    "FL_hip": 0.46,
+    "FL_knee": -0.970189837432645,
+    "FL_wheel": 0.0,
+    "FR_abduct": 0.0,
+    "FR_hip": 0.46,
+    "FR_knee": -0.970189837432645,
+    "FR_wheel": 0.0,
+    "RL_abduct": 0.0,
+    "RL_hip": 0.46,
+    "RL_knee": -0.970189837432645,
+    "RL_wheel": 0.0,
+    "RR_abduct": 0.0,
+    "RR_hip": 0.46,
+    "RR_knee": -0.970189837432645,
+    "RR_wheel": 0.0
+  },
+  "stance_solved_knee_rad": -0.970189837432645,
+  "stand_height_m": 0.22943095648830686,
+  "wheelbase_m": 0.184,
+  "track_m": 0.178,
+  "total_mass_kg": 2.2129199788824603,
+  "wheel": {
+    "radius_m": 0.045,
+    "loaded_radius_m": 0.0436,
+    "width_m": 0.024
+  },
+  "actuator_note": "The STS3215 is a closed-loop POSITION servo with an internal integer-gain PID, a deadband and 1:345 of reduction. It has no torque and no current mode. Model it as a saturating position-PD with the armature above, not as an ideal effort source. Wheels must be VELOCITY-driven: a continuous joint position target breaks past +/-2*pi in PhysX.",
+  "envelope": {
+    "top_speed_m_s": 0.20546015954477245,
+    "leg_joint_rad_s": 4.71238898038469,
+    "design_drop_m": 0.008
+  }
+}
