@@ -32,3 +32,4 @@ write the next one and mark this one `superseded by NNNN`.
 - [0003 — On Isaac Lab, PPO at high env count over SAC at low](0003-ppo-at-scale-over-sac-at-small-scale.md)
 - [0004 — Inherit the Isaac reward knowingly; re-scope it for Hound](0004-inherit-the-isaac-reward-knowingly.md)
 - [0005 — The Isaac Hound stack: what survives an adversarial pass](0005-the-isaac-hound-stack-what-survives.md)
+- [0006 — What the reward economics may and may not assume, going into the first evaluated arm](0006-what-the-reward-economics-may-assume.md)
