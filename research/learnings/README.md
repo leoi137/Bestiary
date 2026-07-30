@@ -118,7 +118,12 @@ recall: it works when you do not know what you do not know.
 
 Keep the vocabulary small and shared. Current terms: `warm_start`,
 `reward_change`, `critic_reset`, `obs_change`, `new_terrain`, `new_robot`,
-`metric_added`, `long_run`, `resume`, `refactor`, `comparison`.
+`metric_added`, `long_run`, `resume`, `refactor`, `comparison`, `new_machine`.
+
+`new_machine` was added 2026-07-30 by learnings 016 and 017. Its moment is *a
+run is about to start on a host this project has not run on before* — which is
+when a portability defect and an uncontrolled comparison are both one command
+away, and neither is visible from the code.
 
 **`last_confirmed`** is the staleness handle. A cycle that touches a lesson's
 subject either re-confirms the date or explains why it could not.
@@ -178,6 +183,8 @@ because it reads exactly like a correct one and will be trusted later.
 - [013 — A number is only as durable as the artifact it was computed from](013-a-number-is-only-as-durable-as-its-artifact.md)
 - [014 — A guard can be green, fully tested, and check nothing at all](014-a-green-guard-that-checked-nothing.md)
 - [015 — It learned one trot, not a command](015-it-learned-one-trot-not-a-command.md)
+- [016 — The thread ceiling was real, and it was never in the launch path](016-the-ceiling-was-never-in-the-launch-path.md)
+- [017 — The second machine reproduced the stack, not the comparison](017-reproduced-the-stack-not-the-comparison.md)
 
 > Lessons 001–005 predate the writing standard above. They are correct but
 > terse. Rewrite one to the new standard whenever a run touches its subject —
