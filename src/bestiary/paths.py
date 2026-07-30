@@ -50,6 +50,20 @@ MESH_DIR = ASSETS / "meshes"
 DESERT_HFIELD = TERRAIN_DIR / "desert_hfield.bin"
 DESERT_TEXTURE = TERRAIN_DIR / "desert_texture.png"
 
+# --- Whelp: the PHYSICAL robot ----------------------------------------------
+# Whelp is CAD rather than MJCF, so it does not follow the "model XML sits next
+# to meshes/" rule above -- nothing here is loaded by MuJoCo's relative-path
+# resolver. It keeps the same source-vs-output split though: the .scad source and
+# the generators live in robots/whelp/, and everything generated lands here.
+#
+# whelp16.urdf references its meshes as "stl/<part>.stl", RELATIVE TO THE URDF,
+# so the URDF and the stl/ directory have to stay siblings. Isaac Lab's importer
+# resolves them the same way MuJoCo does.
+WHELP_DIR = ASSETS / "whelp"
+WHELP_STL_DIR = WHELP_DIR / "stl"
+WHELP_URDF = WHELP_DIR / "whelp16.urdf"
+WHELP_ROBOT_JSON = WHELP_DIR / "robot.json"
+
 HOUND_XML = ASSETS / "hound16.xml"
 HOUND_DESERT_XML = ASSETS / "hound16_desert.xml"
 
