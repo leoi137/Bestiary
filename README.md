@@ -6,7 +6,9 @@
 Custom legged robots authored as MuJoCo MJCF by generator scripts rather than
 hand-written XML, trained with Soft Actor-Critic (Stable-Baselines3), and
 written up as they go. Two machines so far — **Spyder**, a 12-DoF spider, and
-**Hound**, a 16-DoF wheel-legged dog — plus the standard Gymnasium MuJoCo
+**Hound**, a 16-DoF wheel-legged dog — plus **Whelp**, Hound's 2.3 kg printable
+counterpart, which exists to answer the question simulation cannot: what
+actually breaks. Plus the standard Gymnasium MuJoCo
 benchmarks (`Ant-v5`, `Walker2d-v5`, `Humanoid-v5`) kept around as controls.
 
 Three pointers before the pictures:
@@ -236,6 +238,7 @@ current working directory and there are no `sys.path` games.
 | `src/bestiary/rewards/shaping.py` | reward-shaping wrappers and the `WRAPPERS` registry |
 | `src/bestiary/terrain/` | generate the desert heightfield, read it back, hash the compiled one |
 | `src/bestiary/robots/<name>/` | `build.py` (MJCF generator), `check.py` (assertions), `render.py` (figures) |
+| `src/bestiary/robots/whelp/` | the one robot that is **hardware**: parametric OpenSCAD, a URDF for Isaac Lab, and a torque budget that says what will break — see [`CARD.md`](src/bestiary/robots/whelp/CARD.md) |
 | `src/bestiary/guards/` | the lessons this project already paid for, as assertions |
 | `research/` | learnings, decisions, episodes, and the append-only run ledger |
 | `docs/lessons/`, `docs/theory/` | the teaching track, and the math written when it becomes load-bearing |
