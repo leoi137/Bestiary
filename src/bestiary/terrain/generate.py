@@ -109,9 +109,16 @@ def _warp(field: np.ndarray, dx: np.ndarray, dy: np.ndarray) -> np.ndarray:
             + (field[r1, c0] * (1 - fc) + field[r1, c1] * fc) * fr)
 
 
-def build_height_m(seed: int) -> np.ndarray:
+def build_height_m(seed: int, mountain_amp: float = 3.3) -> np.ndarray:
     """The composed terrain in meters, spawn surface = 0. Returns (GRID, GRID),
-    row axis = y (south->north), col axis = x (west->east)."""
+    row axis = y (south->north), col axis = x (west->east).
+
+    `mountain_amp` scales the mountain layer only — the default is the
+    committed desert's own 3.3, so every existing caller (and the terrain-spec
+    oracle's byte-reproduction of the seed-7 asset) is unchanged. The
+    parameter exists for `terrain/gentle.py`, whose whole design is this
+    recipe with the mountains turned down; giving it a knob here is what
+    keeps that from becoming a drifting copy of these layers."""
     rng = np.random.default_rng(seed)
     n = GRID
 
@@ -145,7 +152,7 @@ def build_height_m(seed: int) -> np.ndarray:
     # smoothstep gate: 0 inside r=10 m, 1 beyond r=32 m
     t = np.clip((dist - 10.0) / 22.0, 0.0, 1.0)
     gate = t * t * (3.0 - 2.0 * t)
-    mountains = 3.3 * ridged * gate
+    mountains = mountain_amp * ridged * gate
 
     # -- Fine dirt / gravel roughness everywhere -----------------------------
     detail = 0.04 * _spectral_field(rng, n, beta=1.5, band=(0.5, 3.0))
