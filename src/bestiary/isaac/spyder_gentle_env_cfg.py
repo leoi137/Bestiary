@@ -274,7 +274,7 @@ class SpyderGentleEnvCfg(LocomotionVelocityRoughEnvCfg):
         }
 
         # On femur contact at -1.0: the Hound deleted this term because ONE
-        # thigh in sand priced at 106% of achievable income on terrain where
+        # thigh in sand scored at 106% of achievable income on terrain where
         # thigh contact is normal traversal. Spyder's femurs run UPWARD from
         # the coxa at stance (+0.25 m over 0.31 m of reach) — they touch
         # ground when the machine has collapsed, not when it is walking, so
