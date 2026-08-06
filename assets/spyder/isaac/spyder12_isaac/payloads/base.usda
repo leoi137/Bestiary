@@ -1,0 +1,923 @@
+#usda 1.0
+(
+    customLayerData = {
+        string creator = "MuJoCo USD Converter v0.2.0"
+    }
+    defaultPrim = "spyder12_isaac"
+    doc = """Generated from Composed Stage of root layer /tmp/tmpggm3ls2b/spyder12_isaac.usdc
+
+
+Generated from Composed Stage of root layer /tmp/mjcf_import_spyder12_isaac_e77s19wh/usdex_spyder12_isaac/spyder12_isaac.usdc
+
+
+Generated from Composed Stage of root layer /tmp/mjcf_import_spyder12_isaac_e77s19wh/temp_spyder12_isaac/spyder12_isaac.usd
+
+
+Generated from Composed Stage of root layer /home/leandro/Desktop/Resources/Robotics/Bestiary/assets/spyder/isaac/spyder12_isaac/payloads/base.usd
+"""
+    kilogramsPerUnit = 1
+    metersPerUnit = 1
+    subLayers = [
+        @./robot.usda@
+    ]
+    upAxis = "Z"
+)
+
+def Xform "spyder12_isaac" (
+    prepend apiSchemas = ["GeomModelAPI", "IsaacRobotAPI"]
+    assetInfo = {
+        string name = "spyder12_isaac"
+    }
+    kind = "component"
+)
+{
+    float3[] extentsHint = [(-0.87313706, -0.8731371, -0.35000002), (0.8731371, 0.8731371, 0.336), (3.4028235e38, 3.4028235e38, 3.4028235e38), (-3.4028235e38, -3.4028235e38, -3.4028235e38), (3.4028235e38, 3.4028235e38, 3.4028235e38), (-3.4028235e38, -3.4028235e38, -3.4028235e38), (-0.8690443, -0.8690443, -0.3967389), (0.8690443, 0.8690443, 0.3883029)]
+    custom rel isaac:physics:robotJoints
+    custom rel isaac:physics:robotLinks
+    custom token isaac:robotType = "Quadruped"
+
+    def Scope "Geometry"
+    {
+        def Xform "torso" (
+            prepend apiSchemas = ["IsaacLinkAPI"]
+        )
+        {
+            quatf xformOp:orient = (1, 0, 0, 0)
+            float3 xformOp:scale = (1, 1, 1)
+            double3 xformOp:translate = (0, 0, 0)
+            uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:orient", "xformOp:scale"]
+
+            def Xform "carapace_shell" (
+                instanceable = true
+                prepend references = @./instances.usda@</Instances/carapace_shell>
+            )
+            {
+                quatd xformOp:orient = (1, 0, 0, 0)
+                double3 xformOp:scale = (1, 1, 1)
+                double3 xformOp:translate = (0, 0, 0)
+                uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:orient", "xformOp:scale"]
+            }
+
+            def Xform "carapace_lens" (
+                instanceable = true
+                prepend references = @./instances.usda@</Instances/carapace_lens>
+            )
+            {
+                quatd xformOp:orient = (1, 0, 0, 0)
+                double3 xformOp:scale = (1, 1, 1)
+                double3 xformOp:translate = (0, 0, 0)
+                uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:orient", "xformOp:scale"]
+            }
+
+            def Sphere "torso_geom" (
+                prepend apiSchemas = ["PhysicsCollisionAPI", "MaterialBindingAPI"]
+            )
+            {
+                float3[] extent = [(-0.25, -0.25, -0.25), (0.25, 0.25, 0.25)]
+                rel material:binding:physics = </spyder12_isaac/Physics/PhysicsMaterial>
+                color3f[] primvars:displayColor = [(0.28, 0.28, 0.32)] (
+                    interpolation = "constant"
+                )
+                int[] primvars:displayColor:indices = None
+                float[] primvars:displayOpacity = [1] (
+                    interpolation = "constant"
+                )
+                int[] primvars:displayOpacity:indices = None
+                uniform token purpose = "guide"
+                double radius = 0.25
+                quatf xformOp:orient = (1, 0, 0, 0)
+                float3 xformOp:scale = (1, 1, 1)
+                double3 xformOp:translate = (0, 0, 0)
+                uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:orient", "xformOp:scale"]
+            }
+
+            def Capsule "stub_1" (
+                prepend apiSchemas = ["PhysicsCollisionAPI", "MaterialBindingAPI"]
+            )
+            {
+                uniform token axis = "Z"
+                float3[] extent = [(-0.08, -0.08, -0.22142136), (0.08, 0.08, 0.22142136)]
+                double height = 0.28284271247461906
+                rel material:binding:physics = </spyder12_isaac/Physics/PhysicsMaterial>
+                color3f[] primvars:displayColor = [(0.55, 0.55, 0.58)] (
+                    interpolation = "constant"
+                )
+                int[] primvars:displayColor:indices = None
+                float[] primvars:displayOpacity = [1] (
+                    interpolation = "constant"
+                )
+                int[] primvars:displayOpacity:indices = None
+                uniform token purpose = "guide"
+                double radius = 0.08
+                quatf xformOp:orient = (0.70710677, -0.5, 0.5, 0)
+                float3 xformOp:scale = (1, 1, 1)
+                double3 xformOp:translate = (0.1, 0.1, 0)
+                uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:orient", "xformOp:scale"]
+            }
+
+            def Capsule "stub_2" (
+                prepend apiSchemas = ["PhysicsCollisionAPI", "MaterialBindingAPI"]
+            )
+            {
+                uniform token axis = "Z"
+                float3[] extent = [(-0.08, -0.08, -0.22142136), (0.08, 0.08, 0.22142136)]
+                double height = 0.28284271247461906
+                rel material:binding:physics = </spyder12_isaac/Physics/PhysicsMaterial>
+                color3f[] primvars:displayColor = [(0.55, 0.55, 0.58)] (
+                    interpolation = "constant"
+                )
+                int[] primvars:displayColor:indices = None
+                float[] primvars:displayOpacity = [1] (
+                    interpolation = "constant"
+                )
+                int[] primvars:displayOpacity:indices = None
+                uniform token purpose = "guide"
+                double radius = 0.08
+                quatf xformOp:orient = (0.70710677, -0.5, -0.5, 0)
+                float3 xformOp:scale = (1, 1, 1)
+                double3 xformOp:translate = (-0.1, 0.1, 0)
+                uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:orient", "xformOp:scale"]
+            }
+
+            def Capsule "stub_3" (
+                prepend apiSchemas = ["PhysicsCollisionAPI", "MaterialBindingAPI"]
+            )
+            {
+                uniform token axis = "Z"
+                float3[] extent = [(-0.08, -0.08, -0.22142136), (0.08, 0.08, 0.22142136)]
+                double height = 0.28284271247461906
+                rel material:binding:physics = </spyder12_isaac/Physics/PhysicsMaterial>
+                color3f[] primvars:displayColor = [(0.55, 0.55, 0.58)] (
+                    interpolation = "constant"
+                )
+                int[] primvars:displayColor:indices = None
+                float[] primvars:displayOpacity = [1] (
+                    interpolation = "constant"
+                )
+                int[] primvars:displayOpacity:indices = None
+                uniform token purpose = "guide"
+                double radius = 0.08
+                quatf xformOp:orient = (0.70710677, 0.5, -0.5, 0)
+                float3 xformOp:scale = (1, 1, 1)
+                double3 xformOp:translate = (-0.1, -0.1, 0)
+                uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:orient", "xformOp:scale"]
+            }
+
+            def Capsule "stub_4" (
+                prepend apiSchemas = ["PhysicsCollisionAPI", "MaterialBindingAPI"]
+            )
+            {
+                uniform token axis = "Z"
+                float3[] extent = [(-0.08, -0.08, -0.22142136), (0.08, 0.08, 0.22142136)]
+                double height = 0.28284271247461906
+                rel material:binding:physics = </spyder12_isaac/Physics/PhysicsMaterial>
+                color3f[] primvars:displayColor = [(0.55, 0.55, 0.58)] (
+                    interpolation = "constant"
+                )
+                int[] primvars:displayColor:indices = None
+                float[] primvars:displayOpacity = [1] (
+                    interpolation = "constant"
+                )
+                int[] primvars:displayOpacity:indices = None
+                uniform token purpose = "guide"
+                double radius = 0.08
+                quatf xformOp:orient = (0.70710677, 0.5, 0.5, 0)
+                float3 xformOp:scale = (1, 1, 1)
+                double3 xformOp:translate = (0.1, -0.1, 0)
+                uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:orient", "xformOp:scale"]
+            }
+
+            def Xform "coxa_1" (
+                prepend apiSchemas = ["IsaacLinkAPI"]
+            )
+            {
+                quatf xformOp:orient = (1, 0, 0, 0)
+                float3 xformOp:scale = (1, 1, 1)
+                double3 xformOp:translate = (0.2, 0.2, 0)
+                uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:orient", "xformOp:scale"]
+
+                def Xform "coxa_shell" (
+                    instanceable = true
+                    prepend references = @./instances.usda@</Instances/coxa_shell>
+                )
+                {
+                    quatd xformOp:orient = (0.9238795638, 0, 0, 0.3826833665)
+                    double3 xformOp:scale = (1, 1, 1)
+                    double3 xformOp:translate = (0, 0, 0)
+                    uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:orient", "xformOp:scale"]
+                }
+
+                def Xform "coxa_hub" (
+                    instanceable = true
+                    prepend references = @./instances.usda@</Instances/coxa_hub>
+                )
+                {
+                    quatd xformOp:orient = (0.9238795638, 0, 0, 0.3826833665)
+                    double3 xformOp:scale = (1, 1, 1)
+                    double3 xformOp:translate = (0, 0, 0)
+                    uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:orient", "xformOp:scale"]
+                }
+
+                def Capsule "coxa_1_geom" (
+                    prepend apiSchemas = ["PhysicsCollisionAPI", "MaterialBindingAPI"]
+                )
+                {
+                    uniform token axis = "Z"
+                    float3[] extent = [(-0.08, -0.08, -0.16485281), (0.08, 0.08, 0.16485281)]
+                    double height = 0.16970562748477142
+                    rel material:binding:physics = </spyder12_isaac/Physics/PhysicsMaterial>
+                    color3f[] primvars:displayColor = [(0.55, 0.55, 0.58)] (
+                        interpolation = "constant"
+                    )
+                    int[] primvars:displayColor:indices = None
+                    float[] primvars:displayOpacity = [1] (
+                        interpolation = "constant"
+                    )
+                    int[] primvars:displayOpacity:indices = None
+                    uniform token purpose = "guide"
+                    double radius = 0.08
+                    quatf xformOp:orient = (0.70710677, -0.5, 0.5, 0)
+                    float3 xformOp:scale = (1, 1, 1)
+                    double3 xformOp:translate = (0.06, 0.06, 0)
+                    uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:orient", "xformOp:scale"]
+                }
+
+                def Xform "femur_1" (
+                    prepend apiSchemas = ["IsaacLinkAPI"]
+                )
+                {
+                    quatf xformOp:orient = (1, 0, 0, 0)
+                    float3 xformOp:scale = (1, 1, 1)
+                    double3 xformOp:translate = (0.12, 0.12, 0)
+                    uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:orient", "xformOp:scale"]
+
+                    def Xform "femur_shell" (
+                        instanceable = true
+                        prepend references = @./instances.usda@</Instances/femur_shell>
+                    )
+                    {
+                        quatd xformOp:orient = (0.9238795638, 0, 0, 0.3826833665)
+                        double3 xformOp:scale = (1, 1, 1)
+                        double3 xformOp:translate = (0, 0, 0)
+                        uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:orient", "xformOp:scale"]
+                    }
+
+                    def Xform "femur_hub" (
+                        instanceable = true
+                        prepend references = @./instances.usda@</Instances/femur_hub>
+                    )
+                    {
+                        quatd xformOp:orient = (0.9238795638, 0, 0, 0.3826833665)
+                        double3 xformOp:scale = (1, 1, 1)
+                        double3 xformOp:translate = (0, 0, 0)
+                        uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:orient", "xformOp:scale"]
+                    }
+
+                    def Capsule "femur_1_geom" (
+                        prepend apiSchemas = ["PhysicsCollisionAPI", "MaterialBindingAPI"]
+                    )
+                    {
+                        uniform token axis = "Z"
+                        float3[] extent = [(-0.08, -0.08, -0.27956203), (0.08, 0.08, 0.27956203)]
+                        double height = 0.3991240408695021
+                        rel material:binding:physics = </spyder12_isaac/Physics/PhysicsMaterial>
+                        color3f[] primvars:displayColor = [(0.55, 0.55, 0.58)] (
+                            interpolation = "constant"
+                        )
+                        int[] primvars:displayColor:indices = None
+                        float[] primvars:displayOpacity = [1] (
+                            interpolation = "constant"
+                        )
+                        int[] primvars:displayOpacity:indices = None
+                        uniform token purpose = "guide"
+                        double radius = 0.08
+                        quatf xformOp:orient = (0.9017682, -0.30562568, 0.30562568, -3.0779056e-17)
+                        float3 xformOp:scale = (1, 1, 1)
+                        double3 xformOp:translate = (0.11, 0.11, 0.125)
+                        uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:orient", "xformOp:scale"]
+                    }
+
+                    def Xform "tibia_1" (
+                        prepend apiSchemas = ["IsaacLinkAPI"]
+                    )
+                    {
+                        quatf xformOp:orient = (1, 0, 0, 0)
+                        float3 xformOp:scale = (1, 1, 1)
+                        double3 xformOp:translate = (0.22, 0.22, 0.25)
+                        uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:orient", "xformOp:scale"]
+
+                        def Xform "tibia_shell" (
+                            instanceable = true
+                            prepend references = @./instances.usda@</Instances/tibia_shell>
+                        )
+                        {
+                            quatd xformOp:orient = (0.9238795638, 0, 0, 0.3826833665)
+                            double3 xformOp:scale = (1, 1, 1)
+                            double3 xformOp:translate = (0, 0, 0)
+                            uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:orient", "xformOp:scale"]
+                        }
+
+                        def Xform "tibia_hub" (
+                            instanceable = true
+                            prepend references = @./instances.usda@</Instances/tibia_hub>
+                        )
+                        {
+                            quatd xformOp:orient = (0.9238795638, 0, 0, 0.3826833665)
+                            double3 xformOp:scale = (1, 1, 1)
+                            double3 xformOp:translate = (0, 0, 0)
+                            uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:orient", "xformOp:scale"]
+                        }
+
+                        def Xform "tibia_pad" (
+                            instanceable = true
+                            prepend references = @./instances.usda@</Instances/tibia_pad>
+                        )
+                        {
+                            quatd xformOp:orient = (0.9238795638, 0, 0, 0.3826833665)
+                            double3 xformOp:scale = (1, 1, 1)
+                            double3 xformOp:translate = (0, 0, 0)
+                            uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:orient", "xformOp:scale"]
+                        }
+
+                        def Capsule "tibia_1_geom" (
+                            prepend apiSchemas = ["PhysicsCollisionAPI", "MaterialBindingAPI"]
+                        )
+                        {
+                            uniform token axis = "Z"
+                            float3[] extent = [(-0.08, -0.08, -0.38298514), (0.08, 0.08, 0.38298514)]
+                            double height = 0.6059702963017247
+                            rel material:binding:physics = </spyder12_isaac/Physics/PhysicsMaterial>
+                            color3f[] primvars:displayColor = [(0.55, 0.55, 0.58)] (
+                                interpolation = "constant"
+                            )
+                            int[] primvars:displayColor:indices = None
+                            float[] primvars:displayOpacity = [1] (
+                                interpolation = "constant"
+                            )
+                            int[] primvars:displayOpacity:indices = None
+                            uniform token purpose = "guide"
+                            double radius = 0.08
+                            quatf xformOp:orient = (-0.26633826, 0.6815658, -0.6815658, 0)
+                            float3 xformOp:scale = (1, 1, 1)
+                            double3 xformOp:translate = (0.11, 0.11, -0.26)
+                            uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:orient", "xformOp:scale"]
+                        }
+                    }
+                }
+            }
+
+            def Xform "coxa_2" (
+                prepend apiSchemas = ["IsaacLinkAPI"]
+            )
+            {
+                quatf xformOp:orient = (1, 0, 0, 0)
+                float3 xformOp:scale = (1, 1, 1)
+                double3 xformOp:translate = (-0.2, 0.2, 0)
+                uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:orient", "xformOp:scale"]
+
+                def Xform "coxa_shell" (
+                    instanceable = true
+                    prepend references = @./instances.usda@</Instances/coxa_shell>
+                )
+                {
+                    quatd xformOp:orient = (0.3826834559, 0, 0, 0.9238795042)
+                    double3 xformOp:scale = (1, 1, 1)
+                    double3 xformOp:translate = (0, 0, 0)
+                    uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:orient", "xformOp:scale"]
+                }
+
+                def Xform "coxa_hub" (
+                    instanceable = true
+                    prepend references = @./instances.usda@</Instances/coxa_hub>
+                )
+                {
+                    quatd xformOp:orient = (0.3826834559, 0, 0, 0.9238795042)
+                    double3 xformOp:scale = (1, 1, 1)
+                    double3 xformOp:translate = (0, 0, 0)
+                    uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:orient", "xformOp:scale"]
+                }
+
+                def Capsule "coxa_2_geom" (
+                    prepend apiSchemas = ["PhysicsCollisionAPI", "MaterialBindingAPI"]
+                )
+                {
+                    uniform token axis = "Z"
+                    float3[] extent = [(-0.08, -0.08, -0.16485281), (0.08, 0.08, 0.16485281)]
+                    double height = 0.16970562748477142
+                    rel material:binding:physics = </spyder12_isaac/Physics/PhysicsMaterial>
+                    color3f[] primvars:displayColor = [(0.55, 0.55, 0.58)] (
+                        interpolation = "constant"
+                    )
+                    int[] primvars:displayColor:indices = None
+                    float[] primvars:displayOpacity = [1] (
+                        interpolation = "constant"
+                    )
+                    int[] primvars:displayOpacity:indices = None
+                    uniform token purpose = "guide"
+                    double radius = 0.08
+                    quatf xformOp:orient = (0.70710677, -0.5, -0.5, 0)
+                    float3 xformOp:scale = (1, 1, 1)
+                    double3 xformOp:translate = (-0.06, 0.06, 0)
+                    uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:orient", "xformOp:scale"]
+                }
+
+                def Xform "femur_2" (
+                    prepend apiSchemas = ["IsaacLinkAPI"]
+                )
+                {
+                    quatf xformOp:orient = (1, 0, 0, 0)
+                    float3 xformOp:scale = (1, 1, 1)
+                    double3 xformOp:translate = (-0.12, 0.12, 0)
+                    uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:orient", "xformOp:scale"]
+
+                    def Xform "femur_shell" (
+                        instanceable = true
+                        prepend references = @./instances.usda@</Instances/femur_shell>
+                    )
+                    {
+                        quatd xformOp:orient = (0.3826834559, 0, 0, 0.9238795042)
+                        double3 xformOp:scale = (1, 1, 1)
+                        double3 xformOp:translate = (0, 0, 0)
+                        uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:orient", "xformOp:scale"]
+                    }
+
+                    def Xform "femur_hub" (
+                        instanceable = true
+                        prepend references = @./instances.usda@</Instances/femur_hub>
+                    )
+                    {
+                        quatd xformOp:orient = (0.3826834559, 0, 0, 0.9238795042)
+                        double3 xformOp:scale = (1, 1, 1)
+                        double3 xformOp:translate = (0, 0, 0)
+                        uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:orient", "xformOp:scale"]
+                    }
+
+                    def Capsule "femur_2_geom" (
+                        prepend apiSchemas = ["PhysicsCollisionAPI", "MaterialBindingAPI"]
+                    )
+                    {
+                        uniform token axis = "Z"
+                        float3[] extent = [(-0.08, -0.08, -0.27956203), (0.08, 0.08, 0.27956203)]
+                        double height = 0.3991240408695021
+                        rel material:binding:physics = </spyder12_isaac/Physics/PhysicsMaterial>
+                        color3f[] primvars:displayColor = [(0.55, 0.55, 0.58)] (
+                            interpolation = "constant"
+                        )
+                        int[] primvars:displayColor:indices = None
+                        float[] primvars:displayOpacity = [1] (
+                            interpolation = "constant"
+                        )
+                        int[] primvars:displayOpacity:indices = None
+                        uniform token purpose = "guide"
+                        double radius = 0.08
+                        quatf xformOp:orient = (0.9017682, -0.30562568, -0.30562568, 7.694764e-18)
+                        float3 xformOp:scale = (1, 1, 1)
+                        double3 xformOp:translate = (-0.11, 0.11, 0.125)
+                        uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:orient", "xformOp:scale"]
+                    }
+
+                    def Xform "tibia_2" (
+                        prepend apiSchemas = ["IsaacLinkAPI"]
+                    )
+                    {
+                        quatf xformOp:orient = (1, 0, 0, 0)
+                        float3 xformOp:scale = (1, 1, 1)
+                        double3 xformOp:translate = (-0.22, 0.22, 0.25)
+                        uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:orient", "xformOp:scale"]
+
+                        def Xform "tibia_shell" (
+                            instanceable = true
+                            prepend references = @./instances.usda@</Instances/tibia_shell>
+                        )
+                        {
+                            quatd xformOp:orient = (0.3826834559, 0, 0, 0.9238795042)
+                            double3 xformOp:scale = (1, 1, 1)
+                            double3 xformOp:translate = (0, 0, 0)
+                            uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:orient", "xformOp:scale"]
+                        }
+
+                        def Xform "tibia_hub" (
+                            instanceable = true
+                            prepend references = @./instances.usda@</Instances/tibia_hub>
+                        )
+                        {
+                            quatd xformOp:orient = (0.3826834559, 0, 0, 0.9238795042)
+                            double3 xformOp:scale = (1, 1, 1)
+                            double3 xformOp:translate = (0, 0, 0)
+                            uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:orient", "xformOp:scale"]
+                        }
+
+                        def Xform "tibia_pad" (
+                            instanceable = true
+                            prepend references = @./instances.usda@</Instances/tibia_pad>
+                        )
+                        {
+                            quatd xformOp:orient = (0.3826834559, 0, 0, 0.9238795042)
+                            double3 xformOp:scale = (1, 1, 1)
+                            double3 xformOp:translate = (0, 0, 0)
+                            uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:orient", "xformOp:scale"]
+                        }
+
+                        def Capsule "tibia_2_geom" (
+                            prepend apiSchemas = ["PhysicsCollisionAPI", "MaterialBindingAPI"]
+                        )
+                        {
+                            uniform token axis = "Z"
+                            float3[] extent = [(-0.08, -0.08, -0.38298514), (0.08, 0.08, 0.38298514)]
+                            double height = 0.6059702963017247
+                            rel material:binding:physics = </spyder12_isaac/Physics/PhysicsMaterial>
+                            color3f[] primvars:displayColor = [(0.55, 0.55, 0.58)] (
+                                interpolation = "constant"
+                            )
+                            int[] primvars:displayColor:indices = None
+                            float[] primvars:displayOpacity = [1] (
+                                interpolation = "constant"
+                            )
+                            int[] primvars:displayOpacity:indices = None
+                            uniform token purpose = "guide"
+                            double radius = 0.08
+                            quatf xformOp:orient = (-0.26633826, 0.6815658, 0.6815658, 0)
+                            float3 xformOp:scale = (1, 1, 1)
+                            double3 xformOp:translate = (-0.11, 0.11, -0.26)
+                            uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:orient", "xformOp:scale"]
+                        }
+                    }
+                }
+            }
+
+            def Xform "coxa_3" (
+                prepend apiSchemas = ["IsaacLinkAPI"]
+            )
+            {
+                quatf xformOp:orient = (1, 0, 0, 0)
+                float3 xformOp:scale = (1, 1, 1)
+                double3 xformOp:translate = (-0.2, -0.2, 0)
+                uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:orient", "xformOp:scale"]
+
+                def Xform "coxa_shell" (
+                    instanceable = true
+                    prepend references = @./instances.usda@</Instances/coxa_shell>
+                )
+                {
+                    quatd xformOp:orient = (0.3826834559, 0, 0, -0.9238795042)
+                    double3 xformOp:scale = (1, 1, 1)
+                    double3 xformOp:translate = (0, 0, 0)
+                    uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:orient", "xformOp:scale"]
+                }
+
+                def Xform "coxa_hub" (
+                    instanceable = true
+                    prepend references = @./instances.usda@</Instances/coxa_hub>
+                )
+                {
+                    quatd xformOp:orient = (0.3826834559, 0, 0, -0.9238795042)
+                    double3 xformOp:scale = (1, 1, 1)
+                    double3 xformOp:translate = (0, 0, 0)
+                    uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:orient", "xformOp:scale"]
+                }
+
+                def Capsule "coxa_3_geom" (
+                    prepend apiSchemas = ["PhysicsCollisionAPI", "MaterialBindingAPI"]
+                )
+                {
+                    uniform token axis = "Z"
+                    float3[] extent = [(-0.08, -0.08, -0.16485281), (0.08, 0.08, 0.16485281)]
+                    double height = 0.16970562748477142
+                    rel material:binding:physics = </spyder12_isaac/Physics/PhysicsMaterial>
+                    color3f[] primvars:displayColor = [(0.55, 0.55, 0.58)] (
+                        interpolation = "constant"
+                    )
+                    int[] primvars:displayColor:indices = None
+                    float[] primvars:displayOpacity = [1] (
+                        interpolation = "constant"
+                    )
+                    int[] primvars:displayOpacity:indices = None
+                    uniform token purpose = "guide"
+                    double radius = 0.08
+                    quatf xformOp:orient = (0.70710677, 0.5, -0.5, 0)
+                    float3 xformOp:scale = (1, 1, 1)
+                    double3 xformOp:translate = (-0.06, -0.06, 0)
+                    uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:orient", "xformOp:scale"]
+                }
+
+                def Xform "femur_3" (
+                    prepend apiSchemas = ["IsaacLinkAPI"]
+                )
+                {
+                    quatf xformOp:orient = (1, 0, 0, 0)
+                    float3 xformOp:scale = (1, 1, 1)
+                    double3 xformOp:translate = (-0.12, -0.12, 0)
+                    uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:orient", "xformOp:scale"]
+
+                    def Xform "femur_shell" (
+                        instanceable = true
+                        prepend references = @./instances.usda@</Instances/femur_shell>
+                    )
+                    {
+                        quatd xformOp:orient = (0.3826834559, 0, 0, -0.9238795042)
+                        double3 xformOp:scale = (1, 1, 1)
+                        double3 xformOp:translate = (0, 0, 0)
+                        uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:orient", "xformOp:scale"]
+                    }
+
+                    def Xform "femur_hub" (
+                        instanceable = true
+                        prepend references = @./instances.usda@</Instances/femur_hub>
+                    )
+                    {
+                        quatd xformOp:orient = (0.3826834559, 0, 0, -0.9238795042)
+                        double3 xformOp:scale = (1, 1, 1)
+                        double3 xformOp:translate = (0, 0, 0)
+                        uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:orient", "xformOp:scale"]
+                    }
+
+                    def Capsule "femur_3_geom" (
+                        prepend apiSchemas = ["PhysicsCollisionAPI", "MaterialBindingAPI"]
+                    )
+                    {
+                        uniform token axis = "Z"
+                        float3[] extent = [(-0.08, -0.08, -0.27956203), (0.08, 0.08, 0.27956203)]
+                        double height = 0.3991240408695021
+                        rel material:binding:physics = </spyder12_isaac/Physics/PhysicsMaterial>
+                        color3f[] primvars:displayColor = [(0.55, 0.55, 0.58)] (
+                            interpolation = "constant"
+                        )
+                        int[] primvars:displayColor:indices = None
+                        float[] primvars:displayOpacity = [1] (
+                            interpolation = "constant"
+                        )
+                        int[] primvars:displayOpacity:indices = None
+                        uniform token purpose = "guide"
+                        double radius = 0.08
+                        quatf xformOp:orient = (0.9017682, 0.30562568, -0.30562568, 2.3084293e-17)
+                        float3 xformOp:scale = (1, 1, 1)
+                        double3 xformOp:translate = (-0.11, -0.11, 0.125)
+                        uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:orient", "xformOp:scale"]
+                    }
+
+                    def Xform "tibia_3" (
+                        prepend apiSchemas = ["IsaacLinkAPI"]
+                    )
+                    {
+                        quatf xformOp:orient = (1, 0, 0, 0)
+                        float3 xformOp:scale = (1, 1, 1)
+                        double3 xformOp:translate = (-0.22, -0.22, 0.25)
+                        uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:orient", "xformOp:scale"]
+
+                        def Xform "tibia_shell" (
+                            instanceable = true
+                            prepend references = @./instances.usda@</Instances/tibia_shell>
+                        )
+                        {
+                            quatd xformOp:orient = (0.3826834559, 0, 0, -0.9238795042)
+                            double3 xformOp:scale = (1, 1, 1)
+                            double3 xformOp:translate = (0, 0, 0)
+                            uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:orient", "xformOp:scale"]
+                        }
+
+                        def Xform "tibia_hub" (
+                            instanceable = true
+                            prepend references = @./instances.usda@</Instances/tibia_hub>
+                        )
+                        {
+                            quatd xformOp:orient = (0.3826834559, 0, 0, -0.9238795042)
+                            double3 xformOp:scale = (1, 1, 1)
+                            double3 xformOp:translate = (0, 0, 0)
+                            uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:orient", "xformOp:scale"]
+                        }
+
+                        def Xform "tibia_pad" (
+                            instanceable = true
+                            prepend references = @./instances.usda@</Instances/tibia_pad>
+                        )
+                        {
+                            quatd xformOp:orient = (0.3826834559, 0, 0, -0.9238795042)
+                            double3 xformOp:scale = (1, 1, 1)
+                            double3 xformOp:translate = (0, 0, 0)
+                            uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:orient", "xformOp:scale"]
+                        }
+
+                        def Capsule "tibia_3_geom" (
+                            prepend apiSchemas = ["PhysicsCollisionAPI", "MaterialBindingAPI"]
+                        )
+                        {
+                            uniform token axis = "Z"
+                            float3[] extent = [(-0.08, -0.08, -0.38298514), (0.08, 0.08, 0.38298514)]
+                            double height = 0.6059702963017247
+                            rel material:binding:physics = </spyder12_isaac/Physics/PhysicsMaterial>
+                            color3f[] primvars:displayColor = [(0.55, 0.55, 0.58)] (
+                                interpolation = "constant"
+                            )
+                            int[] primvars:displayColor:indices = None
+                            float[] primvars:displayOpacity = [1] (
+                                interpolation = "constant"
+                            )
+                            int[] primvars:displayOpacity:indices = None
+                            uniform token purpose = "guide"
+                            double radius = 0.08
+                            quatf xformOp:orient = (0.26633826, 0.6815658, -0.6815658, 0)
+                            float3 xformOp:scale = (1, 1, 1)
+                            double3 xformOp:translate = (-0.11, -0.11, -0.26)
+                            uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:orient", "xformOp:scale"]
+                        }
+                    }
+                }
+            }
+
+            def Xform "coxa_4" (
+                prepend apiSchemas = ["IsaacLinkAPI"]
+            )
+            {
+                quatf xformOp:orient = (1, 0, 0, 0)
+                float3 xformOp:scale = (1, 1, 1)
+                double3 xformOp:translate = (0.2, -0.2, 0)
+                uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:orient", "xformOp:scale"]
+
+                def Xform "coxa_shell" (
+                    instanceable = true
+                    prepend references = @./instances.usda@</Instances/coxa_shell>
+                )
+                {
+                    quatd xformOp:orient = (0.9238795638, 0, 0, -0.3826833665)
+                    double3 xformOp:scale = (1, 1, 1)
+                    double3 xformOp:translate = (0, 0, 0)
+                    uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:orient", "xformOp:scale"]
+                }
+
+                def Xform "coxa_hub" (
+                    instanceable = true
+                    prepend references = @./instances.usda@</Instances/coxa_hub>
+                )
+                {
+                    quatd xformOp:orient = (0.9238795638, 0, 0, -0.3826833665)
+                    double3 xformOp:scale = (1, 1, 1)
+                    double3 xformOp:translate = (0, 0, 0)
+                    uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:orient", "xformOp:scale"]
+                }
+
+                def Capsule "coxa_4_geom" (
+                    prepend apiSchemas = ["PhysicsCollisionAPI", "MaterialBindingAPI"]
+                )
+                {
+                    uniform token axis = "Z"
+                    float3[] extent = [(-0.08, -0.08, -0.16485281), (0.08, 0.08, 0.16485281)]
+                    double height = 0.16970562748477142
+                    rel material:binding:physics = </spyder12_isaac/Physics/PhysicsMaterial>
+                    color3f[] primvars:displayColor = [(0.55, 0.55, 0.58)] (
+                        interpolation = "constant"
+                    )
+                    int[] primvars:displayColor:indices = None
+                    float[] primvars:displayOpacity = [1] (
+                        interpolation = "constant"
+                    )
+                    int[] primvars:displayOpacity:indices = None
+                    uniform token purpose = "guide"
+                    double radius = 0.08
+                    quatf xformOp:orient = (0.70710677, 0.5, 0.5, 0)
+                    float3 xformOp:scale = (1, 1, 1)
+                    double3 xformOp:translate = (0.06, -0.06, 0)
+                    uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:orient", "xformOp:scale"]
+                }
+
+                def Xform "femur_4" (
+                    prepend apiSchemas = ["IsaacLinkAPI"]
+                )
+                {
+                    quatf xformOp:orient = (1, 0, 0, 0)
+                    float3 xformOp:scale = (1, 1, 1)
+                    double3 xformOp:translate = (0.12, -0.12, 0)
+                    uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:orient", "xformOp:scale"]
+
+                    def Xform "femur_shell" (
+                        instanceable = true
+                        prepend references = @./instances.usda@</Instances/femur_shell>
+                    )
+                    {
+                        quatd xformOp:orient = (0.9238795638, 0, 0, -0.3826833665)
+                        double3 xformOp:scale = (1, 1, 1)
+                        double3 xformOp:translate = (0, 0, 0)
+                        uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:orient", "xformOp:scale"]
+                    }
+
+                    def Xform "femur_hub" (
+                        instanceable = true
+                        prepend references = @./instances.usda@</Instances/femur_hub>
+                    )
+                    {
+                        quatd xformOp:orient = (0.9238795638, 0, 0, -0.3826833665)
+                        double3 xformOp:scale = (1, 1, 1)
+                        double3 xformOp:translate = (0, 0, 0)
+                        uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:orient", "xformOp:scale"]
+                    }
+
+                    def Capsule "femur_4_geom" (
+                        prepend apiSchemas = ["PhysicsCollisionAPI", "MaterialBindingAPI"]
+                    )
+                    {
+                        uniform token axis = "Z"
+                        float3[] extent = [(-0.08, -0.08, -0.27956203), (0.08, 0.08, 0.27956203)]
+                        double height = 0.3991240408695021
+                        rel material:binding:physics = </spyder12_isaac/Physics/PhysicsMaterial>
+                        color3f[] primvars:displayColor = [(0.55, 0.55, 0.58)] (
+                            interpolation = "constant"
+                        )
+                        int[] primvars:displayColor:indices = None
+                        float[] primvars:displayOpacity = [1] (
+                            interpolation = "constant"
+                        )
+                        int[] primvars:displayOpacity:indices = None
+                        uniform token purpose = "guide"
+                        double radius = 0.08
+                        quatf xformOp:orient = (0.9017682, 0.30562568, 0.30562568, -2.3084293e-17)
+                        float3 xformOp:scale = (1, 1, 1)
+                        double3 xformOp:translate = (0.11, -0.11, 0.125)
+                        uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:orient", "xformOp:scale"]
+                    }
+
+                    def Xform "tibia_4" (
+                        prepend apiSchemas = ["IsaacLinkAPI"]
+                    )
+                    {
+                        quatf xformOp:orient = (1, 0, 0, 0)
+                        float3 xformOp:scale = (1, 1, 1)
+                        double3 xformOp:translate = (0.22, -0.22, 0.25)
+                        uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:orient", "xformOp:scale"]
+
+                        def Xform "tibia_shell" (
+                            instanceable = true
+                            prepend references = @./instances.usda@</Instances/tibia_shell>
+                        )
+                        {
+                            quatd xformOp:orient = (0.9238795638, 0, 0, -0.3826833665)
+                            double3 xformOp:scale = (1, 1, 1)
+                            double3 xformOp:translate = (0, 0, 0)
+                            uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:orient", "xformOp:scale"]
+                        }
+
+                        def Xform "tibia_hub" (
+                            instanceable = true
+                            prepend references = @./instances.usda@</Instances/tibia_hub>
+                        )
+                        {
+                            quatd xformOp:orient = (0.9238795638, 0, 0, -0.3826833665)
+                            double3 xformOp:scale = (1, 1, 1)
+                            double3 xformOp:translate = (0, 0, 0)
+                            uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:orient", "xformOp:scale"]
+                        }
+
+                        def Xform "tibia_pad" (
+                            instanceable = true
+                            prepend references = @./instances.usda@</Instances/tibia_pad>
+                        )
+                        {
+                            quatd xformOp:orient = (0.9238795638, 0, 0, -0.3826833665)
+                            double3 xformOp:scale = (1, 1, 1)
+                            double3 xformOp:translate = (0, 0, 0)
+                            uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:orient", "xformOp:scale"]
+                        }
+
+                        def Capsule "tibia_4_geom" (
+                            prepend apiSchemas = ["PhysicsCollisionAPI", "MaterialBindingAPI"]
+                        )
+                        {
+                            uniform token axis = "Z"
+                            float3[] extent = [(-0.08, -0.08, -0.38298514), (0.08, 0.08, 0.38298514)]
+                            double height = 0.6059702963017247
+                            rel material:binding:physics = </spyder12_isaac/Physics/PhysicsMaterial>
+                            color3f[] primvars:displayColor = [(0.55, 0.55, 0.58)] (
+                                interpolation = "constant"
+                            )
+                            int[] primvars:displayColor:indices = None
+                            float[] primvars:displayOpacity = [1] (
+                                interpolation = "constant"
+                            )
+                            int[] primvars:displayOpacity:indices = None
+                            uniform token purpose = "guide"
+                            double radius = 0.08
+                            quatf xformOp:orient = (0.26633826, 0.6815658, 0.6815658, 0)
+                            float3 xformOp:scale = (1, 1, 1)
+                            double3 xformOp:translate = (0.11, -0.11, -0.26)
+                            uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:orient", "xformOp:scale"]
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    def Scope "Materials"
+    {
+    }
+
+    def Scope "Physics"
+    {
+        def Material "PhysicsMaterial"
+        {
+        }
+    }
+
+    def Scope "VisualMaterials"
+    {
+    }
+}
+

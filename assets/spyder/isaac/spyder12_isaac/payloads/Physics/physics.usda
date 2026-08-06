@@ -1,0 +1,464 @@
+#usda 1.0
+(
+    customLayerData = {
+        string creator = "MuJoCo USD Converter v0.2.0"
+    }
+    defaultPrim = "spyder12_isaac"
+    doc = """Generated from Composed Stage of root layer /tmp/tmpggm3ls2b/spyder12_isaac.usdc
+
+
+Generated from Composed Stage of root layer /tmp/mjcf_import_spyder12_isaac_e77s19wh/usdex_spyder12_isaac/spyder12_isaac.usdc
+
+
+Generated from Composed Stage of root layer /tmp/mjcf_import_spyder12_isaac_e77s19wh/temp_spyder12_isaac/spyder12_isaac.usd
+
+
+Generated from Composed Stage of root layer /home/leandro/Desktop/Resources/Robotics/Bestiary/assets/spyder/isaac/spyder12_isaac/payloads/base.usd
+"""
+    kilogramsPerUnit = 1
+    metersPerUnit = 1
+    upAxis = "Z"
+)
+
+over "spyder12_isaac"
+{
+    over "Geometry"
+    {
+        over "torso" (
+            prepend apiSchemas = ["PhysicsRigidBodyAPI", "PhysicsArticulationRootAPI", "NewtonArticulationRootAPI"]
+        )
+        {
+            bool newton:selfCollisionEnabled = 0
+
+            over "torso_geom" (
+                prepend apiSchemas = ["NewtonCollisionAPI", "PhysicsMassAPI"]
+            )
+            {
+                float newton:contactGap = 0
+                float newton:contactMargin = 0.01
+                float physics:density = 5
+            }
+
+            over "stub_1" (
+                prepend apiSchemas = ["NewtonCollisionAPI", "PhysicsMassAPI"]
+            )
+            {
+                float newton:contactGap = 0
+                float newton:contactMargin = 0.01
+                float physics:density = 5
+            }
+
+            over "stub_2" (
+                prepend apiSchemas = ["NewtonCollisionAPI", "PhysicsMassAPI"]
+            )
+            {
+                float newton:contactGap = 0
+                float newton:contactMargin = 0.01
+                float physics:density = 5
+            }
+
+            over "stub_3" (
+                prepend apiSchemas = ["NewtonCollisionAPI", "PhysicsMassAPI"]
+            )
+            {
+                float newton:contactGap = 0
+                float newton:contactMargin = 0.01
+                float physics:density = 5
+            }
+
+            over "stub_4" (
+                prepend apiSchemas = ["NewtonCollisionAPI", "PhysicsMassAPI"]
+            )
+            {
+                float newton:contactGap = 0
+                float newton:contactMargin = 0.01
+                float physics:density = 5
+            }
+
+            over "coxa_1" (
+                prepend apiSchemas = ["PhysicsRigidBodyAPI"]
+            )
+            {
+                over "coxa_1_geom" (
+                    prepend apiSchemas = ["NewtonCollisionAPI", "PhysicsMassAPI"]
+                )
+                {
+                    float newton:contactGap = 0
+                    float newton:contactMargin = 0.01
+                    float physics:density = 5
+                }
+
+                over "femur_1" (
+                    prepend apiSchemas = ["PhysicsRigidBodyAPI"]
+                )
+                {
+                    over "femur_1_geom" (
+                        prepend apiSchemas = ["NewtonCollisionAPI", "PhysicsMassAPI"]
+                    )
+                    {
+                        float newton:contactGap = 0
+                        float newton:contactMargin = 0.01
+                        float physics:density = 5
+                    }
+
+                    over "tibia_1" (
+                        prepend apiSchemas = ["PhysicsRigidBodyAPI"]
+                    )
+                    {
+                        over "tibia_1_geom" (
+                            prepend apiSchemas = ["NewtonCollisionAPI", "PhysicsMassAPI"]
+                        )
+                        {
+                            float newton:contactGap = 0
+                            float newton:contactMargin = 0.01
+                            float physics:density = 5
+                        }
+
+                        def PhysicsRevoluteJoint "knee_1" (
+                            prepend apiSchemas = ["PhysicsDriveAPI:angular", "PhysicsJointStateAPI:angular"]
+                        )
+                        {
+                            uniform token physics:axis = "X"
+                            custom rel physics:body0
+                            prepend rel physics:body0 = </spyder12_isaac/Geometry/torso/coxa_1/femur_1>
+                            custom rel physics:body1
+                            prepend rel physics:body1 = </spyder12_isaac/Geometry/torso/coxa_1/femur_1/tibia_1>
+                            point3f physics:localPos0 = (0.22, 0.22, 0.25)
+                            point3f physics:localPos1 = (0, 0, 0)
+                            quatf physics:localRot0 = (0.38268343, 0, 0, 0.9238795)
+                            quatf physics:localRot1 = (0.38268343, 0, 0, 0.9238795)
+                            float physics:lowerLimit = -50
+                            float physics:upperLimit = 50
+                        }
+                    }
+
+                    def PhysicsRevoluteJoint "lift_1" (
+                        prepend apiSchemas = ["PhysicsDriveAPI:angular", "PhysicsJointStateAPI:angular"]
+                    )
+                    {
+                        uniform token physics:axis = "X"
+                        custom rel physics:body0
+                        prepend rel physics:body0 = </spyder12_isaac/Geometry/torso/coxa_1>
+                        custom rel physics:body1
+                        prepend rel physics:body1 = </spyder12_isaac/Geometry/torso/coxa_1/femur_1>
+                        point3f physics:localPos0 = (0.12, 0.12, 0)
+                        point3f physics:localPos1 = (0, 0, 0)
+                        quatf physics:localRot0 = (0.38268343, 0, 0, 0.9238795)
+                        quatf physics:localRot1 = (0.38268343, 0, 0, 0.9238795)
+                        float physics:lowerLimit = -60
+                        float physics:upperLimit = 60
+                    }
+                }
+
+                def PhysicsRevoluteJoint "hip_1" (
+                    prepend apiSchemas = ["PhysicsDriveAPI:angular", "PhysicsJointStateAPI:angular"]
+                )
+                {
+                    uniform token physics:axis = "Z"
+                    custom rel physics:body0
+                    prepend rel physics:body0 = </spyder12_isaac/Geometry/torso>
+                    custom rel physics:body1
+                    prepend rel physics:body1 = </spyder12_isaac/Geometry/torso/coxa_1>
+                    point3f physics:localPos0 = (0.2, 0.2, 0)
+                    point3f physics:localPos1 = (0, 0, 0)
+                    quatf physics:localRot0 = (1, 0, 0, 0)
+                    quatf physics:localRot1 = (1, 0, 0, 0)
+                    float physics:lowerLimit = -40
+                    float physics:upperLimit = 40
+                }
+            }
+
+            over "coxa_2" (
+                prepend apiSchemas = ["PhysicsRigidBodyAPI"]
+            )
+            {
+                over "coxa_2_geom" (
+                    prepend apiSchemas = ["NewtonCollisionAPI", "PhysicsMassAPI"]
+                )
+                {
+                    float newton:contactGap = 0
+                    float newton:contactMargin = 0.01
+                    float physics:density = 5
+                }
+
+                over "femur_2" (
+                    prepend apiSchemas = ["PhysicsRigidBodyAPI"]
+                )
+                {
+                    over "femur_2_geom" (
+                        prepend apiSchemas = ["NewtonCollisionAPI", "PhysicsMassAPI"]
+                    )
+                    {
+                        float newton:contactGap = 0
+                        float newton:contactMargin = 0.01
+                        float physics:density = 5
+                    }
+
+                    over "tibia_2" (
+                        prepend apiSchemas = ["PhysicsRigidBodyAPI"]
+                    )
+                    {
+                        over "tibia_2_geom" (
+                            prepend apiSchemas = ["NewtonCollisionAPI", "PhysicsMassAPI"]
+                        )
+                        {
+                            float newton:contactGap = 0
+                            float newton:contactMargin = 0.01
+                            float physics:density = 5
+                        }
+
+                        def PhysicsRevoluteJoint "knee_2" (
+                            prepend apiSchemas = ["PhysicsDriveAPI:angular", "PhysicsJointStateAPI:angular"]
+                        )
+                        {
+                            uniform token physics:axis = "X"
+                            custom rel physics:body0
+                            prepend rel physics:body0 = </spyder12_isaac/Geometry/torso/coxa_2/femur_2>
+                            custom rel physics:body1
+                            prepend rel physics:body1 = </spyder12_isaac/Geometry/torso/coxa_2/femur_2/tibia_2>
+                            point3f physics:localPos0 = (-0.22, 0.22, 0.25)
+                            point3f physics:localPos1 = (0, 0, 0)
+                            quatf physics:localRot0 = (0.9238795, 0, 0, 0.38268343)
+                            quatf physics:localRot1 = (0.9238795, 0, 0, 0.38268343)
+                            float physics:lowerLimit = -50
+                            float physics:upperLimit = 50
+                        }
+                    }
+
+                    def PhysicsRevoluteJoint "lift_2" (
+                        prepend apiSchemas = ["PhysicsDriveAPI:angular", "PhysicsJointStateAPI:angular"]
+                    )
+                    {
+                        uniform token physics:axis = "X"
+                        custom rel physics:body0
+                        prepend rel physics:body0 = </spyder12_isaac/Geometry/torso/coxa_2>
+                        custom rel physics:body1
+                        prepend rel physics:body1 = </spyder12_isaac/Geometry/torso/coxa_2/femur_2>
+                        point3f physics:localPos0 = (-0.12, 0.12, 0)
+                        point3f physics:localPos1 = (0, 0, 0)
+                        quatf physics:localRot0 = (0.9238795, 0, 0, 0.38268343)
+                        quatf physics:localRot1 = (0.9238795, 0, 0, 0.38268343)
+                        float physics:lowerLimit = -60
+                        float physics:upperLimit = 60
+                    }
+                }
+
+                def PhysicsRevoluteJoint "hip_2" (
+                    prepend apiSchemas = ["PhysicsDriveAPI:angular", "PhysicsJointStateAPI:angular"]
+                )
+                {
+                    uniform token physics:axis = "Z"
+                    custom rel physics:body0
+                    prepend rel physics:body0 = </spyder12_isaac/Geometry/torso>
+                    custom rel physics:body1
+                    prepend rel physics:body1 = </spyder12_isaac/Geometry/torso/coxa_2>
+                    point3f physics:localPos0 = (-0.2, 0.2, 0)
+                    point3f physics:localPos1 = (0, 0, 0)
+                    quatf physics:localRot0 = (1, 0, 0, 0)
+                    quatf physics:localRot1 = (1, 0, 0, 0)
+                    float physics:lowerLimit = -40
+                    float physics:upperLimit = 40
+                }
+            }
+
+            over "coxa_3" (
+                prepend apiSchemas = ["PhysicsRigidBodyAPI"]
+            )
+            {
+                over "coxa_3_geom" (
+                    prepend apiSchemas = ["NewtonCollisionAPI", "PhysicsMassAPI"]
+                )
+                {
+                    float newton:contactGap = 0
+                    float newton:contactMargin = 0.01
+                    float physics:density = 5
+                }
+
+                over "femur_3" (
+                    prepend apiSchemas = ["PhysicsRigidBodyAPI"]
+                )
+                {
+                    over "femur_3_geom" (
+                        prepend apiSchemas = ["NewtonCollisionAPI", "PhysicsMassAPI"]
+                    )
+                    {
+                        float newton:contactGap = 0
+                        float newton:contactMargin = 0.01
+                        float physics:density = 5
+                    }
+
+                    over "tibia_3" (
+                        prepend apiSchemas = ["PhysicsRigidBodyAPI"]
+                    )
+                    {
+                        over "tibia_3_geom" (
+                            prepend apiSchemas = ["NewtonCollisionAPI", "PhysicsMassAPI"]
+                        )
+                        {
+                            float newton:contactGap = 0
+                            float newton:contactMargin = 0.01
+                            float physics:density = 5
+                        }
+
+                        def PhysicsRevoluteJoint "knee_3" (
+                            prepend apiSchemas = ["PhysicsDriveAPI:angular", "PhysicsJointStateAPI:angular"]
+                        )
+                        {
+                            uniform token physics:axis = "X"
+                            custom rel physics:body0
+                            prepend rel physics:body0 = </spyder12_isaac/Geometry/torso/coxa_3/femur_3>
+                            custom rel physics:body1
+                            prepend rel physics:body1 = </spyder12_isaac/Geometry/torso/coxa_3/femur_3/tibia_3>
+                            point3f physics:localPos0 = (-0.22, -0.22, 0.25)
+                            point3f physics:localPos1 = (0, 0, 0)
+                            quatf physics:localRot0 = (0.38268343, 0, 0, 0.9238795)
+                            quatf physics:localRot1 = (0.38268343, 0, 0, 0.9238795)
+                            float physics:lowerLimit = -50
+                            float physics:upperLimit = 50
+                        }
+                    }
+
+                    def PhysicsRevoluteJoint "lift_3" (
+                        prepend apiSchemas = ["PhysicsDriveAPI:angular", "PhysicsJointStateAPI:angular"]
+                    )
+                    {
+                        uniform token physics:axis = "X"
+                        custom rel physics:body0
+                        prepend rel physics:body0 = </spyder12_isaac/Geometry/torso/coxa_3>
+                        custom rel physics:body1
+                        prepend rel physics:body1 = </spyder12_isaac/Geometry/torso/coxa_3/femur_3>
+                        point3f physics:localPos0 = (-0.12, -0.12, 0)
+                        point3f physics:localPos1 = (0, 0, 0)
+                        quatf physics:localRot0 = (0.38268343, 0, 0, 0.9238795)
+                        quatf physics:localRot1 = (0.38268343, 0, 0, 0.9238795)
+                        float physics:lowerLimit = -60
+                        float physics:upperLimit = 60
+                    }
+                }
+
+                def PhysicsRevoluteJoint "hip_3" (
+                    prepend apiSchemas = ["PhysicsDriveAPI:angular", "PhysicsJointStateAPI:angular"]
+                )
+                {
+                    uniform token physics:axis = "Z"
+                    custom rel physics:body0
+                    prepend rel physics:body0 = </spyder12_isaac/Geometry/torso>
+                    custom rel physics:body1
+                    prepend rel physics:body1 = </spyder12_isaac/Geometry/torso/coxa_3>
+                    point3f physics:localPos0 = (-0.2, -0.2, 0)
+                    point3f physics:localPos1 = (0, 0, 0)
+                    quatf physics:localRot0 = (1, 0, 0, 0)
+                    quatf physics:localRot1 = (1, 0, 0, 0)
+                    float physics:lowerLimit = -40
+                    float physics:upperLimit = 40
+                }
+            }
+
+            over "coxa_4" (
+                prepend apiSchemas = ["PhysicsRigidBodyAPI"]
+            )
+            {
+                over "coxa_4_geom" (
+                    prepend apiSchemas = ["NewtonCollisionAPI", "PhysicsMassAPI"]
+                )
+                {
+                    float newton:contactGap = 0
+                    float newton:contactMargin = 0.01
+                    float physics:density = 5
+                }
+
+                over "femur_4" (
+                    prepend apiSchemas = ["PhysicsRigidBodyAPI"]
+                )
+                {
+                    over "femur_4_geom" (
+                        prepend apiSchemas = ["NewtonCollisionAPI", "PhysicsMassAPI"]
+                    )
+                    {
+                        float newton:contactGap = 0
+                        float newton:contactMargin = 0.01
+                        float physics:density = 5
+                    }
+
+                    over "tibia_4" (
+                        prepend apiSchemas = ["PhysicsRigidBodyAPI"]
+                    )
+                    {
+                        over "tibia_4_geom" (
+                            prepend apiSchemas = ["NewtonCollisionAPI", "PhysicsMassAPI"]
+                        )
+                        {
+                            float newton:contactGap = 0
+                            float newton:contactMargin = 0.01
+                            float physics:density = 5
+                        }
+
+                        def PhysicsRevoluteJoint "knee_4" (
+                            prepend apiSchemas = ["PhysicsDriveAPI:angular", "PhysicsJointStateAPI:angular"]
+                        )
+                        {
+                            uniform token physics:axis = "X"
+                            custom rel physics:body0
+                            prepend rel physics:body0 = </spyder12_isaac/Geometry/torso/coxa_4/femur_4>
+                            custom rel physics:body1
+                            prepend rel physics:body1 = </spyder12_isaac/Geometry/torso/coxa_4/femur_4/tibia_4>
+                            point3f physics:localPos0 = (0.22, -0.22, 0.25)
+                            point3f physics:localPos1 = (0, 0, 0)
+                            quatf physics:localRot0 = (0.9238795, 0, 0, 0.38268343)
+                            quatf physics:localRot1 = (0.9238795, 0, 0, 0.38268343)
+                            float physics:lowerLimit = -50
+                            float physics:upperLimit = 50
+                        }
+                    }
+
+                    def PhysicsRevoluteJoint "lift_4" (
+                        prepend apiSchemas = ["PhysicsDriveAPI:angular", "PhysicsJointStateAPI:angular"]
+                    )
+                    {
+                        uniform token physics:axis = "X"
+                        custom rel physics:body0
+                        prepend rel physics:body0 = </spyder12_isaac/Geometry/torso/coxa_4>
+                        custom rel physics:body1
+                        prepend rel physics:body1 = </spyder12_isaac/Geometry/torso/coxa_4/femur_4>
+                        point3f physics:localPos0 = (0.12, -0.12, 0)
+                        point3f physics:localPos1 = (0, 0, 0)
+                        quatf physics:localRot0 = (0.9238795, 0, 0, 0.38268343)
+                        quatf physics:localRot1 = (0.9238795, 0, 0, 0.38268343)
+                        float physics:lowerLimit = -60
+                        float physics:upperLimit = 60
+                    }
+                }
+
+                def PhysicsRevoluteJoint "hip_4" (
+                    prepend apiSchemas = ["PhysicsDriveAPI:angular", "PhysicsJointStateAPI:angular"]
+                )
+                {
+                    uniform token physics:axis = "Z"
+                    custom rel physics:body0
+                    prepend rel physics:body0 = </spyder12_isaac/Geometry/torso>
+                    custom rel physics:body1
+                    prepend rel physics:body1 = </spyder12_isaac/Geometry/torso/coxa_4>
+                    point3f physics:localPos0 = (0.2, -0.2, 0)
+                    point3f physics:localPos1 = (0, 0, 0)
+                    quatf physics:localRot0 = (1, 0, 0, 0)
+                    quatf physics:localRot1 = (1, 0, 0, 0)
+                    float physics:lowerLimit = -40
+                    float physics:upperLimit = 40
+                }
+            }
+        }
+    }
+
+    over "Physics"
+    {
+        over "PhysicsMaterial" (
+            prepend apiSchemas = ["PhysicsMaterialAPI", "NewtonMaterialAPI"]
+        )
+        {
+            float newton:rollingFriction = 0.5
+            float newton:torsionalFriction = 0.5
+            float physics:dynamicFriction = 1
+        }
+    }
+}
+
