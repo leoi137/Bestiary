@@ -16,18 +16,18 @@ straight over to Isaac Lab's own `train_rsl_rl.run()`, instead of us
 reimplementing a PPO training loop. Import anything heavy here and that breaks:
 the config would be imported before the app is up.
 
-The agent configs are reused verbatim from Isaac Lab's anymal_c package. For the
-ANYmal tasks that is exactly right: they differ from theirs in the terrain and
-nothing else, so the PPO hyperparameters should be identical -- otherwise a
-throughput or reward comparison against their rough task measures two changes at
-once.
+The ANYmal and Hound tasks reuse Isaac Lab's anymal_c agent config verbatim.
+For the ANYmal tasks that is exactly right: they differ from theirs in the
+terrain and nothing else, so the PPO hyperparameters should be identical --
+otherwise a throughput or reward comparison against their rough task measures
+two changes at once. For the Hound it is a known compromise that also mis-files
+the runs: arms 1 and 2 trained under ANYmal's `experiment_name`, so their logs
+landed in `logs/rsl_rl/anymal_c_rough/` (STATE's handoff carries the repair).
 
-For the HOUND tasks the same reuse is a placeholder, not a control. A 16-DoF
-wheel-legged machine with two action groups is not the robot those
-hyperparameters were tuned for, and the reward they optimise is ANYmal's too.
-The Hound ids exist so a viewer and an oracle can reach a config; see
-`hound_desert_env_cfg.py`'s docstring for what is still missing before either
-should be trained.
+The SPYDER tasks are the repair, half-applied deliberately: they resolve
+`bestiary.isaac.rl_cfg:SpyderGentlePPORunnerCfg`, which changes the
+`experiment_name` to `spyder_gentle` and NOTHING else -- the hyperparameters
+stay ANYmal's, as a control, per `rl_cfg.py`'s docstring.
 """
 
 from __future__ import annotations
@@ -43,6 +43,13 @@ _RSL_RL_CFG = (
 
 _ANYMAL_CFG_MODULE = "bestiary.isaac.anymal_desert_env_cfg"
 _HOUND_CFG_MODULE = "bestiary.isaac.hound_desert_env_cfg"
+_SPYDER_CFG_MODULE = "bestiary.isaac.spyder_gentle_env_cfg"
+
+#: Spyder gets its own runner cfg — ANYmal's agent with its own
+#: `experiment_name`, so runs stop filing themselves under `anymal_c_rough`
+#: (the Hound did exactly that on the rented box; STATE's handoff carries the
+#: repair). Same lazy-string mechanism as everything else here.
+_SPYDER_RSL_RL_CFG = "bestiary.isaac.rl_cfg:SpyderGentlePPORunnerCfg"
 
 
 def register() -> None:
@@ -58,17 +65,24 @@ def register() -> None:
         # module docstring — point-and-park is measured, not hypothetical.
         ("Bestiary-Desert-Hound-v0", f"{_HOUND_CFG_MODULE}:HoundDesertEnvCfg"),
         ("Bestiary-Desert-Hound-Play-v0", f"{_HOUND_CFG_MODULE}:HoundDesertEnvCfg_PLAY"),
+        # Spyder on the gentle terrain: the first Bestiary robot registered
+        # here as READY to train — commands dead-zoned, heading mode off,
+        # reward retargeted term by term. `spyder_gentle_env_cfg.py`'s module
+        # docstring carries the design; `check_spyder.py` is the oracle.
+        ("Bestiary-Gentle-Spyder-v0", f"{_SPYDER_CFG_MODULE}:SpyderGentleEnvCfg"),
+        ("Bestiary-Gentle-Spyder-Play-v0", f"{_SPYDER_CFG_MODULE}:SpyderGentleEnvCfg_PLAY"),
     )
     for task_id, cfg_entry_point in specs:
         if task_id in gym.registry:
             continue
+        rl_cfg = _SPYDER_RSL_RL_CFG if "Spyder" in task_id else _RSL_RL_CFG
         gym.register(
             id=task_id,
             entry_point="isaaclab.envs:ManagerBasedRLEnv",
             disable_env_checker=True,
             kwargs={
                 "env_cfg_entry_point": cfg_entry_point,
-                "rsl_rl_cfg_entry_point": _RSL_RL_CFG,
+                "rsl_rl_cfg_entry_point": rl_cfg,
             },
         )
 
