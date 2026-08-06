@@ -204,6 +204,12 @@ def parse_args() -> argparse.Namespace:
         help="path to a model_*.pt, e.g. runs/spyder_gentle_s1/box_logs/<run>/model_1499.pt",
     )
     parser.add_argument("--task", type=str, default="Bestiary-Gentle-Spyder-Play-v0")
+    parser.add_argument("--num_envs", type=int, default=NUM_ENVS)
+    parser.add_argument(
+        "--show_all", action="store_true",
+        help="render every env's robot; default hides all but env 0 so the "
+        "screen shows ONE machine (the physics twins keep running unseen)",
+    )
     parser.add_argument("--seed", type=int, default=1000)
     parser.add_argument(
         "--script",
@@ -258,7 +264,7 @@ def main(args: argparse.Namespace) -> int:
     tasks.register()
 
     env_cfg = load_cfg_from_registry(args.task, "env_cfg_entry_point")
-    env_cfg.scene.num_envs = NUM_ENVS
+    env_cfg.scene.num_envs = args.num_envs
     env_cfg.sim.device = "cuda:0"
     env_cfg.seed = args.seed
     # An hour per episode: driving should end when the driver quits or the
@@ -270,6 +276,14 @@ def main(args: argparse.Namespace) -> int:
     # One robot on a stable patch: no terrain-level shuffling between respawns.
     if getattr(env_cfg, "curriculum", None) is not None:
         env_cfg.curriculum.terrain_levels = None
+
+    # PIN THE CAMERA, every run. Kit persists the viewport pose in its user
+    # config, so one bad boot (a failed 1-env probe saved a sky-pointing
+    # camera) poisons every later recording that trusts the default. World
+    # frame, high enough to hold the 3x3 play grid, aimed at its centre.
+    env_cfg.viewer.origin_type = "world"
+    env_cfg.viewer.eye = (9.0, 9.0, 5.0)
+    env_cfg.viewer.lookat = (0.0, 0.0, 0.3)
 
     render_mode = "rgb_array" if args.video else None
     env = gym.make(args.task, cfg=env_cfg, render_mode=render_mode)
@@ -326,6 +340,25 @@ def main(args: argparse.Namespace) -> int:
                     self._proc.wait()
 
         recorder = _Rec(args.video, round(1.0 / env.unwrapped.step_dt))
+
+    # ONE robot on screen. num_envs=1 renders no robot at all on this install
+    # (terrain only — three camera setups and a replicate_physics probe all
+    # failed), so the working configuration is kept and the extra eight are
+    # made invisible to the RENDERER only: USD visibility is a render-side
+    # attribute, not an xformOp, so PhysX never notices. All nine still obey
+    # the injected command; telemetry reports the one you can see.
+    if not args.show_all:
+        import omni.usd
+        from pxr import UsdGeom
+
+        stage = omni.usd.get_context().get_stage()
+        hidden = 0
+        for i in range(1, env_cfg.scene.num_envs):
+            prim = stage.GetPrimAtPath(f"/World/envs/env_{i}/Robot")
+            if prim.IsValid():
+                UsdGeom.Imageable(prim).MakeInvisible()
+                hidden += 1
+        print(f"[bestiary] solo view: {hidden} twin robots hidden from the renderer", flush=True)
 
     driver = (
         ScriptDriver(args.script, VX_LIMITS, WZ_LIMITS)
