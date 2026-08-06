@@ -50,6 +50,14 @@ MESH_DIR = ASSETS / "meshes"
 DESERT_HFIELD = TERRAIN_DIR / "desert_hfield.bin"
 DESERT_TEXTURE = TERRAIN_DIR / "desert_texture.png"
 
+# The gentle terrain: same 1024^2 half-extent-40 m format as the desert, a
+# fraction of its relief. A NEW asset rather than a regenerated desert, because
+# the desert's bytes are hash-pinned into every run that stood on it —
+# `terrain/spec.py` and the terrain invariant in CLAUDE.md are the reasons an
+# edit in place is not an option. Written by `terrain/gentle.py`.
+GENTLE_HFIELD = TERRAIN_DIR / "gentle_hfield.bin"
+GENTLE_TEXTURE = TERRAIN_DIR / "gentle_texture.png"
+
 # --- Whelp: the PHYSICAL robot ----------------------------------------------
 # Whelp is CAD rather than MJCF, so it does not follow the "model XML sits next
 # to meshes/" rule above -- nothing here is loaded by MuJoCo's relative-path
