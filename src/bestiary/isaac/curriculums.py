@@ -44,11 +44,21 @@ approximation is upstream's too; it is not made worse here.
 from __future__ import annotations
 
 from collections.abc import Sequence
+from typing import TYPE_CHECKING
 
 import torch
 
 from isaaclab.managers import SceneEntityCfg
-from isaaclab.terrains import TerrainImporter
+
+# TYPE_CHECKING, not a runtime import, and it is load-bearing: this module is
+# reached by hydra's PRE-APP env-cfg import, and resolving TerrainImporter
+# through isaaclab.terrains' lazy loader drags terrain_importer -> pxr (the
+# pip usd-core) into the process before Kit boots — the measured free():
+# invalid pointer crash commands_impl.py documents. The annotation below is a
+# string under `from __future__ import annotations`, so nothing needs the
+# class at runtime.
+if TYPE_CHECKING:
+    from isaaclab.terrains import TerrainImporter
 
 #: Below this |w| (rad/s) the arc formula is numerically the straight line;
 #: 2(v/w)sin(wT/2) at w = 1e-3, T = 20 differs from vT by one part in 6e5.

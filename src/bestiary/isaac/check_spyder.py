@@ -596,6 +596,18 @@ def check_commands_are_dead_zoned_with_heading_off(cfg) -> None:
     cmd = cfg.commands.base_velocity
     if not isinstance(cmd, DeadZoneVelocityCommandCfg):
         raise AssertionError(f"command cfg is {type(cmd).__name__}, not DeadZoneVelocityCommandCfg")
+    # The class_type must be the LAZY STRING, never the class object: hydra
+    # imports env-cfg modules before the app exists, and an eager class_type
+    # drags VisualizationMarkers -> pip pxr into the process pre-Kit — a
+    # measured free(): invalid pointer at boot, on two machines (2026-08-06).
+    if not (isinstance(cmd.class_type, str)
+            and str(cmd.class_type).endswith("commands_impl:DeadZoneVelocityCommand")):
+        raise AssertionError(
+            f"class_type is {cmd.class_type!r} — it must be the lazy string "
+            "'bestiary.isaac.commands_impl:DeadZoneVelocityCommand'. An eager "
+            "class object here imports the runtime chain (and pip pxr) before "
+            "Kit boots, which heap-corrupts the app 1.5 s into every launch."
+        )
     facts = {
         "heading_command": (cmd.heading_command, False),
         "rel_standing_envs": (cmd.rel_standing_envs, REL_STANDING),

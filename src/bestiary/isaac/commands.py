@@ -60,80 +60,28 @@ command's own reachable displacement; the kinematics live there.
 
 from __future__ import annotations
 
-from collections.abc import Sequence
-
-import torch
-
 from isaaclab.envs.mdp.commands.commands_cfg import UniformVelocityCommandCfg
-from isaaclab.envs.mdp.commands.velocity_command import UniformVelocityCommand
 from isaaclab.utils.configclass import configclass
 
-
-class DeadZoneVelocityCommand(UniformVelocityCommand):
-    """`UniformVelocityCommand` with a resampled v_x magnitude and snapped w_z.
-
-    Only `_resample_command` changes, and only as a REMAP of what the parent
-    already sampled: heading logic, standing-env bookkeeping, metrics and
-    visualisers are inherited untouched, so this stays correct when upstream
-    fixes theirs.
-    """
-
-    cfg: "DeadZoneVelocityCommandCfg"
-
-    def __init__(self, cfg: "DeadZoneVelocityCommandCfg", env) -> None:
-        # Fail at construction, not mid-run: the remap below assumes symmetric
-        # ranges (it reflects the parent's uniform sample through zero), and a
-        # dead zone at or past the range edge would command nothing at all.
-        for name, (lo, hi), dz in (
-            ("lin_vel_x", cfg.ranges.lin_vel_x, cfg.min_lin_vel_x),
-            ("ang_vel_z", cfg.ranges.ang_vel_z, cfg.min_ang_vel_z),
-        ):
-            if lo != -hi:
-                raise ValueError(
-                    f"DeadZoneVelocityCommand needs a symmetric {name} range, got "
-                    f"({lo}, {hi}). Both remaps treat the range as a magnitude "
-                    "and a sign, so an asymmetric range would silently bias the sign."
-                )
-            if not (0.0 <= dz < hi):
-                raise ValueError(
-                    f"min_{name} = {dz} must sit inside [0, {hi}) — past the range "
-                    "edge the v_x resample collapses to the edge value and the w_z "
-                    "snap zeroes every draw."
-                )
-        if cfg.heading_command:
-            raise ValueError(
-                "DeadZoneVelocityCommand with heading_command=True would let the "
-                "yaw channel bypass the dead zone (heading mode recomputes w_z "
-                "from heading error every step — the self-zeroing loop learning "
-                "015 documents). Use rate commands, or the plain sampler."
-            )
-        super().__init__(cfg, env)
-
-    def _resample_command(self, env_ids: Sequence[int]) -> None:
-        super()._resample_command(env_ids)
-        r = self.vel_command_b
-
-        # v_x: |u| ~ U(0, hi) -> dz + |u|(hi-dz)/hi ~ U(dz, hi); the sign is
-        # torch.where, not torch.sign, so u == 0 cannot emit a zero command
-        # outside a standing env.
-        dz, hi = self.cfg.min_lin_vel_x, self.cfg.ranges.lin_vel_x[1]
-        u = r[env_ids, 0]
-        sign = torch.where(u >= 0.0, 1.0, -1.0)
-        r[env_ids, 0] = sign * (dz + u.abs() * (hi - dz) / hi)
-
-        # w_z: snap-to-zero (legged_gym's device). Small draws become exactly
-        # zero — the straight drivers the terrain curriculum needs — and the
-        # survivors keep their sampled value, so |w_z| is never in (0, dz).
-        dz = self.cfg.min_ang_vel_z
-        w = r[env_ids, 2]
-        r[env_ids, 2] = torch.where(w.abs() < dz, torch.zeros_like(w), w)
+# NOTHING RUNTIME IS IMPORTED HERE, and that is the file's one invariant.
+# Hydra imports env-cfg modules BEFORE the simulation app exists; a runtime
+# command term imports VisualizationMarkers -> pxr from the pip usd-core, and
+# booting Kit over a foreign USD is a measured heap corruption (free():
+# invalid pointer, exit 134 — locally and on the rented box, 2026-08-06).
+# The runtime class lives in `commands_impl.py`, reached only through the
+# lazy class_type string below; its docstring carries the full account.
 
 
 @configclass
 class DeadZoneVelocityCommandCfg(UniformVelocityCommandCfg):
-    """Config for :class:`DeadZoneVelocityCommand`."""
+    """Config for `commands_impl.DeadZoneVelocityCommand`."""
 
-    class_type: type = DeadZoneVelocityCommand
+    #: A LAZY STRING, deliberately — upstream's own pattern. `configclass`
+    #: wraps it in a `ResolvableString` resolved at term construction, after
+    #: the app is up. Assigning the class object here instead re-creates the
+    #: pre-app pxr import and the 1.5-second heap-corruption crash; the
+    #: oracle asserts the string form survives.
+    class_type: type | str = "bestiary.isaac.commands_impl:DeadZoneVelocityCommand"
 
     min_lin_vel_x: float = 0.0
     """Smallest |v_x| a driving env may be commanded, m/s — the magnitude is
