@@ -87,18 +87,25 @@ DESERT_NATIVE_CELL_M = 2.0 * DESERT_HALF_EXTENT_M / DESERT_GRID  # 0.078125
 #: Written by `generate.py:169`  f.write(struct.pack("ii", *data.shape)).
 _HEADER_BYTES = 8
 
-# Parsed desert, keyed by resolved path. Isaac Lab calls the terrain function
-# once per tile (200 tiles in the shipped 10x20 config), and re-reading and
-# re-ranking a 4 MiB asset 200 times is pure waste.
-_DESERT_CACHE: dict[Path, np.ndarray] = {}
-_RANK_CACHE: dict[tuple[Path, int, int, int], list[tuple[int, int]]] = {}
+# Parsed heightfields, keyed by (resolved path, z-span). Isaac Lab calls the
+# terrain function once per tile (200 tiles in the shipped 10x20 config), and
+# re-reading and re-ranking a 4 MiB asset 200 times is pure waste. The span is
+# part of the key because the SAME bytes at a different declared span are a
+# different world, and a cache that ignored that would hand one caller the
+# other's ground.
+_DESERT_CACHE: dict[tuple[Path, float], np.ndarray] = {}
+_RANK_CACHE: dict[tuple[Path, float, int, int, int], list[tuple[int, int]]] = {}
 
 
-def load_desert_m(path: str | Path) -> np.ndarray:
-    """Elevation of the committed desert, in metres, indexed ``[x, y]``.
+def load_desert_m(path: str | Path, z_span_m: float = DESERT_Z_SPAN_M) -> np.ndarray:
+    """Elevation of a committed heightfield asset, in metres, indexed ``[x, y]``.
 
     MuJoCo stores heightfield samples normalised to [0, 1] and multiplies by
-    the ``<hfield>`` z-size at load, so metres are ``value * DESERT_Z_SPAN_M``.
+    the ``<hfield>`` z-size at load, so metres are ``value * z_span_m`` — the
+    ``.bin`` format cannot carry its own span, so the caller must know it (the
+    desert's 5.05 comes from a committed ``<hfield>`` attribute; the gentle
+    terrain's 1.0 from ``terrain/gentle.py:Z_SPAN_M``, exact by construction).
+    The default keeps every desert caller unchanged.
     The returned array is shifted so its minimum is exactly 0.0 -- Isaac Lab
     places tiles on its own ground plane and has no use for MuJoCo's
     ``geom pos="0 0 -0.41"`` offset.
@@ -115,8 +122,10 @@ def load_desert_m(path: str | Path) -> np.ndarray:
             the square ``DESERT_GRID`` this module's constants describe, or the
             samples are not normalised to [0, 1].
     """
+    if not z_span_m > 0.0:
+        raise ValueError(f"z_span_m must be positive, got {z_span_m}")
     resolved = Path(path).expanduser().resolve()
-    cached = _DESERT_CACHE.get(resolved)
+    cached = _DESERT_CACHE.get((resolved, z_span_m))
     if cached is not None:
         return cached
 
@@ -158,14 +167,15 @@ def load_desert_m(path: str | Path) -> np.ndarray:
         )
 
     # [row=y, col=x] on disk -> [x, y] for Isaac Lab. See the docstring.
-    metres = (normalised.astype(np.float64) * DESERT_Z_SPAN_M).T.copy()
+    metres = (normalised.astype(np.float64) * z_span_m).T.copy()
     metres -= metres.min()
-    _DESERT_CACHE[resolved] = metres
+    _DESERT_CACHE[(resolved, z_span_m)] = metres
     return metres
 
 
 def _rank_patches_by_roughness(
-    desert_m: np.ndarray, patch_x: int, patch_y: int, stride: int, path: Path
+    desert_m: np.ndarray, patch_x: int, patch_y: int, stride: int, path: Path,
+    z_span_m: float = DESERT_Z_SPAN_M,
 ) -> list[tuple[int, int]]:
     """Top-left corners of candidate patches, flattest first.
 
@@ -174,7 +184,7 @@ def _rank_patches_by_roughness(
     stride must always yield the same curriculum, or two runs at "difficulty
     0.5" stood on different ground and are not comparable.
     """
-    key = (path, patch_x, patch_y, stride)
+    key = (path, z_span_m, patch_x, patch_y, stride)
     cached = _RANK_CACHE.get(key)
     if cached is not None:
         return cached
@@ -208,7 +218,7 @@ def bestiary_desert_terrain(difficulty: float, cfg: "HfBestiaryDesertTerrainCfg"
         which is the contract `height_field_to_mesh` and
         `convert_height_field_to_mesh` expect.
     """
-    desert_m = load_desert_m(cfg.hfield_path)
+    desert_m = load_desert_m(cfg.hfield_path, cfg.z_span_m)
     resolved = Path(cfg.hfield_path).expanduser().resolve()
 
     # Native cells needed to cover the tile footprint. `cfg.size` has already
@@ -230,7 +240,7 @@ def bestiary_desert_terrain(difficulty: float, cfg: "HfBestiaryDesertTerrainCfg"
         )
 
     ranked = _rank_patches_by_roughness(
-        desert_m, patch_x, patch_y, cfg.patch_stride_cells, resolved
+        desert_m, patch_x, patch_y, cfg.patch_stride_cells, resolved, cfg.z_span_m
     )
     # difficulty in [0, 1] -> index into flattest..roughest.
     index = int(round(float(np.clip(difficulty, 0.0, 1.0)) * (len(ranked) - 1)))
@@ -265,7 +275,8 @@ class HfBestiaryDesertTerrainCfg(HfTerrainBaseCfg):
     function = bestiary_desert_terrain
 
     hfield_path: str = MISSING
-    """Absolute path to ``assets/terrain/desert_hfield.bin``.
+    """Absolute path to a committed heightfield ``.bin`` (the desert, the
+    gentle terrain, or any future sibling in the same format).
 
     Deliberately not defaulted. This module is imported by a different
     interpreter, from a different working directory, than the one that owns
@@ -273,6 +284,16 @@ class HfBestiaryDesertTerrainCfg(HfTerrainBaseCfg):
     ground, which is exactly the failure the terrain invariant exists to stop.
     Callers resolve the path and pass it.
     """
+
+    z_span_m: float = DESERT_Z_SPAN_M
+    """Metres of elevation the asset's normalised [0, 1] samples span.
+
+    The ``.bin`` format cannot carry this number, so the config does — the
+    same bytes at a different span are a different world, and the cache keys
+    on both. Defaults to the desert's 5.05 (read from the committed
+    ``<hfield>`` element) so existing desert callers are unchanged; the gentle
+    terrain passes ``terrain/gentle.py:Z_SPAN_M``, which its generator makes
+    exact by construction."""
 
     z_gain_range: tuple[float, float] = (1.0, 1.0)
     """Elevation multiplier at difficulty 0 and 1. ``(1.0, 1.0)`` is the asset
