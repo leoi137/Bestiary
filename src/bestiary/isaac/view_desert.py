@@ -51,15 +51,19 @@ TWO THINGS THAT LOOK LIKE PHYSICS BUGS AND ARE NOT, BOTH MEASURED HERE
    coefficient in the converted asset -- see `hound_cfg.py`. Before that, all
    four went onto their backs inside half a second, every time.)
 
-Two terrains are offered so the comparison is direct:
+Four mixes are offered so the comparisons are direct:
 
-    --mix desert   every tile is a patch of assets/terrain/desert_hfield.bin
-    --mix blend    the desert alongside Isaac Lab's own slopes and rock fields
+    --mix desert        every tile is a patch of assets/terrain/desert_hfield.bin
+    --mix blend         the desert alongside Isaac Lab's own slopes and rock fields
+    --mix gentle        every tile is a patch of assets/terrain/gentle_hfield.bin
+    --mix gentle-blend  the gentle terrain alongside the same Isaac Lab tiles —
+                        EXACTLY what Bestiary-Gentle-Spyder-v0 trains on
 
-`blend` is the one that matters for training. Isaac Lab's shipped rough config
-uses `noise_range=(0.02, 0.10)` — two to ten centimetres — while the desert at
-difficulty 1.0 has metres of relief, so mixing them gives a curriculum that
-spans "gentle bumps" to "real dune" instead of only one of the two.
+`blend` is the one that matters for Hound training; `gentle-blend` for Spyder.
+Isaac Lab's shipped rough config uses `noise_range=(0.02, 0.10)` — two to ten
+centimetres — while the desert at difficulty 1.0 has metres of relief and the
+gentle asset tops out at 1.0 m, so each mix gives its curriculum a span instead
+of a single texture.
 
 DEFAULTS TO THE NEWTON VIEWER, ON PURPOSE
 
@@ -84,9 +88,13 @@ from isaaclab.app import AppLauncher
 parser = argparse.ArgumentParser(description=__doc__)
 parser.add_argument(
     "--mix",
-    choices=["desert", "blend"],
+    choices=["desert", "blend", "gentle", "gentle-blend"],
     default="desert",
-    help="desert: every tile from our heightfield. blend: ours plus Isaac Lab's built-ins.",
+    help=(
+        "desert/gentle: every tile from that heightfield. blend/gentle-blend: "
+        "the heightfield plus Isaac Lab's built-ins — gentle-blend is the "
+        "Spyder training mix."
+    ),
 )
 parser.add_argument(
     "--tile-m", type=float, default=8.0, help="Square sub-terrain size in metres (default 8.0)."
@@ -163,14 +171,14 @@ parser.add_argument(
 )
 parser.add_argument(
     "--robot",
-    choices=["anymal-c", "hound"],
+    choices=["anymal-c", "hound", "spyder"],
     default="anymal-c",
     help=(
         "Which machine to stand on the tiles. 'anymal-c' is Isaac Lab's own and "
         "the default, because for a TERRAIN check a known-good robot is the one "
-        "that isolates the terrain. 'hound' is ours, from "
-        "assets/hound/isaac/ -- generate it first with "
-        "`-m bestiary.isaac.hound_usd`."
+        "that isolates the terrain. 'hound' and 'spyder' are ours, from "
+        "assets/hound/isaac/ and assets/spyder/isaac/ -- generate them first "
+        "with `-m bestiary.isaac.hound_usd` / `-m bestiary.isaac.spyder_usd`."
     ),
 )
 parser.add_argument(
@@ -219,13 +227,15 @@ parser.add_argument(
 parser.add_argument(
     "--patch-radius",
     type=float,
-    default=0.25,
+    default=None,
     help=(
-        "With --spawn flat: radius of the patch that must be flat, in metres "
-        "(default 0.25). Hound's four contact patches sit at "
-        "sqrt(0.1934^2 + 0.142^2) = 0.240 m from its centre, so 0.25 m is the "
-        "smallest circle the standing machine fits inside. Larger is stricter "
-        "and finds fewer patches; smaller lets a wheel hang over an edge."
+        "With --spawn flat: radius of the patch that must be flat, in metres. "
+        "DEFAULTS PER ROBOT (see ROBOT_CHOICES): 0.25 for ANYmal-C and Hound "
+        "(Hound's contact patches sit at sqrt(0.1934^2 + 0.142^2) = 0.240 m "
+        "from its centre), 1.2 for Spyder, whose X-stance puts each foot at "
+        "sqrt(0.76^2 + 0.76^2) = 1.075 m from the torso axis — a 0.25 m patch "
+        "would certify flat ground under the body and let all four feet hang "
+        "over edges. Larger is stricter and finds fewer patches."
     ),
 )
 parser.add_argument(
@@ -281,8 +291,11 @@ from isaaclab_assets.robots.anymal import ANYMAL_C_CFG  # noqa: E402
 
 from bestiary import paths  # noqa: E402
 from bestiary.isaac.hound_cfg import HOUND16_CFG  # noqa: E402
+from bestiary.isaac.spyder_cfg import SPYDER12_CFG  # noqa: E402
+from bestiary.terrain.gentle import Z_SPAN_M as GENTLE_Z_SPAN_M  # noqa: E402
 from bestiary.terrain.isaac_hf import (  # noqa: E402
     DESERT_NATIVE_CELL_M,
+    DESERT_Z_SPAN_M,
     HfBestiaryDesertTerrainCfg,
     load_desert_m,
 )
@@ -303,9 +316,23 @@ DESERT_GROUND_FRICTION = 0.8
 #: is resolved by the solver as an explosion rather than as a placement, and the
 #: right clearance is a property of the robot (0.6 m for ANYmal-C, 0.3684 m for
 #: Hound -- its 0.3634 m stance plus 5 mm) which the config already states.
-ROBOT_CHOICES: dict[str, tuple[str, ArticulationCfg]] = {
-    "anymal-c": ("ANYmal-C", ANYMAL_C_CFG),
-    "hound": ("HOUND-16", HOUND16_CFG),
+#: (label, articulation cfg, flat-patch radius in metres). The radius is the
+#: smallest circle the STANDING machine's contacts fit inside, computed from
+#: each model's geometry — see --patch-radius's help for both derivations.
+ROBOT_CHOICES: dict[str, tuple[str, ArticulationCfg, float]] = {
+    "anymal-c": ("ANYmal-C", ANYMAL_C_CFG, 0.25),
+    "hound": ("HOUND-16", HOUND16_CFG, 0.25),
+    "spyder": ("Spyder-12", SPYDER12_CFG, 1.2),
+}
+
+#: Which committed heightfield each --mix draws from, and the span its
+#: normalised samples cover. One place, because main()'s printout and
+#: build_terrain_cfg() must agree on which world is on screen.
+MIX_ASSET: dict[str, tuple[str, float]] = {
+    "desert": (str(paths.DESERT_HFIELD), DESERT_Z_SPAN_M),
+    "blend": (str(paths.DESERT_HFIELD), DESERT_Z_SPAN_M),
+    "gentle": (str(paths.GENTLE_HFIELD), GENTLE_Z_SPAN_M),
+    "gentle-blend": (str(paths.GENTLE_HFIELD), GENTLE_Z_SPAN_M),
 }
 
 
@@ -318,14 +345,17 @@ def build_terrain_cfg() -> TerrainGeneratorCfg:
     smoothed interpretation of them — which is the only way this script can
     answer the question it exists to answer.
     """
+    hfield_path, z_span = MIX_ASSET[args_cli.mix]
+    blended = args_cli.mix in ("blend", "gentle-blend")
     desert = HfBestiaryDesertTerrainCfg(
-        proportion=1.0 if args_cli.mix == "desert" else 0.5,
-        hfield_path=str(paths.DESERT_HFIELD),
+        proportion=0.5 if blended else 1.0,
+        hfield_path=hfield_path,
+        z_span_m=z_span,
         border_width=0.25,
     )
 
     sub_terrains: dict = {"bestiary_desert": desert}
-    if args_cli.mix == "blend":
+    if blended:
         # Isaac Lab's own, kept at their shipped parameters so the contrast with
         # the desert is visible rather than tuned away.
         sub_terrains["isaac_slope"] = terrain_gen.HfPyramidSlopedTerrainCfg(
@@ -342,13 +372,20 @@ def build_terrain_cfg() -> TerrainGeneratorCfg:
         # keeps zeros, and a zero is a perfectly valid-looking position at the
         # world origin. Robots placed there would appear buried at (0, 0, 0),
         # which reads as a spawn bug rather than as an unfilled tensor.
+        # Per-robot default: the radius is a property of the machine standing
+        # on the patch, so an unset flag reads it from ROBOT_CHOICES.
+        patch_radius = (
+            ROBOT_CHOICES[args_cli.robot][2]
+            if args_cli.patch_radius is None
+            else args_cli.patch_radius
+        )
         for cfg in sub_terrains.values():
             cfg.flat_patch_sampling = {
                 FLAT_PATCH_NAME: FlatPatchSamplingCfg(
                     # One per tile is all this viewer uses; asking for more is
                     # rejection sampling nobody reads.
                     num_patches=1,
-                    patch_radius=args_cli.patch_radius,
+                    patch_radius=patch_radius,
                     max_height_diff=args_cli.max_height_diff,
                 )
             }
@@ -473,10 +510,11 @@ def main() -> None:
     # window opens rather than squinted at afterwards.
     # flush=True throughout: Kit's teardown can end the process without draining
     # Python's stdout buffer, which silently swallowed these lines the first time.
-    desert = load_desert_m(paths.DESERT_HFIELD)
+    hfield_path, z_span = MIX_ASSET[args_cli.mix]
+    desert = load_desert_m(hfield_path, z_span)
     cells = int(round(args_cli.tile_m / DESERT_NATIVE_CELL_M))
-    print(f"[bestiary] heightfield : {paths.DESERT_HFIELD}", flush=True)
-    print(f"[bestiary] desert      : {desert.shape[0]}x{desert.shape[1]} cells, "
+    print(f"[bestiary] heightfield : {hfield_path}", flush=True)
+    print(f"[bestiary] terrain     : {desert.shape[0]}x{desert.shape[1]} cells, "
           f"{DESERT_NATIVE_CELL_M * 100:.4f} cm/cell, relief {desert.max():.3f} m", flush=True)
     print(f"[bestiary] tile        : {args_cli.tile_m:.2f} m = {cells}x{cells} native cells",
           flush=True)
@@ -532,7 +570,7 @@ def main() -> None:
     # articulation the Newton visualizer has no model and raises rather than
     # opening a window. They also give the relief a human scale, which is the
     # difference between "that looks bumpy" and "that dune is taller than the dog".
-    label, robot_cfg = ROBOT_CHOICES[args_cli.robot]
+    label, robot_cfg, _ = ROBOT_CHOICES[args_cli.robot]
     # With --spawn flat, the sampled z is a ray-cast on the patch's RING, so the
     # ground inside the ring may be up to --max-height-diff higher. Spawning at
     # the ring height therefore risks starting a wheel INSIDE the mesh, and PhysX
