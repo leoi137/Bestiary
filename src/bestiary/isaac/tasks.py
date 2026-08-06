@@ -51,10 +51,11 @@ def register() -> None:
         ("Bestiary-Desert-Anymal-C-v0", f"{_ANYMAL_CFG_MODULE}:AnymalCDesertEnvCfg"),
         ("Bestiary-Desert-Coarse-Anymal-C-v0", f"{_ANYMAL_CFG_MODULE}:AnymalCDesertCoarseEnvCfg"),
         ("Bestiary-Desert-Anymal-C-Play-v0", f"{_ANYMAL_CFG_MODULE}:AnymalCDesertEnvCfg_PLAY"),
-        # Hound. NOT ready to train: the reward is ANYmal-C's, inherited whole,
-        # and `feet_air_time` on a wheel pays the machine to hop. The env cfg's
-        # module docstring says so at length. Registered because a task id is
-        # how a viewer and an oracle reach a config, not because it is finished.
+        # Hound. The reward is 0004 Part B's re-scoping of ANYmal-C's table
+        # (contact-timing terms deleted, joint penalties split by group);
+        # trained as arms 1 and 2 on the rented box, 2026-07-30. What the
+        # reward is still KNOWN to get wrong is in STATE and the env cfg's
+        # module docstring — point-and-park is measured, not hypothetical.
         ("Bestiary-Desert-Hound-v0", f"{_HOUND_CFG_MODULE}:HoundDesertEnvCfg"),
         ("Bestiary-Desert-Hound-Play-v0", f"{_HOUND_CFG_MODULE}:HoundDesertEnvCfg_PLAY"),
     )
