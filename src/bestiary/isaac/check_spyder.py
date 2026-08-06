@@ -213,12 +213,19 @@ def check_no_spring_and_no_stray_drive_reaches_the_solver() -> None:
     from that scan was `research/learnings/014`'s green guard that checked
     nothing.
 
-    So: open `payloads/Physics/mujoco.usda` DIRECTLY, demand the scan sees at
-    least the twelve joints' worth of spring attributes (the non-vacuousness
-    condition 014 requires), and assert every one is zero — which is delta 3
-    having taken. Then assert no authored `physics:drive` stiffness exists in
-    the composed asset at all: the input has no `<position>` actuators, so an
-    authored drive would be the importer inventing one to stack with the cfg's.
+    So: open `payloads/Physics/mujoco.usda` DIRECTLY. The importer authors
+    `mjc:*` attributes ONLY FOR NONZERO VALUES (measured 2026-08-05: this
+    asset's payload has zero `mjc:stiffness` entries but the Hound's — whose
+    conversion input keeps nonzero springs — carries `mjc:stiffness = 32.77`),
+    so "springs zeroed" manifests as ABSENCE, and a bare absence check is
+    exactly 014's vacuous green. The non-vacuousness anchor is `mjc:armature`:
+    authored on all twelve joints in the same layer, same namespace, same
+    importer, because armature is nonzero by design (it is dynamics, not a
+    crutch — spyder_usd delta 3). Twelve visible armatures prove the scan
+    works; zero visible spring attributes then prove delta 3 took. Then assert
+    no authored `physics:drive` stiffness exists in the composed asset at all:
+    the input has no `<position>` actuators, so an authored drive would be the
+    importer inventing one to stack with the cfg's.
     """
     from pxr import Usd
 
@@ -234,27 +241,34 @@ def check_no_spring_and_no_stray_drive_reaches_the_solver() -> None:
     mj = Usd.Stage.Open(str(mj_layer))
     if mj is None:
         raise AssertionError(f"USD failed to open {mj_layer}")
-    scanned: list[str] = []
-    leaked: list[str] = []
-    for prim in mj.Traverse():
+    armatures: list[str] = []
+    springs: list[str] = []
+    # TraverseAll, not Traverse: the payload holds `over` specs for prims
+    # defined in a sibling layer, and a plain Traverse of the layer alone
+    # visits zero of them (measured — the canary caught exactly this).
+    for prim in mj.TraverseAll():
         for attr in prim.GetAttributes():
-            if attr.GetName() in ("mjc:stiffness", "mjc:springref") and attr.HasAuthoredValue():
-                scanned.append(f"{prim.GetPath()}.{attr.GetName()}")
-                if float(attr.Get()) != 0.0:
-                    leaked.append(f"{scanned[-1]} = {float(attr.Get())}")
-    if len(scanned) < 12:
+            if not attr.HasAuthoredValue():
+                continue
+            if attr.GetName() == "mjc:armature":
+                armatures.append(f"{prim.GetPath()}")
+            elif attr.GetName() in ("mjc:stiffness", "mjc:springref"):
+                springs.append(f"{prim.GetPath()}.{attr.GetName()} = {float(attr.Get())}")
+    if len(armatures) != 12:
         raise AssertionError(
-            f"the spring scan found only {len(scanned)} candidate attributes on "
-            "a 12-joint machine; the importer's attribute names or layer layout "
-            "changed and this check is no longer looking at the springs "
-            "(research/learnings/014 — a scan with an empty input set proves "
-            "nothing)."
+            f"the canary failed: {len(armatures)} authored mjc:armature "
+            "attributes in the mujoco payload, expected 12. Either the importer "
+            "stopped writing mjc:* attributes there — in which case this check "
+            "is no longer looking at the springs (research/learnings/014) — or "
+            "the armature was zeroed out of the conversion input, which delta 3 "
+            "explicitly must not do."
         )
-    if leaked:
+    if springs:
         raise AssertionError(
-            f"nonzero MuJoCo spring attributes in {mj_layer.name}: {leaked[:4]} "
-            f"({len(leaked)} total). Delta 3 did not take; with KP == the "
-            "authored spring constant, no gain assertion downstream can see this."
+            f"authored MuJoCo spring attributes in {mj_layer.name}: "
+            f"{springs[:4]} ({len(springs)} total). The importer only authors "
+            "nonzero values, so delta 3 did not take; with KP == the authored "
+            "spring constant, no gain assertion downstream can see this."
         )
 
     stage = _usd_stage()
