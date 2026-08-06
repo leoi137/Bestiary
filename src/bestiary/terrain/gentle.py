@@ -46,9 +46,12 @@ The scale that matters is relative to the robot, not absolute. Spyder stands
 inside a stride, not metre relief across a dune. So against the desert:
 
     layer      desert                      gentle
-    broad      mountains, 14-80 m, ~3.3    hills, 15-40 m, no ridging
-    ripples    dunes 14-30 m, 0.8          ripples 4-10 m — SHORTER, so they
-                                           land inside an 8 m training tile
+    broad      mountains, 14-80 m, ~3.3    hills, 6-20 m, no ridging — SHORT
+                                           so a crest and a base fit inside
+                                           an 8 m training tile (the
+                                           amplitude constants' note is the
+                                           full argument)
+    ripples    dunes 14-30 m, 0.8          ripples 4-10 m, same reason
     rubble     0.04 x (0.5-3.0 m)          0.035 x (1.5-3.5 m) — relative to
                                            its hills this is ~8x the desert's
                                            rubble-to-broad ratio, which is the
@@ -106,18 +109,35 @@ SEED = 11
 #: RATIOS survive the exact-span rescale; the printed post-rescale stds are the
 #: authoritative numbers.
 #:
-#: NOT the first guess. The first composition (0.26/0.16/0.08, rubble band
-#: floor 0.8 m, ripple sharpening ^1.5, span 1.2) measured slope P90 36.7 deg
-#: and P99 50.4 deg — straddling the atan(0.75) = 36.9 deg that
-#: `slope_threshold=0.75` treats as a wall, i.e. accidental mountains at
-#: rubble scale. A five-point sweep over
-#: (amplitudes, rubble band floor, sharpening, span) landed here: slope
-#: P50/P90/P99 = 6.3/17.0/26.5 deg, median 8 m-tile relief 0.39 m — every
-#: gradient walkable, none of it flat. The sweep is reproduced by
-#: `--stats` whenever these numbers are doubted.
-HILL_AMP = 0.34
-RIPPLE_AMP = 0.09
-RUBBLE_AMP = 0.035
+#: THIRD composition, and each predecessor died on a measurement:
+#:
+#: 1. (0.26/0.16/0.08, rubble floor 0.8 m, ripple ^1.5, span 1.2): slope
+#:    P90/P99 = 36.7/50.4 deg — accidental mountains at rubble scale.
+#:    Short-wavelength height IS slope.
+#: 2. (0.34/0.09/0.035, hills in a 15-40 m band): slopes fine — and the
+#:    operator looked at it in the viewer and saw NO HILLS, because there
+#:    were none to see: training and viewing happen on 8 m tiles, each with
+#:    its own baseline subtracted, and a 15-40 m wavelength cannot fit a
+#:    crest and a base inside an 8 m window. Measured: of that layer's
+#:    0.283 m median per-tile contribution, only 0.161 m survived removing
+#:    the best-fit plane — the "hills" were tile-scale TILT. The desert's
+#:    mountains survive its tiling only because 5.05 m of relief makes even
+#:    a patch of mountainside steep; scale the amplitude down and keep the
+#:    wavelength, and tiling erases the layer. A HILL THE TILING PRESERVES
+#:    MUST FIT INSIDE A TILE.
+#:
+#: So the hills moved down-band to 6-20 m — crest AND base inside 8 m —
+#: staying the SMOOTH field, not the desert's ridged construction: 1-|f|
+#: folding puts crease lines carrying the raw field's full gradient
+#: everywhere, tolerable across a 40 m mountainside, measured at P99 52-61
+#: deg when the wavelength is 10 m. Swept at (6, 20): slope P50/P90/P99 =
+#: 8.3/19.5/29.8 deg (under the 36.9 deg wall), median 8 m-tile relief
+#: 0.615 m of which 0.518 m survives de-tilting — a genuine hill about 1.5
+#: standing heights tall in a typical tile, on every tile. `--stats`
+#: reproduces the slope and relief numbers whenever they are doubted.
+HILL_AMP = 0.16
+RIPPLE_AMP = 0.05
+RUBBLE_AMP = 0.02
 
 #: Spawn pad, metres: flat inside r=2.0, cosine-blended to full terrain by
 #: r=5.0. Same mechanism as the desert's (2.5, 6.0), slightly tighter because
@@ -140,10 +160,11 @@ def build_height_m(seed: int) -> np.ndarray:
 
     # -- Low hills -----------------------------------------------------------
     # A plain smooth field, NOT the desert's ridged-and-warped multifractal:
-    # ridging manufactures crests and gullies, which is mountain morphology.
-    # beta=2.5 in a 15-40 m band gives rolling forms with most power at the
-    # long end — hills, with nothing to climb hand-over-hand.
-    hills = HILL_AMP * _spectral_field(rng, n, beta=2.5, band=(15.0, 40.0))
+    # ridging folds crease lines into every wavelength, measured at P99
+    # slopes of 52-61 deg at this band. beta=2.5 in a 6-20 m band puts a
+    # crest AND a base inside every 8 m training tile — the constants' note
+    # records why hills that tiling cannot see are not hills.
+    hills = HILL_AMP * _spectral_field(rng, n, beta=2.5, band=(6.0, 20.0))
 
     # -- Ripples -------------------------------------------------------------
     # The desert's transverse-dune construction (band-passed anisotropic field,
