@@ -1,4 +1,4 @@
-"""The gentle terrain: the desert's texture without the desert's relief.
+"""The gentle terrain: the desert's own recipe with the mountains turned down.
 
     venv/bin/python -m bestiary.terrain.gentle            # writes the asset
     venv/bin/python -m bestiary.terrain.gentle --stats    # numbers only, writes nothing
@@ -9,67 +9,64 @@ footprint at the same 7.8 cm sampling — so `terrain/isaac_hf.py` serves it to
 Isaac Lab through the exact machinery the desert already uses, and nothing
 downstream learns a second file format.
 
-WHY THIS ASSET EXISTS
----------------------
-The desert spans 5.05 m of elevation; its mountains are terrain for a machine
-that already walks. This is the terrain for a machine that is *learning* to
-walk: the same three-layer composition — broad forms, quasi-regular ripples,
-fine rubble — with the mountain layer replaced by low hills and every
-wavelength kept, so the ground is genuinely irregular at the scale of a
-footstep without ever being a wall at the scale of a body. Hills stay; summits
-go. The operator asked for exactly that, 2026-08-05.
+WHAT THIS IS, FOURTH ITERATION, AND WHY THE FIRST THREE DIED
+------------------------------------------------------------
+The brief (operator, 2026-08-05/06): the desert's look — hills, ripples,
+gravel — for a machine that is *learning* to walk, "like before, just not as
+intense". Three original compositions preceded this file's current form, and
+each died on a measurement worth keeping:
 
-It is a NEW file, not a regenerated desert. The desert's bytes are pinned by
-hash into the provenance of every run that stood on them (`terrain/spec.py`;
-the terrain invariant in CLAUDE.md calls a moved ground the quietest failure in
-the project). Assets are append-only the same way the ledger is.
+1. Custom layers, rubble band down to 0.8 m: slope P99 = 50.4 deg —
+   short-wavelength height IS slope; accidental mountains at gravel scale.
+2. Hills in a 15-40 m band at a fifth the desert's amplitude: the operator
+   saw NO hills in the viewer, correctly. Training and viewing happen on 8 m
+   tiles, each re-zeroed to its own baseline; of that layer's 0.283 m median
+   per-tile contribution only 0.161 m survived removing the best-fit plane.
+   LOW-amplitude long wavelengths are erased by tiling. (The desert's are
+   not, because 5 m of relief makes even one tile of mountainside steep —
+   amplitude is what lets a long wavelength survive the crop.)
+3. Hills moved into a 6-20 m, then 10-30 m band so a crest and base fit
+   inside a tile: mechanically real (0.43-0.52 m of per-tile shape), and the
+   operator's screenshots settled the verdict — at human viewing distance a
+   half-metre hill is 1-2% of the frame, i.e. crumpled paper. The robot's
+   scale and the operator's scale disagree, and the operator is the one
+   deciding whether the world looks right.
+
+So iteration 4 stops composing its own landscape: `generate.build_height_m`
+— the desert itself, every layer, every band — with its `mountain_amp` knob
+at MOUNTAIN_AMP below instead of the desert's 3.3, on this asset's own seed.
+Dunes, domain-warped ridged forms, gravel: identical morphology, the
+mountains now ~2 m instead of ~4.5 m. Against the operator's two reference
+screenshots this is the midpoint: hills that visibly tower over a 0.35 m
+spider (~6x its height; the desert towers ~10x over the 0.36 m Hound)
+without the desert's canyon walls.
+
+WHAT "LESS INTENSE" MEANS, MEASURED AT BODY SCALE
+-------------------------------------------------
+Cell-scale slope percentiles mislead here: the recipe's 0.5-3 m gravel makes
+steep CELLS that the simulator's slope threshold turns into centimetre
+pebble-steps, not walls. The metric that decides walkability is the slope of
+the 0.5 m-smoothed surface (what the body must climb) and the per-cell step
+height (what a foot must clear):
+
+                          body-slope P50/P90/P99      foot-step P99   span
+    desert (committed)      18.9 / 47.7 / 61.4 deg       28.3 cm     5.05 m
+    THIS ASSET              12.5 / 23.4 / 34.3 deg       14.0 cm     2.24 m
+
+Half the span, half the body-slope at P90, half the step height. The hard
+end is genuinely hard — 2 m hill flanks near 30 deg — and the ranked-patch
+curriculum in `isaac_hf.py` orders tiles flattest-first, so a learner starts
+on dune flats and earns the flanks. That is the same arrangement under which
+the full desert trains ANYmal-C.
 
 THE SPAN IS DECLARED, NOT EMERGENT
 ----------------------------------
-`Z_SPAN_M` below is exact by construction: the composed field is rescaled so
-its min-to-max span equals the constant. The `.bin` format stores samples
-normalised to [0, 1] and cannot carry metres, so every reader must be *told*
-the span — the desert reads its 5.05 from an `<hfield size=...>` attribute in a
-committed XML, but this asset has no MuJoCo XML yet, so the constant here is
-the single source of truth and the rescale is what makes it true rather than
-approximately true. The pre-rescale span is printed at generation so the
-factor is visible (a factor far from 1.0 means the layer amplitudes below no
-longer mean what they say).
-
-Layer ratios are preserved by the rescale, so the amplitudes below are exact
-only relative to each other; the printed post-rescale stds are the real ones.
-
-WHAT "GENTLE BUT NOT BASIC" MEANS, IN NUMBERS
----------------------------------------------
-The scale that matters is relative to the robot, not absolute. Spyder stands
-~0.35 m tall on ~0.6 m legs; terrain that is hard *for it* is decimetre relief
-inside a stride, not metre relief across a dune. So against the desert:
-
-    layer      desert                      gentle
-    broad      mountains, 14-80 m, ~3.3    hills, 6-20 m, no ridging — SHORT
-                                           so a crest and a base fit inside
-                                           an 8 m training tile (the
-                                           amplitude constants' note is the
-                                           full argument)
-    ripples    dunes 14-30 m, 0.8          ripples 4-10 m, same reason
-    rubble     0.04 x (0.5-3.0 m)          0.035 x (1.5-3.5 m) — relative to
-                                           its hills this is ~8x the desert's
-                                           rubble-to-broad ratio, which is the
-                                           "more roughness" the operator asked
-                                           for without the slopes that come
-                                           with sub-metre wavelengths
-
-The rubble band's low end moved 0.5 -> 1.5 m deliberately: training resamples
-to a 0.1 m grid (`TRAIN_CELL_M` in the env cfg), so wavelengths under ~8 cells
-arrive aliased; and short-wavelength height IS slope — at 0.8 m the first
-composition measured P99 slopes of 50 degrees, accidental mountains at gravel
-scale. The sweep note on the amplitude constants has the numbers.
-
-`--stats` prints slope percentiles and per-tile relief because those are the
-two numbers that say "walkable but rough": slope P99 should sit well under
-atan(0.75) = 36.9 degrees — the rise/run ratio Isaac Lab's own
-`slope_threshold=0.75` treats as a wall and converts to vertical — and median
-8 m-tile relief should be a fraction of standing height, not a multiple.
+`Z_SPAN_M` is exact by construction: the composed field is rescaled so its
+min-to-max span equals the constant (the factor is ~1.004 — the knobbed
+recipe's natural span is 2.24). The `.bin` stores samples normalised to
+[0, 1] and cannot carry metres, so every reader must be told the span;
+`isaac_hf.py` takes it as a config field and the env cfg passes this
+constant. Keep them one constant.
 """
 
 from __future__ import annotations
@@ -79,135 +76,66 @@ import argparse
 import numpy as np
 
 from bestiary import paths
-
-# The spectral machinery is imported from the desert generator rather than
-# copied: `_spectral_field` reads generate.py's module-level CELL, which this
-# asset shares by USING THE SAME GRID GEOMETRY (below). If gentle ever needs a
-# different extent or grid, the helper must grow a `cell` parameter first —
-# importing it while the constants disagree would band-pass at the wrong
-# wavelengths and raise nothing.
 from bestiary.terrain.generate import (
     CELL,
     GRID,
     HALF_EXTENT,
-    _spectral_field,
+    build_height_m as _desert_recipe,
     save_hfield_bin,
     save_texture,
 )
 
 #: Total elevation span, metres, EXACT by rescale (see module docstring).
-#: 1.0 m over an 80 m world against the desert's 5.05 m: hills a spider walks
-#: over, not mountains it summits. 1.0 m = 3.3 ft.
-Z_SPAN_M = 1.0
+#: 2.25 m (7.4 ft) against the desert's 5.05 m (16.6 ft): mountains become
+#: hills a learning spider can be dwarfed by and still climb.
+Z_SPAN_M = 2.25
 
 #: Generation seed. Arbitrary, fixed, and deliberately NOT the desert's 7 —
 #: sharing a seed would correlate the two worlds' large-scale forms, and the
 #: point of a second asset is a second world.
 SEED = 11
 
-#: Pre-rescale layer amplitudes (each multiplies a unit-std field). Only their
-#: RATIOS survive the exact-span rescale; the printed post-rescale stds are the
-#: authoritative numbers.
-#:
-#: THIRD composition, and each predecessor died on a measurement:
-#:
-#: 1. (0.26/0.16/0.08, rubble floor 0.8 m, ripple ^1.5, span 1.2): slope
-#:    P90/P99 = 36.7/50.4 deg — accidental mountains at rubble scale.
-#:    Short-wavelength height IS slope.
-#: 2. (0.34/0.09/0.035, hills in a 15-40 m band): slopes fine — and the
-#:    operator looked at it in the viewer and saw NO HILLS, because there
-#:    were none to see: training and viewing happen on 8 m tiles, each with
-#:    its own baseline subtracted, and a 15-40 m wavelength cannot fit a
-#:    crest and a base inside an 8 m window. Measured: of that layer's
-#:    0.283 m median per-tile contribution, only 0.161 m survived removing
-#:    the best-fit plane — the "hills" were tile-scale TILT. The desert's
-#:    mountains survive its tiling only because 5.05 m of relief makes even
-#:    a patch of mountainside steep; scale the amplitude down and keep the
-#:    wavelength, and tiling erases the layer. A HILL THE TILING PRESERVES
-#:    MUST FIT INSIDE A TILE.
-#:
-#: So the hills moved down-band to 6-20 m — crest AND base inside 8 m —
-#: staying the SMOOTH field, not the desert's ridged construction: 1-|f|
-#: folding puts crease lines carrying the raw field's full gradient
-#: everywhere, tolerable across a 40 m mountainside, measured at P99 52-61
-#: deg when the wavelength is 10 m. Swept at (6, 20): slope P50/P90/P99 =
-#: 8.3/19.5/29.8 deg (under the 36.9 deg wall), median 8 m-tile relief
-#: 0.615 m of which 0.518 m survives de-tilting — a genuine hill about 1.5
-#: standing heights tall in a typical tile, on every tile. `--stats`
-#: reproduces the slope and relief numbers whenever they are doubted.
-HILL_AMP = 0.16
-RIPPLE_AMP = 0.05
-RUBBLE_AMP = 0.02
-
-#: Spawn pad, metres: flat inside r=2.0, cosine-blended to full terrain by
-#: r=5.0. Same mechanism as the desert's (2.5, 6.0), slightly tighter because
-#: there is less relief to blend away.
-PAD_FLAT_M, PAD_BLEND_M = 2.0, 5.0
+#: The one knob: the desert's mountain layer runs at 3.3; this asset runs it
+#: at 1.0. Chosen by measurement (the body-scale table in the module
+#: docstring) from a sweep over {1.0, 1.3, 1.6}: 1.3 already puts body-slope
+#: P99 at 39 deg — past the 36.9 deg wall — on the flanks. Dunes, warp,
+#: gravel and the spawn pad are the desert's own, untouched.
+MOUNTAIN_AMP = 1.0
 
 
 def build_height_m(seed: int) -> np.ndarray:
-    """The composed gentle terrain in metres, spawn surface = 0.
+    """The desert recipe at MOUNTAIN_AMP, rescaled to the exact declared span.
 
-    Same conventions as `generate.build_height_m`: returns (GRID, GRID),
-    row axis = y, col axis = x, and the caller normalises for storage.
+    Same conventions as `generate.build_height_m`: (GRID, GRID), row axis =
+    y, col axis = x, spawn surface at 0 before normalisation.
     """
-    rng = np.random.default_rng(seed)
-    n = GRID
-
-    coords = np.linspace(-HALF_EXTENT, HALF_EXTENT, n)
-    x, y = coords[None, :], coords[:, None]
-    dist = np.sqrt(x * x + y * y)
-
-    # -- Low hills -----------------------------------------------------------
-    # A plain smooth field, NOT the desert's ridged-and-warped multifractal:
-    # ridging folds crease lines into every wavelength, measured at P99
-    # slopes of 52-61 deg at this band. beta=2.5 in a 6-20 m band puts a
-    # crest AND a base inside every 8 m training tile — the constants' note
-    # records why hills that tiling cannot see are not hills.
-    hills = HILL_AMP * _spectral_field(rng, n, beta=2.5, band=(6.0, 20.0))
-
-    # -- Ripples -------------------------------------------------------------
-    # The desert's transverse-dune construction (band-passed anisotropic field,
-    # 1-|f| crests, ^1.5 sharpening) at a 4-10 m wavelength instead of 14-30 m,
-    # so several crests land inside one 8 m training tile — at the desert's
-    # spacing a tile sees at most one, and the "quasi-regular ridges" character
-    # is invisible at training scale.
-    f_rip = _spectral_field(rng, n, beta=2.0, stretch=(1.0, 0.4), band=(4.0, 10.0))
-    # ^1.2, not the desert's ^1.5: sharper crests measured as P99 slope past
-    # the wall threshold at this wavelength. See the sweep note on the
-    # amplitude constants.
-    crest = np.clip(1.0 - np.abs(f_rip), 0.0, None) ** 1.2
-    ripples = RIPPLE_AMP * (crest - crest.mean()) / crest.std()
-
-    # -- Rubble --------------------------------------------------------------
-    # The roughness knob. Band floor at 1.5 m (not the desert's 0.5) for two
-    # measured reasons: the 0.1 m training resample cannot carry wavelengths
-    # under ~0.8 m honestly, and even 0.8 m rubble at this amplitude pushed
-    # slope P99 to 50 deg — short-wavelength height is slope, and slope is
-    # what "gentle" bounds.
-    rubble = RUBBLE_AMP * _spectral_field(rng, n, beta=1.5, band=(1.5, 3.5))
-
-    h = hills + ripples + rubble
-
-    # -- Spawn pad: flatten a disk at the origin, cosine blend outward -------
-    w = np.clip((dist - PAD_FLAT_M) / (PAD_BLEND_M - PAD_FLAT_M), 0.0, 1.0)
-    h *= 0.5 - 0.5 * np.cos(np.pi * w)
-
-    # -- Exact declared span (see module docstring) --------------------------
-    raw_span = float(h.max() - h.min())
+    h = _desert_recipe(seed, mountain_amp=MOUNTAIN_AMP)
+    raw_span = float(np.ptp(h))
     if raw_span <= 0.0:
-        raise ValueError(f"composed field is flat (span {raw_span}); a layer amplitude is broken")
+        raise ValueError(f"composed field is flat (span {raw_span}); the recipe is broken")
     h *= Z_SPAN_M / raw_span
-    # Stash the factor for main()'s printout without changing the return type.
     build_height_m.last_rescale = Z_SPAN_M / raw_span  # type: ignore[attr-defined]
     return h
 
 
 def _stats(h: np.ndarray) -> dict[str, float]:
-    """The numbers that decide walkable-but-rough. Computed, never asserted."""
-    gy, gx = np.gradient(h, CELL)
+    """The numbers that decide walkable-but-dramatic. Computed, not asserted.
+
+    Body-slope is measured on the 0.5 m-smoothed surface (FFT Gaussian, pure
+    numpy) because cell-scale slope on this recipe is dominated by gravel the
+    simulator renders as pebble-steps — the module docstring's argument.
+    """
+    k = np.fft.fftfreq(GRID, d=CELL)
+    kx, ky = np.meshgrid(k, k)
+    smooth = np.fft.ifft2(
+        np.fft.fft2(h) * np.exp(-2.0 * np.pi**2 * 0.5**2 * (kx**2 + ky**2))
+    ).real
+    gy, gx = np.gradient(smooth, CELL)
     slope_deg = np.degrees(np.arctan(np.hypot(gx, gy)))
-    tile = int(round(8.0 / CELL))  # cells per 8 m training tile
+    step = np.maximum(
+        np.abs(np.diff(h, axis=0))[:, :-1], np.abs(np.diff(h, axis=1))[:-1, :]
+    )
+    tile = int(round(8.0 / CELL))
     reliefs = [
         float(np.ptp(h[i : i + tile, j : j + tile]))
         for i in range(0, GRID - tile + 1, tile)
@@ -215,11 +143,10 @@ def _stats(h: np.ndarray) -> dict[str, float]:
     ]
     return {
         "span_m": float(np.ptp(h)),
-        "std_m": float(h.std()),
-        "slope_p50_deg": float(np.percentile(slope_deg, 50)),
-        "slope_p90_deg": float(np.percentile(slope_deg, 90)),
-        "slope_p99_deg": float(np.percentile(slope_deg, 99)),
-        "slope_max_deg": float(slope_deg.max()),
+        "body_slope_p50_deg": float(np.percentile(slope_deg, 50)),
+        "body_slope_p90_deg": float(np.percentile(slope_deg, 90)),
+        "body_slope_p99_deg": float(np.percentile(slope_deg, 99)),
+        "foot_step_p99_cm": float(np.percentile(step, 99) * 100.0),
         "tile8_relief_min_m": float(min(reliefs)),
         "tile8_relief_med_m": float(np.median(reliefs)),
         "tile8_relief_max_m": float(max(reliefs)),
@@ -237,12 +164,10 @@ def main() -> None:
 
     print(f"grid {GRID}x{GRID} over {2 * HALF_EXTENT:.0f}x{2 * HALF_EXTENT:.0f} m "
           f"({CELL * 100:.1f} cm/cell), seed {args.seed}")
-    print(f"declared span {Z_SPAN_M} m, rescale factor {rescale:.3f} "
-          f"(pre-rescale span {Z_SPAN_M / rescale:.2f} m)")
-    for name, amp in (("hills", HILL_AMP), ("ripples", RIPPLE_AMP), ("rubble", RUBBLE_AMP)):
-        print(f"  {name:<8} authored {amp:.3f} -> effective std {amp * rescale:.3f} m")
-    for k, v in _stats(h).items():
-        print(f"  {k:<22} {v:8.3f}")
+    print(f"desert recipe, mountain_amp {MOUNTAIN_AMP} (desert: 3.3); declared span "
+          f"{Z_SPAN_M} m, rescale factor {rescale:.3f}")
+    for key, value in _stats(h).items():
+        print(f"  {key:<22} {value:8.3f}")
 
     if args.stats:
         return
@@ -252,7 +177,6 @@ def main() -> None:
     save_texture(h, paths.GENTLE_TEXTURE, args.seed)
     print(f"wrote {paths.GENTLE_HFIELD}")
     print(f"wrote {paths.GENTLE_TEXTURE}")
-    # If this asset ever gets a MuJoCo XML, these are the numbers it must carry:
     print(f"XML check: <hfield ... size=\"{HALF_EXTENT:.0f} {HALF_EXTENT:.0f} "
           f"{h_max - h_min:.2f} 1.0\"/> and hfield geom pos = \"0 0 {h_min:.2f}\"")
 
