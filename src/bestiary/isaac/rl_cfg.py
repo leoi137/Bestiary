@@ -160,3 +160,41 @@ class SpyderOvernightPPORunnerCfg(SpyderGentlePPORunnerCfg):
     def __post_init__(self) -> None:
         super().__post_init__()
         self.experiment_name = "spyder_overnight"
+
+
+@configclass
+class SpyderFastPPORunnerCfg(SpyderOvernightPPORunnerCfg):
+    """The fine-tune: the overnight agent, a wider command box, a new log tree.
+
+    Subclasses the OVERNIGHT runner rather than the gentle one, and that is the
+    same safety argument every class above makes, one rung further along: this
+    task's claim is that it changes exactly one thing against the overnight run
+    (the command ranges), so its PPO hyperparameters must be identical to that
+    run's by construction. Inheriting from the config the checkpoint was trained
+    under also matters mechanically here in a way it does not for a fresh arm —
+    the fine-tune restores an optimiser state that was built against these
+    hyperparameters, and a network-size or clip change would either fail the
+    strict load or silently resume under a different algorithm.
+
+    `experiment_name` moves and it MUST. rsl_rl files runs under
+    `logs/rsl_rl/<experiment_name>/`, so a fine-tune left at `spyder_overnight`
+    would write its checkpoints into the 15,000-iteration run's own log tree —
+    beside, and eventually intermixed with, the numbered checkpoints it is
+    resuming FROM. That is worse than the `anymal_c_rough` mis-filing this file
+    exists to stop: there the two runs were merely indistinguishable, here the
+    later run's `model_15000.pt` onwards would extend a sequence that reads as
+    one continuous training curve and is not one.
+
+    MAX_ITERATIONS STAYS OFF THE CLASS, for `SpyderOvernightPPORunnerCfg`'s
+    reason, with one addition specific to resuming. `OnPolicyRunner.load`
+    restores `current_learning_iteration` from the checkpoint, and
+    `OnPolicyRunner.learn` runs `range(start_it, start_it + num_learning_iterations)`
+    — so `--max_iterations N` on a resumed run means N ADDITIONAL iterations,
+    not "train until iteration N". Pinning a number in the class would make
+    that arithmetic invisible at the launch line, which is the one place the
+    wall-clock ceiling is declared.
+    """
+
+    def __post_init__(self) -> None:
+        super().__post_init__()
+        self.experiment_name = "spyder_fast"

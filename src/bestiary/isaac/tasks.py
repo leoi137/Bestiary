@@ -54,6 +54,8 @@ _SPYDER_CFG_MODULE = "bestiary.isaac.spyder_gentle_env_cfg"
 _SPYDER_FWD_CFG_MODULE = "bestiary.isaac.spyder_forward_env_cfg"
 _SPYDER_LADDER_CFG_MODULE = "bestiary.isaac.spyder_ladder_env_cfg"
 _SPYDER_OVERNIGHT_CFG_MODULE = "bestiary.isaac.spyder_overnight_env_cfg"
+_SPYDER_FAST_CFG_MODULE = "bestiary.isaac.spyder_fast_env_cfg"
+_SPYDER_DEMO_CFG_MODULE = "bestiary.isaac.spyder_demo_env_cfg"
 
 #: Spyder gets its own runner cfg — ANYmal's agent with its own
 #: `experiment_name`, so runs stop filing themselves under `anymal_c_rough`
@@ -81,6 +83,14 @@ _SPYDER_LADDER_TILT_RSL_RL_CFG = "bestiary.isaac.rl_cfg:SpyderLadderTiltPPORunne
 #: is exactly the pair of facts that makes one shared log directory
 #: unrecoverable bookkeeping.
 _SPYDER_OVERNIGHT_RSL_RL_CFG = "bestiary.isaac.rl_cfg:SpyderOvernightPPORunnerCfg"
+
+#: The fine-tune's runner cfg. `experiment_name` = `spyder_fast`, and here the
+#: separation is load-bearing beyond bookkeeping: this task RESUMES from the
+#: overnight run's `model_14999.pt`, so leaving it under `spyder_overnight`
+#: would write its new checkpoints into the very directory it reads from, and
+#: the numbering would read as one continuous 21,000-iteration curve that never
+#: happened.
+_SPYDER_FAST_RSL_RL_CFG = "bestiary.isaac.rl_cfg:SpyderFastPPORunnerCfg"
 
 
 def register() -> None:
@@ -193,6 +203,35 @@ def register() -> None:
             "Bestiary-Overnight-Spyder-Play-v0",
             f"{_SPYDER_OVERNIGHT_CFG_MODULE}:SpyderOvernightEnvCfg_PLAY",
             _SPYDER_OVERNIGHT_RSL_RL_CFG,
+        ),
+        # The FINE-TUNE: the overnight task's reward, robot, terrain and
+        # observation, commanded over a box 2.5x wider forward (±1.5 m/s),
+        # 1.5x wider laterally (±0.6 m/s) and 1.875x wider in yaw
+        # (±1.5 rad/s). One variable against the overnight task, and the run
+        # it is launched for LOADS that task's `model_14999.pt` rather than
+        # starting from scratch — provenance records it as a fine-tune, never
+        # as a fresh arm. `spyder_fast_env_cfg.py` carries the argument,
+        # including why the tracking kernel widths deliberately do not move
+        # with the ranges.
+        (
+            "Bestiary-Fast-Spyder-v0",
+            f"{_SPYDER_FAST_CFG_MODULE}:SpyderFastEnvCfg",
+            _SPYDER_FAST_RSL_RL_CFG,
+        ),
+        (
+            "Bestiary-Fast-Spyder-Play-v0",
+            f"{_SPYDER_FAST_CFG_MODULE}:SpyderFastEnvCfg_PLAY",
+            _SPYDER_FAST_RSL_RL_CFG,
+        ),
+        # PLAY ONLY, and there is deliberately no training twin. The demo strip
+        # is one continuous surface with difficulty ramped along +x — a camera
+        # subject, not a curriculum. Registering a `-v0` beside it would invite
+        # someone to train on ground no ledger row should ever cite.
+        # `spyder_demo_env_cfg.py` carries the argument.
+        (
+            "Bestiary-Demo-Spyder-Play-v0",
+            f"{_SPYDER_DEMO_CFG_MODULE}:SpyderDemoEnvCfg_PLAY",
+            _SPYDER_RSL_RL_CFG,
         ),
     )
     for task_id, cfg_entry_point, rl_cfg in specs:

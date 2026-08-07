@@ -4,8 +4,9 @@
 
 Run after ANY change to `assets/spyder12.xml`, `spyder_usd.py`, `spyder_cfg.py`,
 `commands.py`, `spyder_gentle_env_cfg.py`, `rewards.py`,
-`spyder_forward_env_cfg.py`, `spyder_ladder_env_cfg.py` or
-`spyder_overnight_env_cfg.py`, and before every training launch.
+`spyder_forward_env_cfg.py`, `spyder_ladder_env_cfg.py`,
+`spyder_overnight_env_cfg.py` or `spyder_fast_env_cfg.py`, and before every
+training launch.
 
 Three groups, mirroring `check_hound.py`'s structure because the failure modes
 are the Hound port's failure modes minus the wheels:
@@ -21,16 +22,20 @@ are the Hound port's failure modes minus the wheels:
      retargeted regex resolves on this robot, and the money adds up: standing
      earns a bounded fraction of income and the penalty budget stays under the
      30% flag (`research/decisions/0005`'s rule, `learnings/011` and `015` the
-     failures it exists to keep from repeating). Last in this group, the three
-     REWARD-TABLE VARIANTS are pinned the same way: the forward-velocity
-     diagnostic carries exactly one reward term and differs from the training
-     config in nothing else; each rung of the reward LADDER carries the income
-     terms plus at most one declared penalty and differs in nothing but
-     `rewards` and one command range; and the OVERNIGHT task carries the
-     ladder's winning rung plus its two declared gait-shaping terms, deleting
-     exactly the six the record names. A one-variable experiment is only one
-     variable if something checks, and a long run's reward table is only the
-     declared one if something checks that too.
+     failures it exists to keep from repeating). Last in this group, the four
+     TASK VARIANTS are pinned the same way, each against the config it claims
+     to be one change away from: the forward-velocity diagnostic carries exactly
+     one reward term and differs from the training config in nothing else; each
+     rung of the reward LADDER carries the income terms plus at most one
+     declared penalty and differs in nothing but `rewards` and one command
+     range; the OVERNIGHT task carries the ladder's winning rung plus its two
+     declared gait-shaping terms, deleting exactly the six the record names; and
+     the FAST fine-tune carries the overnight task's reward table byte for byte
+     and differs from it in exactly three command ranges. A one-variable
+     experiment is only one variable if something checks, a long run's reward
+     table is only the declared one if something checks that too, and a
+     fine-tune that inherits weights has to be checked hardest of all — it has
+     no control arm, so an unnoticed second change is unattributable forever.
 
 The one check this file CANNOT make: whether the policy actually drives. That
 is `vx_span_ratio` and the per-cell grid, measured after training — an oracle
@@ -591,6 +596,38 @@ def _dead_zone_mean_kernel(dz: float, hi: float, std: float) -> float:
     return (std * math.sqrt(math.pi) / (2.0 * (hi - dz))) * (
         math.erf(hi / std) - math.erf(dz / std)
     )
+
+
+def _standing_share(cmd, lin, ang) -> float:
+    """Expected share of DRIVE-CELL tracking income a motionless machine earns.
+
+    One definition, three readers — `check_the_money`, which flags it past
+    `STANDING_SHARE_FLAG`, and the fast check, which prices it on two command
+    boxes. Split out so a widened envelope cannot be told two different stories
+    about the number that was 63% when the Hound's seed parked.
+
+    `cmd` is a `DeadZoneVelocityCommandCfg`; `lin` and `ang` are the two tracking
+    reward terms. The channels are shaped differently and that is the whole
+    arithmetic: the linear dead zone is a magnitude RESAMPLE, so a parked machine
+    faces |v_x| ~ U(dz, hi); the yaw dead zone is a SNAP, so a fraction dz/hi of
+    driving envs carry w_z == 0 exactly — straight drivers, where a motionless
+    machine scores the full yaw kernel — and the survivors are uniform on
+    ±[dz, hi]. The policy-step dt cancels, so it is not a parameter.
+
+    Standing ENVS are excluded throughout: a machine commanded to stand and
+    standing is earning honestly.
+    """
+    lin_std = float(lin.params["std"])
+    ang_std = float(ang.params["std"])
+    vx_dz, vx_hi = cmd.min_lin_vel_x, float(cmd.ranges.lin_vel_x[1])
+    wz_dz, wz_hi = cmd.min_ang_vel_z, float(cmd.ranges.ang_vel_z[1])
+    stand_lin = _dead_zone_mean_kernel(vx_dz, vx_hi, lin_std)
+    p_straight = wz_dz / wz_hi
+    stand_ang = p_straight * 1.0 + (1.0 - p_straight) * _dead_zone_mean_kernel(
+        wz_dz, wz_hi, ang_std
+    )
+    # Income is the perfect-tracking ceiling: 1.0 on both kernels.
+    return (lin.weight * stand_lin + ang.weight * stand_ang) / (lin.weight + ang.weight)
 
 
 def _dict_diff_paths(a, b, prefix: str = "") -> list[str]:
@@ -1193,6 +1230,302 @@ def check_overnight_task_is_the_declared_table(cfg) -> None:
     print(f"        {'deleted (' + str(len(deleted)) + ')':<24} {dropped}", flush=True)
 
 
+#: The fine-tune's command envelope, PINNED HERE, and the overnight envelope it
+#: widens. Both are asserted against `spyder_fast_env_cfg`'s own declaration
+#: below, and every comparison in the fast check runs against THESE numbers.
+#:
+#: Pinned rather than imported, for the reason `MJCF_BODY_MASS_KG` is pinned: an
+#: oracle whose expectation is read out of the module it checks cannot catch
+#: that module changing. `FAST_RANGES` derives from three constants in one file,
+#: so editing `VX_MAX_MS` there moves the config AND the expectation together
+#: and every assertion stays green — which is the one failure this check most
+#: needs to catch, because the widened box is not a free parameter. It is the
+#: envelope one specific policy is being fine-tuned into
+#: (`spyder_fast_env_cfg.py`'s docstring, and the overnight run's
+#: `model_14999.pt`), so a later edit to any of these six numbers is a NEW
+#: experiment and should go red here until the record says why.
+FAST_COMMAND_RANGES: dict[str, tuple[float, float]] = {
+    "lin_vel_x": (-1.5, 1.5),
+    "lin_vel_y": (-0.6, 0.6),
+    "ang_vel_z": (-1.5, 1.5),
+}
+OVERNIGHT_COMMAND_RANGES: dict[str, tuple[float, float]] = {
+    "lin_vel_x": (-0.6, 0.6),
+    "lin_vel_y": (-0.4, 0.4),
+    "ang_vel_z": (-0.8, 0.8),
+}
+
+
+def _assert_fast_variant(cfg, base_cfg, arm: str) -> None:
+    """The fast task against the overnight task: one section, three leaves, one table.
+
+    `arm` says which of the two configs is being read ("train" or "play"). Both
+    are checked, for the reason `_assert_keep_list_variant` gives — the Play
+    class descends from the OVERNIGHT Play class, so it gets its command
+    widening from a second call to `apply_fast`, and an edit that reached one
+    call and not the other would let the viewer drive the fine-tuned policy
+    under the envelope it was fine-tuned away from.
+    """
+    base_d, var_d = base_cfg.to_dict(), cfg.to_dict()
+
+    # (a) THE REWARD TABLE IS UNTOUCHED. Checked first and on its own, ahead of
+    # the whole-config diff that implies it, because it is the single fact a
+    # reader of a FINE-TUNE most needs: the policy being continued is being paid
+    # exactly what it was paid when it was trained. A reward that moved here
+    # would confound "the machine learned to go faster" with "the machine was
+    # paid differently", on a run that has no control arm to tell them apart.
+    if var_d["rewards"] != base_d["rewards"]:
+        moved_terms = sorted(
+            name
+            for name in set(base_d["rewards"]) | set(var_d["rewards"])
+            if base_d["rewards"].get(name) != var_d["rewards"].get(name)
+        )
+        raise AssertionError(
+            f"the fast task ({arm}) changes reward terms {moved_terms} against "
+            "the overnight task. The fine-tune's ONE variable is the command "
+            "ranges; it inherits the reward table of the checkpoint it loads, "
+            "unchanged, including both tracking kernel widths."
+        )
+
+    # (b) WHICH SECTIONS moved. One, named, and no others.
+    moved = sorted(k for k in set(base_d) | set(var_d) if base_d.get(k) != var_d.get(k))
+    if moved != ["commands"]:
+        raise AssertionError(
+            f"the fast task ({arm}) differs from the overnight task in {moved}, "
+            "but it may differ ONLY in ['commands']. Anything else makes it a "
+            "multi-variable change against the checkpoint it resumes: the robot, "
+            "the terrain, the curriculum, the observations (235 wide — a one-way "
+            "door, and a fine-tune that moves it cannot even load), the actions, "
+            "the events and the terminations are all inherited on purpose."
+        )
+
+    # (c) WHERE inside `commands` it moved. Exactly the three declared range
+    # leaves — so a dead zone softened, the standing fraction nudged, or heading
+    # mode re-enabled fails here even though (b) would still see one section.
+    want_paths = sorted(f"base_velocity.ranges.{name}" for name in FAST_COMMAND_RANGES)
+    got_paths = _dict_diff_paths(base_d["commands"], var_d["commands"])
+    if got_paths != want_paths:
+        raise AssertionError(
+            f"the fast task ({arm}) moves these command fields: {got_paths}. "
+            f"The only legal diff is {want_paths} — the three command RANGES. "
+            "Both dead zones (min_lin_vel_x, min_ang_vel_z), the standing "
+            "fraction and heading-off are the overnight task's, and moving one "
+            "here would confound the widened envelope with a change in the shape "
+            "of the command distribution."
+        )
+
+    # (d) THE EXACT VALUES, both ends of every arrow. Asserting only the new
+    # range would pass if the overnight baseline had silently moved underneath
+    # it, which would make the widening factors this task is named for wrong.
+    ranges_of = lambda d: {  # noqa: E731
+        name: tuple(d["commands"]["base_velocity"]["ranges"][name])
+        for name in FAST_COMMAND_RANGES
+    }
+    want_base = {name: tuple(value) for name, value in OVERNIGHT_COMMAND_RANGES.items()}
+    want_fast = {name: tuple(value) for name, value in FAST_COMMAND_RANGES.items()}
+    if ranges_of(base_d) != want_base or ranges_of(var_d) != want_fast:
+        raise AssertionError(
+            f"the fast task ({arm}) commands {ranges_of(base_d)} -> "
+            f"{ranges_of(var_d)}; this oracle pins {want_base} -> {want_fast}. "
+            "Either the overnight envelope moved (in which case the widening "
+            "factors in `spyder_fast_env_cfg.py`'s docstring are wrong) or the "
+            "fine-tune's box moved, which is a new experiment and needs a line "
+            "in the record before it needs a green check."
+        )
+
+
+def check_fast_task_widens_only_the_command_box(cfg) -> None:
+    """The fine-tune moves three command ranges and NOTHING else.
+
+    `Bestiary-Fast-Spyder-v0` (`spyder_fast_env_cfg.py`) continues the overnight
+    run's policy — it loads `model_14999.pt` and its optimiser state — under a
+    command box 2.5x wider forward, 1.5x wider laterally and 1.875x wider in
+    yaw. Because it INHERITS weights, "one variable" is a stronger requirement
+    here than on a fresh arm: a fresh arm that also changed the reward would
+    still measure something, while a fine-tune that changed the reward would be
+    continuing a policy under incentives it never saw, with no way to attribute
+    anything that follows.
+
+    Four assertions per config, in `_assert_fast_variant`: the reward table is
+    byte-identical to the overnight task's; only `commands` moves; inside
+    `commands` only the three range leaves move; and those three carry exactly
+    the values PINNED in this file. Both the training config and the Play twin.
+
+    Then three things this check does that the diff cannot:
+
+      * THE PINS AND THE DECLARATION AGREE. `FAST_COMMAND_RANGES` here and
+        `spyder_fast_env_cfg.FAST_RANGES` there are two independent statements
+        of the same six numbers, and this is the assertion that they have not
+        drifted apart. It is what makes editing `VX_MAX_MS` a RED check rather
+        than a silently self-consistent one.
+      * THE KERNEL WIDTHS ARE THE GENTLE TASK'S, STILL. Implied by the reward
+        assertion, and asserted again against the LIVE gentle config because it
+        is the deliberate non-change the module docstring spends a section on —
+        `std/v_max` falls from 0.5 to 0.2 on the linear channel and 0.5 to 0.267
+        on the yaw channel, and that tightening is the experiment. A future edit
+        that "restores the ratio" must fail against the source of the number,
+        not against a copy of it.
+      * NON-VACUOUSNESS. Every assertion above is a comparison, and a comparison
+        between a config and itself passes silently — learnings/014's shape. The
+        widening is asserted to be a widening.
+
+    No simulator is needed: every config here constructs pre-app, the same
+    property `commands.py` depends on.
+    """
+    from bestiary.isaac.curriculums import arc_displacement_m
+    from bestiary.isaac.spyder_fast_env_cfg import (
+        FAST_RANGES,
+        OVERNIGHT_RANGES,
+        SpyderFastEnvCfg,
+        SpyderFastEnvCfg_PLAY,
+    )
+    from bestiary.isaac.spyder_overnight_env_cfg import (
+        SpyderOvernightEnvCfg,
+        SpyderOvernightEnvCfg_PLAY,
+    )
+
+    # The pins and the module's own declaration are two statements of the same
+    # six numbers. They agree, or one of them is a lie about what will train.
+    for label, pinned, declared in (
+        ("fast", FAST_COMMAND_RANGES, FAST_RANGES),
+        ("overnight", OVERNIGHT_COMMAND_RANGES, OVERNIGHT_RANGES),
+    ):
+        declared_t = {name: tuple(value) for name, value in declared.items()}
+        if declared_t != pinned:
+            raise AssertionError(
+                f"`spyder_fast_env_cfg` declares the {label} envelope as "
+                f"{declared_t}; this oracle pins {pinned}. The widened box is "
+                "the whole content of the fine-tune and the envelope one "
+                "specific checkpoint is being continued into — changing it is a "
+                "new experiment, so update the pin, the module docstring's "
+                "widening factors and the record together, in that order of "
+                "difficulty."
+            )
+
+    train_cfg, over_cfg = SpyderFastEnvCfg(), SpyderOvernightEnvCfg()
+    _assert_fast_variant(train_cfg, over_cfg, "train")
+    _assert_fast_variant(SpyderFastEnvCfg_PLAY(), SpyderOvernightEnvCfg_PLAY(), "play")
+
+    # The kernel widths, against the gentle config that derived them.
+    for term_name in ("track_lin_vel_xy_exp", "track_ang_vel_z_exp"):
+        want = float(getattr(cfg.rewards, term_name).params["std"])
+        got = float(getattr(train_cfg.rewards, term_name).params["std"])
+        if got != want:
+            raise AssertionError(
+                f"the fast task's {term_name} std is {got}, the gentle task's is "
+                f"{want}. Widening the command ranges is this task's one "
+                "variable. Moving the kernel width with them would pay the "
+                "machine for keeping its old speed, and the run could then "
+                "answer neither question."
+            )
+
+    # Non-vacuousness: every range must actually be wider than the baseline it
+    # is compared against, or the four assertions above compare a config with
+    # itself and report green.
+    not_widened = sorted(
+        name
+        for name, (_, hi) in FAST_COMMAND_RANGES.items()
+        if hi <= OVERNIGHT_COMMAND_RANGES[name][1]
+    )
+    if not_widened or not FAST_COMMAND_RANGES:
+        raise AssertionError(
+            f"the fast task does not widen {not_widened or 'anything at all'} — "
+            f"pinned {FAST_COMMAND_RANGES} against the overnight "
+            f"{OVERNIGHT_COMMAND_RANGES}. A fine-tune whose command box did not "
+            "move is the overnight run continued under a different name, and "
+            "this check would be comparing a config against itself."
+        )
+
+    lin_std = float(train_cfg.rewards.track_lin_vel_xy_exp.params["std"])
+    ang_std = float(train_cfg.rewards.track_ang_vel_z_exp.params["std"])
+    terms = {
+        name: term.weight
+        for name, term in vars(train_cfg.rewards).items()
+        if not name.startswith("_") and term is not None
+    }
+    table = "  ".join(f"{n} {w:+g}" for n, w in sorted(terms.items()))
+    print(f"      the fast task, {len(terms)} terms (the overnight table, unchanged):", flush=True)
+    print(f"        {table}", flush=True)
+    for name in ("lin_vel_x", "lin_vel_y", "ang_vel_z"):
+        old_hi, new_hi = OVERNIGHT_COMMAND_RANGES[name][1], FAST_COMMAND_RANGES[name][1]
+        print(
+            f"        {name:<12} {OVERNIGHT_COMMAND_RANGES[name]} -> "
+            f"{FAST_COMMAND_RANGES[name]}   x{new_hi / old_hi:.3g}",
+            flush=True,
+        )
+
+    # The deliberate non-change, priced. The kernel is a function of the
+    # ABSOLUTE error, so nothing a given error costs has moved; what moves is
+    # how much error the top of the box can produce.
+    for label, std, key in (("lin", lin_std, "lin_vel_x"), ("ang", ang_std, "ang_vel_z")):
+        old_hi, new_hi = OVERNIGHT_COMMAND_RANGES[key][1], FAST_COMMAND_RANGES[key][1]
+        print(
+            f"        {label} kernel std {std} unchanged: std/max "
+            f"{std / old_hi:.3f} -> {std / new_hi:.3f}",
+            flush=True,
+        )
+    corner_old = math.hypot(
+        OVERNIGHT_COMMAND_RANGES["lin_vel_x"][1], OVERNIGHT_COMMAND_RANGES["lin_vel_y"][1]
+    )
+    corner_new = math.hypot(
+        FAST_COMMAND_RANGES["lin_vel_x"][1], FAST_COMMAND_RANGES["lin_vel_y"][1]
+    )
+    print(
+        f"        2-D command corner {corner_old:.3f} -> {corner_new:.3f} m/s "
+        f"(std/corner {lin_std / corner_old:.3f} -> {lin_std / corner_new:.3f})",
+        flush=True,
+    )
+
+    # Strafe is still optional and still un-dead-zoned (`DeadZoneVelocityCommand`
+    # remaps only v_x and w_z), but a wider y range makes ignoring it cost more.
+    print(
+        "        strafe is optional: a perfect v_x tracker that never sidesteps "
+        f"earns {_dead_zone_mean_kernel(0.0, OVERNIGHT_COMMAND_RANGES['lin_vel_y'][1], lin_std):.1%}"
+        f" -> {_dead_zone_mean_kernel(0.0, FAST_COMMAND_RANGES['lin_vel_y'][1], lin_std):.1%}"
+        " of the linear kernel",
+        flush=True,
+    )
+
+    # Standing gets cheaper to punish, and the number is computed rather than
+    # asserted in the module docstring: a parked machine now eats a larger
+    # commanded error on both channels, so `check_the_money`'s drive-cell share
+    # falls. The parked-seed door closes further, not less. Printed under both
+    # boxes with the SAME function that flags the gentle task past 30%.
+    shares = [
+        _standing_share(
+            c.commands.base_velocity,
+            c.rewards.track_lin_vel_xy_exp,
+            c.rewards.track_ang_vel_z_exp,
+        )
+        for c in (over_cfg, train_cfg)
+    ]
+    print(
+        f"        standing share, drive cells {shares[0]:.1%} -> {shares[1]:.1%}   "
+        f"(flag {STANDING_SHARE_FLAG:.0%}; Hound at the parked seed: 63%)",
+        flush=True,
+    )
+
+    # The terrain curriculum needs no code change — `arc_displacement_m` is
+    # kinematics and is already correct for any commanded speed — but its two
+    # bars move against the machine in opposite directions, so both are printed
+    # rather than argued. The promote bar is a fixed tile/2; the demote bar is
+    # half the command's own reachable displacement.
+    episode_s = float(train_cfg.episode_length_s)
+    promote_m = float(train_cfg.scene.terrain.terrain_generator.size[0]) / 2.0
+    for label, ranges in (
+        ("overnight", OVERNIGHT_COMMAND_RANGES),
+        ("fast", FAST_COMMAND_RANGES),
+    ):
+        hi = ranges["lin_vel_x"][1]
+        demote_m = 0.5 * float(arc_displacement_m(hi, 0.0, episode_s))
+        print(
+            f"        curriculum @ top straight cmd ({label}): demote below "
+            f"{demote_m:.1f} m, promote above {promote_m:.1f} m "
+            f"({promote_m / hi:.2f} s of driving)",
+            flush=True,
+        )
+
+
 def check_the_money(cfg) -> None:
     """Standing's share and the penalty budget, computed from the live config.
 
@@ -1213,26 +1546,14 @@ def check_the_money(cfg) -> None:
     dt = cfg.decimation * cfg.sim.dt
     lin = cfg.rewards.track_lin_vel_xy_exp
     ang = cfg.rewards.track_ang_vel_z_exp
-    lin_std = float(lin.params["std"])
-    ang_std = float(ang.params["std"])
-    vx_dz, vx_hi = cmd.min_lin_vel_x, float(cmd.ranges.lin_vel_x[1])
-    wz_dz, wz_hi = cmd.min_ang_vel_z, float(cmd.ranges.ang_vel_z[1])
 
     # Income: every commanded velocity is achievable in principle (v_y is
     # commanded 0), so the perfect-tracking ceiling is 1.0 on both kernels.
     income = (lin.weight * 1.0 + ang.weight * 1.0) * dt
 
-    # Standing's expected drive-cell share. The yaw channel is SNAP-shaped:
-    # a fraction dz/hi of drive envs carry w_z == 0 exactly (straight
-    # drivers), where a motionless machine scores the FULL yaw kernel; the
-    # survivors are uniform on ±[dz, hi]. The linear channel is resampled,
-    # so its dead zone is a pure magnitude window.
-    stand_lin = _dead_zone_mean_kernel(vx_dz, vx_hi, lin_std)
-    p_straight = wz_dz / wz_hi
-    stand_ang = p_straight * 1.0 + (1.0 - p_straight) * _dead_zone_mean_kernel(
-        wz_dz, wz_hi, ang_std
-    )
-    stand_share = (lin.weight * stand_lin + ang.weight * stand_ang) * dt / income
+    # Standing's expected drive-cell share. The arithmetic — and the reason the
+    # two channels are shaped differently — is `_standing_share`'s docstring.
+    stand_share = _standing_share(cmd, lin, ang)
 
     # feet_air_time is CADENCE-SHAPED, not income: the formula pays
     # (air_time - threshold) per touchdown while a command is active, so at a
@@ -1331,6 +1652,7 @@ CFG_CHECKS: list[tuple[str, Callable]] = [
     ("forward-variant-is-reward-only", check_forward_variant_is_reward_only),
     ("ladder-rungs-are-income-plus-one", check_ladder_rungs_are_income_plus_one),
     ("overnight-task-is-declared-table", check_overnight_task_is_the_declared_table),
+    ("fast-task-widens-only-commands", check_fast_task_widens_only_the_command_box),
 ]
 
 
