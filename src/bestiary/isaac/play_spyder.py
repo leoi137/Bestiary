@@ -490,10 +490,22 @@ def main(args: argparse.Namespace) -> int:
                 hidden += 1
         print(f"[bestiary] solo view: {hidden} twin robots hidden from the renderer", flush=True)
 
+    # Keyboard limits come from the TASK's own command ranges, not module
+    # constants: the fast task widened the envelope to +/-1.5 / +/-0.6 /
+    # +/-1.5 and a clamp frozen at the gentle-era numbers would silently cap
+    # every drive of a faster checkpoint at 40% throttle. The constants above
+    # remain the documented gentle-era envelope and the fallback.
+    _ranges = getattr(env_cfg.commands.base_velocity, "ranges", None)
+    vx_lim = tuple(getattr(_ranges, "lin_vel_x", VX_LIMITS))
+    vy_lim = tuple(getattr(_ranges, "lin_vel_y", VY_LIMITS)) or VY_LIMITS
+    wz_lim = tuple(getattr(_ranges, "ang_vel_z", WZ_LIMITS))
+    if vy_lim == (0.0, 0.0):
+        vy_lim = (0.0, 0.0)  # gentle-era task: strafe keys legitimately dead
+    print(f"[bestiary] keyboard envelope from task: vx={vx_lim} vy={vy_lim} wz={wz_lim}", flush=True)
     driver = (
-        ScriptDriver(args.script, VX_LIMITS, VY_LIMITS, WZ_LIMITS)
+        ScriptDriver(args.script, vx_lim, vy_lim, wz_lim)
         if args.script
-        else KeyboardDriver(VX_LIMITS, VY_LIMITS, WZ_LIMITS)
+        else KeyboardDriver(vx_lim, vy_lim, wz_lim)
     )
     term = env.unwrapped.command_manager.get_term("base_velocity")
     robot = env.unwrapped.scene["robot"]
