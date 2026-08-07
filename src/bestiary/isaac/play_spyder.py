@@ -1,4 +1,5 @@
-"""Drive ONE trained Spyder with the keyboard: W/S/A/D, space to stop.
+"""Drive ONE trained Spyder with the keyboard, FPS layout: W/S forward/back,
+A/D side-step, Q/E turn, space to stop, x to quit.
 
     PYTHONPATH=src ~/IsaacLab/isaaclab.sh -p -m bestiary.isaac.play_spyder \\
         --checkpoint runs/spyder_gentle_s1/box_logs/2026-08-06_07-53-39/model_1499.pt
@@ -64,6 +65,10 @@ NUM_ENVS = 9
 #: asked a question it never trained on.
 VX_LIMITS = (-0.6, 0.6)
 WZ_LIMITS = (-0.8, 0.8)
+#: Strafe envelope. Zero for the gentle task (it never commanded v_y); the
+#: ladder and overnight tasks trained on +/-0.4 m/s (spyder_ladder_env_cfg).
+#: Asking a gentle-era checkpoint to strafe is asking outside its training.
+VY_LIMITS = (-0.4, 0.4)
 
 #: Sampler exile: with resampling pinned this far out, nothing overwrites the
 #: injected command. Same constant eval_hound uses, same reason.
@@ -79,9 +84,10 @@ class KeyboardDriver:
     """
 
     VX_STEP = 0.1
+    VY_STEP = 0.1
     WZ_STEP = 0.2
 
-    def __init__(self, vx_limits: tuple, wz_limits: tuple):
+    def __init__(self, vx_limits: tuple, vy_limits: tuple, wz_limits: tuple):
         import sys
 
         if not sys.stdin.isatty():
@@ -89,10 +95,11 @@ class KeyboardDriver:
                 "driving needs an interactive terminal (stdin is not a tty). "
                 "For a headless run use --script."
             )
-        self.vx, self.wz = 0.0, 0.0
+        self.vx, self.vy, self.wz = 0.0, 0.0, 0.0
         self.quit = False
         self.reset_requested = False
         self._vx_lo, self._vx_hi = vx_limits
+        self._vy_lo, self._vy_hi = vy_limits
         self._wz_lo, self._wz_hi = wz_limits
         self._fd = sys.stdin.fileno()
 
@@ -123,21 +130,32 @@ class KeyboardDriver:
             elif ch == b"s":
                 self.vx = max(self._vx_lo, round(self.vx - self.VX_STEP, 3))
                 changed = True
+            # FPS layout: A/D side-step (+y is LEFT in the base frame, so A
+            # increments), Q/E turn. Quit moved q -> x when Q became turn-left.
             elif ch == b"a":
-                self.wz = min(self._wz_hi, round(self.wz + self.WZ_STEP, 3))
+                self.vy = min(self._vy_hi, round(self.vy + self.VY_STEP, 3))
                 changed = True
             elif ch == b"d":
+                self.vy = max(self._vy_lo, round(self.vy - self.VY_STEP, 3))
+                changed = True
+            elif ch == b"q":
+                self.wz = min(self._wz_hi, round(self.wz + self.WZ_STEP, 3))
+                changed = True
+            elif ch == b"e":
                 self.wz = max(self._wz_lo, round(self.wz - self.WZ_STEP, 3))
                 changed = True
             elif ch == b" ":
-                self.vx = self.wz = 0.0
+                self.vx = self.vy = self.wz = 0.0
                 changed = True
             elif ch == b"r":
                 self.reset_requested = True
-            elif ch == b"q":
+            elif ch == b"x":
                 self.quit = True
         if changed:
-            print(f"  >>> command  vx={self.vx:+.1f} m/s  turn={self.wz:+.1f} rad/s", flush=True)
+            print(
+                f"  >>> command  vx={self.vx:+.1f} m/s  side={self.vy:+.1f} m/s  turn={self.wz:+.1f} rad/s",
+                flush=True,
+            )
 
 
 class ScriptDriver:
@@ -148,11 +166,12 @@ class ScriptDriver:
     to end on a headless box, and the way a repeatable demo video is made.
     """
 
-    def __init__(self, script: str, vx_limits: tuple, wz_limits: tuple):
-        self.vx, self.wz = 0.0, 0.0
+    def __init__(self, script: str, vx_limits: tuple, vy_limits: tuple, wz_limits: tuple):
+        self.vx, self.vy, self.wz = 0.0, 0.0, 0.0
         self.quit = False
         self.reset_requested = False
         self._vx_lo, self._vx_hi = vx_limits
+        self._vy_lo, self._vy_hi = vy_limits
         self._wz_lo, self._wz_hi = wz_limits
         self._steps_left = 0.0
         self._queue = []
@@ -169,16 +188,28 @@ class ScriptDriver:
         elif key == "s":
             self.vx = max(self._vx_lo, round(self.vx - KeyboardDriver.VX_STEP, 3))
         elif key == "a":
-            self.wz = min(self._wz_hi, round(self.wz + KeyboardDriver.WZ_STEP, 3))
+            self.vy = min(self._vy_hi, round(self.vy + KeyboardDriver.VY_STEP, 3))
         elif key == "d":
+            self.vy = max(self._vy_lo, round(self.vy - KeyboardDriver.VY_STEP, 3))
+        elif key == "q":
+            self.wz = min(self._wz_hi, round(self.wz + KeyboardDriver.WZ_STEP, 3))
+        elif key == "e":
             self.wz = max(self._wz_lo, round(self.wz - KeyboardDriver.WZ_STEP, 3))
         elif key == "space":
-            self.vx = self.wz = 0.0
+            self.vx = self.vy = self.wz = 0.0
         elif key == "r":
             self.reset_requested = True
         else:
-            raise SystemExit(f"--script key {key!r} is not one of w/s/a/d/space/r")
-        print(f"  >>> script   {key:<5} -> vx={self.vx:+.1f} m/s  turn={self.wz:+.1f} rad/s", flush=True)
+            raise SystemExit(
+                f"--script key {key!r} is not one of w/s (drive), a/d (side-step), "
+                "q/e (turn), space, r. NOTE: a/d changed from turn to side-step and "
+                "q/e took over turning when the strafe channel went live — old "
+                "scripts written for the turn-on-a/d layout mean something else now."
+            )
+        print(
+            f"  >>> script   {key:<5} -> vx={self.vx:+.1f} m/s  side={self.vy:+.1f} m/s  turn={self.wz:+.1f} rad/s",
+            flush=True,
+        )
 
     def tick(self, dt: float) -> None:
         """Advance the script clock by one policy step."""
@@ -284,7 +315,7 @@ def parse_args() -> argparse.Namespace:
         "--script",
         type=str,
         default="",
-        help='timed key sequence replacing the keyboard, e.g. "w:3,w:1,a:2,space:1,s:3"',
+        help='timed key sequence replacing the keyboard, e.g. "w:3,q:2,a:2,space:1,s:3" (w/s drive, a/d side-step, q/e turn)',
     )
     parser.add_argument(
         "--video",
@@ -459,9 +490,9 @@ def main(args: argparse.Namespace) -> int:
         print(f"[bestiary] solo view: {hidden} twin robots hidden from the renderer", flush=True)
 
     driver = (
-        ScriptDriver(args.script, VX_LIMITS, WZ_LIMITS)
+        ScriptDriver(args.script, VX_LIMITS, VY_LIMITS, WZ_LIMITS)
         if args.script
-        else KeyboardDriver(VX_LIMITS, WZ_LIMITS)
+        else KeyboardDriver(VX_LIMITS, VY_LIMITS, WZ_LIMITS)
     )
     term = env.unwrapped.command_manager.get_term("base_velocity")
     robot = env.unwrapped.scene["robot"]
@@ -487,10 +518,11 @@ def main(args: argparse.Namespace) -> int:
                 env.unwrapped.reset()
                 obs = _obs()
                 print("  >>> respawned", flush=True)
-            # The injection. vy stays 0: the trained distribution never
-            # commanded it, and the y kernel prices uncontrolled skid.
+            # The injection. vy went live with the ladder/overnight tasks
+            # (trained on +/-0.4 m/s); a gentle-era checkpoint fed a nonzero
+            # vy is being asked outside its training and will half-ignore it.
             term.vel_command_b[:, 0] = driver.vx
-            term.vel_command_b[:, 1] = 0.0
+            term.vel_command_b[:, 1] = driver.vy
             term.vel_command_b[:, 2] = driver.wz
             with torch.inference_mode():
                 obs, _, _, _ = wrapper.step(policy(obs))
