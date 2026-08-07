@@ -60,8 +60,9 @@ which gets re-sorted as the set grows.
 9. [007 — When a tolerance scales with the command, the command cancels](007-a-tolerance-that-cancels-the-command.md) — make the tolerance proportional to the command and a do-nothing machine is paid the same for every command you can give it.
 10. [005 — What `ent_coef` really measures](005-what-ent-coef-really-measures.md)
 11. [011 — Torque control versus PD position targets](011-torque-versus-pd-position-targets.md) — the same 16 numbers mean *how hard to push* in one env and *what angle to be at* in the other; `tau = 90.0 × 0.41973 = 37.776 N·m` is what the servo does for free, and it bought ~5x fewer samples and a slightly *lower* ceiling.
-12. [010 — Why a test can pass without testing anything](010-the-empty-set-says-yes.md) — "every X has property P" is true when there are no X, so 3 of this suite's 111 set-quantified assertions were reporting `PASS` over an empty set; one of them had coverage 0/9 while green.
-13. [012 — When an average hides a single winner](012-when-an-average-hides-a-single-winner.md) — one of six cells was 98.8% of the total gap, so a 5.04x headline becomes 1.05x when it is dropped and undefined when a different one is; always compute leave-one-out before believing an aggregate.
+12. [014 — The anatomy of the Spyder policy, input to output](014-anatomy-of-the-spyder-policy.md) — the whole brain on one page, measured out of `model_1499.pt`: `Linear(235, 512) → 512 → 256 → 128 → 12` with ELU, the 235 broken into its eight named blocks, `tau = 15.0 · a` at zero error, and an episode return that is literally metres travelled.
+13. [010 — Why a test can pass without testing anything](010-the-empty-set-says-yes.md) — "every X has property P" is true when there are no X, so 3 of this suite's 111 set-quantified assertions were reporting `PASS` over an empty set; one of them had coverage 0/9 while green.
+14. [012 — When an average hides a single winner](012-when-an-average-hides-a-single-winner.md) — one of six cells was 98.8% of the total gap, so a 5.04x headline becomes 1.05x when it is dropped and undefined when a different one is; always compute leave-one-out before believing an aggregate.
 
 Note the reading order is not the file order: 004 explains the machinery that
 003's reward change had to be built around, so it reads first. 006 reads after
@@ -84,6 +85,35 @@ dynamics *across* two rewards.
 - Why parallel environments change everything
 
 Each lands when the project needs it to decide something, not before.
+
+**014 was requested by the operator and is not on the planned list, which
+therefore stays at 1.** The one-idea and one-page rules are both stretched: it
+is a reference page covering network, observation, action and reward for a
+single checkpoint, and it is roughly three pages. The trade it buys is that
+those four things are only comprehensible together — 008, 009, 011 and 013 each
+had to gesture at the other three — and every dimension in it is read out of
+one trained file rather than four. **The next lesson owes the list its
+remaining item.**
+
+Its own correction, in the pattern the number rule keeps producing, and this
+one cut against the brief twice. First, the brief described the checkpoint as
+an rsl-rl `ActorCritic` and asked for that module listing; the file on disk is
+rsl-rl 5.x, which stores **two independent `MLPModel`s** under separate
+`actor_state_dict` and `critic_state_dict` keys, with the action spread living
+in a `GaussianDistribution` submodule rather than a bare `std` tensor. Second,
+the brief pointed at `src/bestiary/isaac/rl_cfg.py` for the network dims —
+that file declares none at all. It subclasses `AnymalCRoughPPORunnerCfg` and
+changes only `experiment_name`, so `[512, 256, 128]` and `elu` exist nowhere in
+this repository's source and are recoverable only from the run's own
+`params/agent.yaml`. Both caught by
+`docs/lessons/scripts/014_spyder_policy_anatomy.py`, which rebuilds the model
+from the config and loads the checkpoint into it with `strict=True` — a listing
+the real weights refuse to enter is not a measurement.
+
+One rate to keep straight while reading across the set: 008, 009, 011 and 013
+describe the MuJoCo envs at 20 Hz, while the Isaac task 014 describes runs at
+**50 Hz** (0.005 s physics, `decimation = 4`). Two stacks, two control rates,
+and a per-step number carried from one to the other is wrong by 2.5x.
 
 **The planned list is down to 1 after 013, and cycle 012's debt is paid.** 013 was
 taken strictly in queue order — off the top of the list, on the weaker
