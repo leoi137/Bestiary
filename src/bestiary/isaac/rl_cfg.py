@@ -1,7 +1,7 @@
 """rsl_rl runner configs for the Bestiary tasks.
 
-One subclass per robot-and-terrain pairing, each changing exactly two things
-against `AnymalCRoughPPORunnerCfg`: the `experiment_name`, and nothing else.
+One subclass per robot-and-terrain-and-reward pairing, each changing exactly
+one thing against the config it descends from: the `experiment_name`.
 
 WHY THE EXPERIMENT NAME IS THE WHOLE FILE
 -----------------------------------------
@@ -38,3 +38,28 @@ class SpyderGentlePPORunnerCfg(AnymalCRoughPPORunnerCfg):
     def __post_init__(self) -> None:
         super().__post_init__()
         self.experiment_name = "spyder_gentle"
+
+
+@configclass
+class SpyderForwardPPORunnerCfg(SpyderGentlePPORunnerCfg):
+    """The forward-velocity-only diagnostic. Same agent, different run dir.
+
+    Subclasses the gentle runner rather than `AnymalCRoughPPORunnerCfg`
+    directly, and that is the whole safety argument: the diagnostic's claim is
+    that it changes EXACTLY ONE variable against the gentle task (the reward),
+    so its PPO hyperparameters must be identical by construction, not by two
+    lists of numbers that happen to match today. Inheriting from the sibling
+    makes a future edit to the gentle agent land on both arms automatically —
+    which is what keeps them comparable — while re-deriving from ANYmal would
+    let the two drift apart silently.
+
+    Only `experiment_name` moves. It MUST: rsl_rl files runs under
+    `logs/rsl_rl/<experiment_name>/`, and seed 1 of the gentle arm already
+    lives in `spyder_gentle/` (`runs/spyder_gentle_s1/`). A diagnostic writing
+    into that directory would put two different rewards' checkpoints in one
+    folder, which is the `anymal_c_rough` mis-filing this file exists to stop.
+    """
+
+    def __post_init__(self) -> None:
+        super().__post_init__()
+        self.experiment_name = "spyder_forward"
