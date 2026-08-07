@@ -61,6 +61,31 @@ over 2,000 contact-rich steps. Press `3` in the viewer to see the capsules.
 venv/bin/python -m bestiary.train.watch --run spyder_walk_v3
 ```
 
+### Spyder-12 in Isaac Lab — PPO, forward velocity only
+
+<p align="center">
+  <img src="assets/spyder_isaac_forward.gif" alt="Spyder-12 running the demo ramp in Isaac Lab under a forward-velocity-only reward" width="620"/>
+</p>
+
+<p align="center">
+  <em>Crossing the demo ramp: one continuous surface, flat at the left and
+  rising to the full relief of the training asset at the right.</em>
+</p>
+
+The same machine ported to Isaac Lab and trained with PPO on GPU — 1,500
+iterations, 147M steps, 39 minutes. The reward here is **forward velocity and
+nothing else**, which is the whole point of this arm: with every shaping term
+removed, whatever the policy does is attributable to the stack rather than to a
+reward table. It reaches 4–6 m/s in a bounding gait.
+
+What it is not: this policy does not read a command. It holds no heading and
+cannot be steered, so it drifts as it runs. Command-following is a separate
+arm.
+
+The ramp it is running is `terrain/demo_hf.py` — a viewing surface, not a
+training one. Difficulty there is a smooth function of position rather than a
+property of which tile you stand on, so there are no tile seams to fall off.
+
 ### Hound-v0 — custom 16-DoF wheel-legged dog · **currently being worked on**
 
 <p align="center">
