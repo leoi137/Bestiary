@@ -7,10 +7,11 @@ A/D side-step, Q/E turn, space to stop, x to quit.
 KEYS (type in the terminal that launched this; every accepted key echoes):
 
     w / s / UP / DOWN      forward speed  +-0.1 m/s per press
-    a / d / LEFT / RIGHT   turn rate      +-0.2 rad/s per press (a = left)
+    a / d / LEFT / RIGHT   side-step      +-0.1 m/s per press (a = left)
+    q / e                  turn rate      +-0.2 rad/s per press (q = left)
     SPACE                  full stop (0, 0, 0)
     r                      respawn (a flipped machine needs this, not throttle)
-    q                      quit
+    x                      quit
 
 This is the WASD interface the whole Spyder track was aimed at: the policy was
 trained to make its body velocity equal a 3-number command, and this file does
@@ -19,7 +20,7 @@ step. The policy cannot tell this from the training sampler.
 
 WHAT THE COMMAND INJECTION IS, PRECISELY. The env's own sampler is pinned out
 of the way (resampling 1e6 s, standing fraction 0), and each step this file
-writes (vx, 0, wz) into `command_manager.get_term("base_velocity")`'s buffer.
+writes (vx, vy, wz) into `command_manager.get_term("base_velocity")`'s buffer.
 Injection, never `reset()`: a reset teleports the robot to spawn, which is
 exactly wrong for driving. `rel_standing_envs = 0` is load-bearing, not
 hygiene — the Play cfg inherits 0.1, and a standing-flagged env has its
