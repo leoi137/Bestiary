@@ -52,6 +52,8 @@ _ANYMAL_CFG_MODULE = "bestiary.isaac.anymal_desert_env_cfg"
 _HOUND_CFG_MODULE = "bestiary.isaac.hound_desert_env_cfg"
 _SPYDER_CFG_MODULE = "bestiary.isaac.spyder_gentle_env_cfg"
 _SPYDER_FWD_CFG_MODULE = "bestiary.isaac.spyder_forward_env_cfg"
+_SPYDER_LADDER_CFG_MODULE = "bestiary.isaac.spyder_ladder_env_cfg"
+_SPYDER_OVERNIGHT_CFG_MODULE = "bestiary.isaac.spyder_overnight_env_cfg"
 
 #: Spyder gets its own runner cfg — ANYmal's agent with its own
 #: `experiment_name`, so runs stop filing themselves under `anymal_c_rough`
@@ -64,6 +66,21 @@ _SPYDER_RSL_RL_CFG = "bestiary.isaac.rl_cfg:SpyderGentlePPORunnerCfg"
 #: `spyder_forward` so its checkpoints never land in `spyder_gentle/` beside
 #: seed 1's — two rewards in one run directory is unrecoverable bookkeeping.
 _SPYDER_FWD_RSL_RL_CFG = "bestiary.isaac.rl_cfg:SpyderForwardPPORunnerCfg"
+
+#: The reward-ladder rungs' runner cfgs. One `experiment_name` each —
+#: `spyder_ladder_bare` / `_actionrate` / `_tilt` — so the three arms of a
+#: three-arm comparison cannot land in one log tree. Same PPO hyperparameters
+#: as every other Spyder task (they all descend from `SpyderGentlePPORunnerCfg`).
+_SPYDER_LADDER_BARE_RSL_RL_CFG = "bestiary.isaac.rl_cfg:SpyderLadderBarePPORunnerCfg"
+_SPYDER_LADDER_ACTIONRATE_RSL_RL_CFG = "bestiary.isaac.rl_cfg:SpyderLadderActionRatePPORunnerCfg"
+_SPYDER_LADDER_TILT_RSL_RL_CFG = "bestiary.isaac.rl_cfg:SpyderLadderTiltPPORunnerCfg"
+
+#: The long run's runner cfg. `experiment_name` = `spyder_overnight`, so its
+#: checkpoints never land beside a ladder arm's — the ladder's three arms and
+#: this run share every PPO hyperparameter and differ in the reward table, which
+#: is exactly the pair of facts that makes one shared log directory
+#: unrecoverable bookkeeping.
+_SPYDER_OVERNIGHT_RSL_RL_CFG = "bestiary.isaac.rl_cfg:SpyderOvernightPPORunnerCfg"
 
 
 def register() -> None:
@@ -122,6 +139,60 @@ def register() -> None:
             "Bestiary-Forward-Spyder-Play-v0",
             f"{_SPYDER_FWD_CFG_MODULE}:SpyderForwardEnvCfg_PLAY",
             _SPYDER_FWD_RSL_RL_CFG,
+        ),
+        # The reward-ablation LADDER: three arms, each paying the gentle task's
+        # full command-tracking income plus AT MOST ONE penalty, and each
+        # commanding strafe (lin_vel_y ±0.4, which the gentle task pins to
+        # zero). Unlike the forward diagnostic these are steerable by
+        # construction — the point is to find which single penalty tames the
+        # gait on a policy that can still be driven.
+        # `spyder_ladder_env_cfg.py` carries the argument; `check_spyder.py`'s
+        # ladder check pins each rung's reward table and its one command diff.
+        (
+            "Bestiary-Ladder-Bare-Spyder-v0",
+            f"{_SPYDER_LADDER_CFG_MODULE}:SpyderLadderBareEnvCfg",
+            _SPYDER_LADDER_BARE_RSL_RL_CFG,
+        ),
+        (
+            "Bestiary-Ladder-Bare-Spyder-Play-v0",
+            f"{_SPYDER_LADDER_CFG_MODULE}:SpyderLadderBareEnvCfg_PLAY",
+            _SPYDER_LADDER_BARE_RSL_RL_CFG,
+        ),
+        (
+            "Bestiary-Ladder-ActionRate-Spyder-v0",
+            f"{_SPYDER_LADDER_CFG_MODULE}:SpyderLadderActionRateEnvCfg",
+            _SPYDER_LADDER_ACTIONRATE_RSL_RL_CFG,
+        ),
+        (
+            "Bestiary-Ladder-ActionRate-Spyder-Play-v0",
+            f"{_SPYDER_LADDER_CFG_MODULE}:SpyderLadderActionRateEnvCfg_PLAY",
+            _SPYDER_LADDER_ACTIONRATE_RSL_RL_CFG,
+        ),
+        (
+            "Bestiary-Ladder-Tilt-Spyder-v0",
+            f"{_SPYDER_LADDER_CFG_MODULE}:SpyderLadderTiltEnvCfg",
+            _SPYDER_LADDER_TILT_RSL_RL_CFG,
+        ),
+        (
+            "Bestiary-Ladder-Tilt-Spyder-Play-v0",
+            f"{_SPYDER_LADDER_CFG_MODULE}:SpyderLadderTiltEnvCfg_PLAY",
+            _SPYDER_LADDER_TILT_RSL_RL_CFG,
+        ),
+        # The LONG RUN: the ladder's measured winner (`action_rate_l2`) plus the
+        # two terms that price the shape of a step — `feet_air_time` and
+        # `lin_vel_z_l2` — on the ladder's own command envelope, strafe
+        # included. One arm, one seed, ten times the iteration count: it spends
+        # the ladder's answer rather than asking a new question, and
+        # `spyder_overnight_env_cfg.py` says so in as many words.
+        (
+            "Bestiary-Overnight-Spyder-v0",
+            f"{_SPYDER_OVERNIGHT_CFG_MODULE}:SpyderOvernightEnvCfg",
+            _SPYDER_OVERNIGHT_RSL_RL_CFG,
+        ),
+        (
+            "Bestiary-Overnight-Spyder-Play-v0",
+            f"{_SPYDER_OVERNIGHT_CFG_MODULE}:SpyderOvernightEnvCfg_PLAY",
+            _SPYDER_OVERNIGHT_RSL_RL_CFG,
         ),
     )
     for task_id, cfg_entry_point, rl_cfg in specs:

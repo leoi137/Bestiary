@@ -3,8 +3,9 @@
     PYTHONPATH=src ~/IsaacLab/isaaclab.sh -p -m bestiary.isaac.check_spyder
 
 Run after ANY change to `assets/spyder12.xml`, `spyder_usd.py`, `spyder_cfg.py`,
-`commands.py`, `spyder_gentle_env_cfg.py`, `rewards.py` or
-`spyder_forward_env_cfg.py`, and before every training launch.
+`commands.py`, `spyder_gentle_env_cfg.py`, `rewards.py`,
+`spyder_forward_env_cfg.py`, `spyder_ladder_env_cfg.py` or
+`spyder_overnight_env_cfg.py`, and before every training launch.
 
 Three groups, mirroring `check_hound.py`'s structure because the failure modes
 are the Hound port's failure modes minus the wheels:
@@ -20,10 +21,16 @@ are the Hound port's failure modes minus the wheels:
      retargeted regex resolves on this robot, and the money adds up: standing
      earns a bounded fraction of income and the penalty budget stays under the
      30% flag (`research/decisions/0005`'s rule, `learnings/011` and `015` the
-     failures it exists to keep from repeating). Last in this group, the
-     forward-velocity DIAGNOSTIC variant is asserted to carry exactly one
-     reward term and to differ from the training config in nothing else — a
-     one-variable experiment is only one variable if something checks.
+     failures it exists to keep from repeating). Last in this group, the three
+     REWARD-TABLE VARIANTS are pinned the same way: the forward-velocity
+     diagnostic carries exactly one reward term and differs from the training
+     config in nothing else; each rung of the reward LADDER carries the income
+     terms plus at most one declared penalty and differs in nothing but
+     `rewards` and one command range; and the OVERNIGHT task carries the
+     ladder's winning rung plus its two declared gait-shaping terms, deleting
+     exactly the six the record names. A one-variable experiment is only one
+     variable if something checks, and a long run's reward table is only the
+     declared one if something checks that too.
 
 The one check this file CANNOT make: whether the policy actually drives. That
 is `vx_span_ratio` and the per-cell grid, measured after training — an oracle
@@ -586,6 +593,29 @@ def _dead_zone_mean_kernel(dz: float, hi: float, std: float) -> float:
     )
 
 
+def _dict_diff_paths(a, b, prefix: str = "") -> list[str]:
+    """Dotted paths at which two `to_dict()` trees disagree, deepest-wins.
+
+    `check_forward_variant_is_reward_only` compares top-level keys, which is
+    the right granularity when a variant may move exactly one section. The
+    ladder may move two — `rewards` and `commands` — and the second one is only
+    allowed to move in a single leaf, so the diff has to descend. A key present
+    in one tree and absent from the other reports as that key's own path
+    rather than recursing into it; both are real differences, and naming the
+    shallower one is what makes the failure message readable.
+    """
+    if isinstance(a, dict) and isinstance(b, dict):
+        paths: list[str] = []
+        for key in sorted(set(a) | set(b)):
+            path = f"{prefix}{key}"
+            if key not in a or key not in b:
+                paths.append(path)
+            else:
+                paths.extend(_dict_diff_paths(a[key], b[key], f"{path}."))
+        return paths
+    return [] if a == b else [prefix.rstrip(".")]
+
+
 def check_commands_are_dead_zoned_with_heading_off(cfg) -> None:
     """The command term is the dead-zone sampler, configured as designed."""
     from bestiary.isaac.commands import DeadZoneVelocityCommandCfg
@@ -837,6 +867,332 @@ def check_forward_variant_is_reward_only(cfg) -> None:
         )
 
 
+#: The ONE command range a keep-list variant is allowed to move against the
+#: gentle task. A dotted path into `to_dict()`, so the assertion below reads as
+#: the sentence the ladder's docstring makes: "strafe, and nothing else". The
+#: overnight task shares it, because it commands the ladder's envelope exactly.
+LADDER_COMMAND_DIFF_PATH = "base_velocity.ranges.lin_vel_y"
+
+
+def _assert_keep_list_variant(what: str, want_terms: list[str], cfg, base_cfg, arm: str) -> None:
+    """One keep-list variant against one baseline: two sections, one leaf, one table.
+
+    Shared by the ladder's three rungs and by the overnight task, because they
+    are the same shape of claim: `spyder_ladder_env_cfg.apply_keep_list_and_strafe`
+    reduced the gentle config to a declared list of reward terms and opened the
+    lateral command range, and nothing else moved. `what` names the variant in
+    every message ("ladder rung 'tilt'", "the overnight task") and `arm` says
+    which of its two configs is being read ("train" or "play").
+
+    Every variant is checked against BOTH the gentle training config and the
+    gentle Play config. The Play twins are not decoration:
+    `spyder_forward_env_cfg.py`'s Play class descends from the gentle Play class
+    rather than from its own training class, and both the ladder and the
+    overnight task copy that pattern, so a Play config gets its reward surgery
+    from a SECOND call to the mutator — an edit that reaches one call and not
+    the other produces a Play config that silently plays a different reward than
+    the one that trained. Checking both is what makes that impossible rather
+    than merely unlikely.
+    """
+    from bestiary.isaac.spyder_ladder_env_cfg import VY_MAX_MS
+
+    base_d, var_d = base_cfg.to_dict(), cfg.to_dict()
+
+    # (a) Which SECTIONS moved. Two, named, and no others.
+    moved = sorted(k for k in set(base_d) | set(var_d) if base_d.get(k) != var_d.get(k))
+    if moved != ["commands", "rewards"]:
+        raise AssertionError(
+            f"{what} ({arm}) differs from the gentle config in "
+            f"{moved}, but it may differ ONLY in ['commands', 'rewards']. "
+            "Anything else makes it a multi-variable change against the gentle "
+            "task and against every sibling that shares this baseline: whatever "
+            "the run then shows would be unattributable. "
+            "(Terminations, observations, actions, events, terrain and "
+            "curriculum are all inherited on purpose.)"
+        )
+
+    # (b) WHERE inside `commands` it moved. Exactly one leaf: the strafe range.
+    cmd_paths = _dict_diff_paths(base_d["commands"], var_d["commands"])
+    if cmd_paths != [LADDER_COMMAND_DIFF_PATH]:
+        raise AssertionError(
+            f"{what} ({arm}) moves these command fields: "
+            f"{cmd_paths}. Opening the LATERAL range is the only command change "
+            f"allowed — the only legal diff is [{LADDER_COMMAND_DIFF_PATH!r}]. "
+            "The v_x and w_z ranges, both dead zones, the standing fraction and "
+            "heading-off are the gentle task's, and moving one of them here "
+            "would confound the reward change with a command-distribution one."
+        )
+    got_y = tuple(var_d["commands"]["base_velocity"]["ranges"]["lin_vel_y"])
+    base_y = tuple(base_d["commands"]["base_velocity"]["ranges"]["lin_vel_y"])
+    if base_y != (0.0, 0.0) or got_y != (-VY_MAX_MS, VY_MAX_MS):
+        raise AssertionError(
+            f"{what} ({arm}) has lin_vel_y {base_y} -> {got_y}; "
+            f"expected (0.0, 0.0) -> {(-VY_MAX_MS, VY_MAX_MS)}. Either the "
+            "gentle task stopped pinning strafe to zero (in which case this "
+            "task no longer adds a channel) or its range is not the declared "
+            "one."
+        )
+
+    # (c) The reward table: exactly the declared terms, at the gentle task's
+    # weights and params. Comparing against the LIVE gentle config, never
+    # against numbers typed here — a weight that drifts in one place should
+    # fail, a weight that is deliberately changed in the gentle task should
+    # follow through to every variant.
+    live = {
+        name: term
+        for name, term in var_d["rewards"].items()
+        if not name.startswith("_") and term is not None
+    }
+    if sorted(live) != want_terms:
+        raise AssertionError(
+            f"{what} ({arm}) pays {sorted(live)}, but its declared table is "
+            f"{want_terms}. A keep-list variant is exactly the terms it "
+            "declares: an extra one is a reward nobody wrote down, and a "
+            "missing one silently makes it a different task than the record "
+            "says trained."
+        )
+    for name, term in sorted(live.items()):
+        base_term = base_d["rewards"].get(name)
+        if base_term is None:
+            raise AssertionError(
+                f"{what} ({arm}) pays {name!r}, which the gentle "
+                "config does not have live — it invented a reward term, so "
+                "'at the gentle task's weight' is meaningless for it."
+            )
+        if term != base_term:
+            raise AssertionError(
+                f"{what} ({arm}) term {name!r} is {term}, the "
+                f"gentle task's is {base_term}. Keep-list variants inherit "
+                "weights, params and functions untouched: they choose WHICH "
+                "terms are paid, never what a term should cost."
+            )
+
+
+def _assert_one_rung(rung: str, rung_cfg, base_cfg, label: str) -> None:
+    """One ladder rung, named as a rung. The assertions are the shared ones."""
+    from bestiary.isaac.spyder_ladder_env_cfg import rung_reward_terms
+
+    _assert_keep_list_variant(
+        f"ladder rung {rung!r}", sorted(rung_reward_terms(rung)), rung_cfg, base_cfg, label
+    )
+
+
+def check_ladder_rungs_are_income_plus_one(cfg) -> None:
+    """Each ladder rung: full income + at most one penalty, plus strafe. Only.
+
+    The ladder (`spyder_ladder_env_cfg.py`) asks which single penalty tames the
+    gait that `research/episodes/014` measured — 4.2-5.4 m/s, bounding,
+    airborne, command-deaf — while keeping a policy that can still be driven.
+    Three rungs, one penalty apart, are only comparable if the rest of the
+    config is identical, so "identical" is asserted the strongest available
+    way: dump every config and require the difference to be two named sections,
+    one named command leaf, and a declared reward table.
+
+    Three assertions per rung per baseline, each catching what the others
+    cannot:
+
+      (a) SECTIONS: only `rewards` and `commands` move. Catches a termination
+          quietly dropped, an observation term added, an event disabled, a
+          terrain parameter nudged.
+      (b) COMMAND LEAF: inside `commands`, only `lin_vel_y` moves, from
+          (0, 0) to the declared ±0.4. Catches the failure (a) is blind to —
+          a rung that also widens v_x, softens a dead zone, or re-enables
+          heading mode would still show `commands` as one moved section.
+      (c) REWARD TABLE: exactly the declared term names, each byte-identical
+          to the gentle task's own term. Catches a weight typed by hand, a
+          param dropped with a retarget, and an upstream term that survived
+          the keep-list.
+
+    Both the training config AND the Play twin of every rung are checked, for
+    the reason `_assert_one_rung` gives.
+
+    No simulator is needed: every config here constructs pre-app, the same
+    property `commands.py` depends on.
+    """
+    from bestiary.isaac.spyder_gentle_env_cfg import SpyderGentleEnvCfg_PLAY
+    from bestiary.isaac.spyder_ladder_env_cfg import (
+        LADDER_CFGS,
+        RUNGS,
+        VY_MAX_MS,
+        rung_reward_terms,
+    )
+
+    play_base = SpyderGentleEnvCfg_PLAY()
+    print(f"      the ladder, {len(RUNGS)} rungs (income + at most one penalty):", flush=True)
+    # Declaration order, not sorted: `RUNGS` is written bare-first because that
+    # is the order the rungs are meant to be READ in — the control, then the
+    # two terms measured against it.
+    for rung in RUNGS:
+        train_cls, play_cls = LADDER_CFGS[rung]
+        train_cfg = train_cls()
+        _assert_one_rung(rung, train_cfg, cfg, "train")
+        _assert_one_rung(rung, play_cls(), play_base, "play")
+
+        terms = {
+            name: term.weight
+            for name, term in vars(train_cfg.rewards).items()
+            if not name.startswith("_") and term is not None
+        }
+        ranges = train_cfg.commands.base_velocity.ranges
+        table = "  ".join(f"{n} {w:+g}" for n, w in sorted(terms.items()))
+        print(f"        {rung:<11} {table}", flush=True)
+        print(
+            f"        {'':<11} v_x {tuple(ranges.lin_vel_x)}  v_y "
+            f"{tuple(ranges.lin_vel_y)}  w_z {tuple(ranges.ang_vel_z)}",
+            flush=True,
+        )
+
+    # Printed, not asserted, and it is the honest cost of adding strafe without
+    # adding a strafe dead zone: `DeadZoneVelocityCommand` remaps only v_x and
+    # w_z, so v_y ~ U(-0.4, 0.4) including the near-zero band the other two
+    # channels exclude. A machine that tracks v_x perfectly and never sidesteps
+    # therefore still collects this share of the LINEAR kernel in expectation.
+    # Standing is unaffected — the v_x dead zone still guarantees a >= 0.25 m/s
+    # error for a motionless machine — so the parked-seed door stays shut; what
+    # this number prices is how optional strafe is, which is a training
+    # outcome to read, not a config error to fail on.
+    lin_std = float(cfg.rewards.track_lin_vel_xy_exp.params["std"])
+    never_strafes = _dead_zone_mean_kernel(0.0, VY_MAX_MS, lin_std)
+    print(
+        f"        strafe is optional: a perfect v_x tracker that never sidesteps "
+        f"still earns {never_strafes:.1%} of the linear kernel "
+        f"(std {lin_std}, |v_y| ~ U(0, {VY_MAX_MS}))",
+        flush=True,
+    )
+
+    # Non-vacuousness. Every assertion above is a comparison, and a comparison
+    # over an empty ladder passes silently — learnings/014's shape exactly.
+    if sorted(LADDER_CFGS) != sorted(RUNGS) or len(RUNGS) < 2:
+        raise AssertionError(
+            f"the ladder is {sorted(RUNGS)} with configs {sorted(LADDER_CFGS)} — "
+            "a ladder needs at least two rungs and a config per rung, or this "
+            "check compares nothing and reports green."
+        )
+    if len({tuple(rung_reward_terms(r)) for r in RUNGS}) != len(RUNGS):
+        raise AssertionError(
+            f"two ladder rungs declare the same reward table: "
+            f"{ {r: rung_reward_terms(r) for r in sorted(RUNGS)} }. Two identical "
+            "arms measure a seed, not a term."
+        )
+
+
+def check_overnight_task_is_the_declared_table(cfg) -> None:
+    """The long run pays exactly five declared terms, and deletes exactly six.
+
+    `Bestiary-Overnight-Spyder-v0` (`spyder_overnight_env_cfg.py`) is the run
+    that spends the ladder's answer: the winning rung's table plus the two
+    terms that price the shape of a step, at 10x the ladder's iteration count.
+    It is a production run, not an experiment, which RAISES the stakes on this
+    check rather than lowering them — a ladder arm that trains under the wrong
+    reward costs 46 minutes and is caught by the arm beside it, and this one has
+    no arm beside it and runs ten times as long.
+
+    Four assertions, each catching what the others cannot:
+
+      (a-c) The three shared keep-list assertions (`_assert_keep_list_variant`,
+            which the ladder rungs use too): only `rewards` and `commands`
+            move; inside `commands` only `lin_vel_y` moves, from (0, 0) to the
+            ladder's declared range; and the reward table is exactly the
+            declared names, each term byte-identical to the gentle task's own.
+            Both the training config and the Play twin.
+      (d)   PROVENANCE: the table contains every term of the winning ladder
+            rung. This is what makes the docstring's "the measured winner plus
+            two" a checked statement — a table that quietly stopped containing
+            `action_rate_l2` would still satisfy (a-c) while the module's whole
+            argument for its existence had evaporated.
+      (e)   THE DELETIONS ARE THE DECLARED ONES. The surgery is a keep list, so
+            it deletes whatever is live and not kept — safe by construction, and
+            SILENT if Isaac Lab ships a twelfth reward term. This assertion is
+            the loud half: the live gentle table minus the declared table must
+            be exactly `EXPECTED_DELETED_TERMS`, so an upstream release that
+            adds or renames a term turns this check red and someone writes down
+            what changed instead of discovering it in a run.
+
+    No simulator is needed: every config here constructs pre-app, the same
+    property `commands.py` depends on.
+    """
+    from bestiary.isaac.spyder_gentle_env_cfg import SpyderGentleEnvCfg_PLAY
+    from bestiary.isaac.spyder_ladder_env_cfg import live_reward_names, rung_reward_terms
+    from bestiary.isaac.spyder_overnight_env_cfg import (
+        EXPECTED_DELETED_TERMS,
+        OVERNIGHT_TERMS,
+        WINNING_RUNG,
+        SpyderOvernightEnvCfg,
+        SpyderOvernightEnvCfg_PLAY,
+    )
+
+    want_terms = sorted(OVERNIGHT_TERMS)
+    train_cfg = SpyderOvernightEnvCfg()
+    _assert_keep_list_variant("the overnight task", want_terms, train_cfg, cfg, "train")
+    _assert_keep_list_variant(
+        "the overnight task", want_terms, SpyderOvernightEnvCfg_PLAY(), SpyderGentleEnvCfg_PLAY(),
+        "play",
+    )
+
+    # (d) Provenance: the ladder's winner is still inside the table.
+    winner = sorted(rung_reward_terms(WINNING_RUNG))
+    if not set(winner) <= set(OVERNIGHT_TERMS):
+        raise AssertionError(
+            f"the overnight table {want_terms} does not contain the winning "
+            f"ladder rung {WINNING_RUNG!r} = {winner}. The task is declared as "
+            "that rung plus the two gait-shaping terms; if it is not, the "
+            "ladder's measurement is not its provenance and the module "
+            "docstring is a story about a different config."
+        )
+
+    # (e) The deletions are the declared six, computed from the LIVE gentle
+    # table rather than trusted from the tuple.
+    gentle_live = live_reward_names(cfg.rewards)
+    deleted = sorted(gentle_live - set(OVERNIGHT_TERMS))
+    if not deleted:
+        raise AssertionError(
+            f"the overnight table {want_terms} deletes NOTHING from the gentle "
+            f"table {sorted(gentle_live)} — it is the gentle task relabelled, "
+            "and every assertion above compares a config against itself."
+        )
+    if deleted != sorted(EXPECTED_DELETED_TERMS):
+        raise AssertionError(
+            f"the overnight task deletes {deleted}, but "
+            f"`EXPECTED_DELETED_TERMS` says {sorted(EXPECTED_DELETED_TERMS)}. "
+            "The keep-list surgery has already deleted the difference silently "
+            "and correctly — this is the notification, not the failure. Either "
+            "Isaac Lab's RewardsCfg gained/renamed a term, or the gentle task "
+            "did: write down which, then update the tuple and the module "
+            "docstring's enumeration together."
+        )
+
+    missing_from_gentle = sorted(set(OVERNIGHT_TERMS) - gentle_live)
+    if missing_from_gentle:
+        raise AssertionError(
+            f"the overnight table declares {missing_from_gentle}, which the "
+            "gentle config does not pay — 'at the gentle task's weights' cannot "
+            "be true of a term the gentle task does not have."
+        )
+
+    terms = {
+        name: term.weight
+        for name, term in vars(train_cfg.rewards).items()
+        if not name.startswith("_") and term is not None
+    }
+    ranges = train_cfg.commands.base_velocity.ranges
+    print(
+        f"      the overnight task, {len(terms)} terms "
+        f"(ladder rung {WINNING_RUNG!r} + {len(OVERNIGHT_TERMS) - len(winner)} "
+        "gait-shaping terms):",
+        flush=True,
+    )
+    for name, weight in sorted(terms.items()):
+        origin = "winner" if name in winner else "added"
+        print(f"        {name:<24} {weight:+g}   [{origin}]", flush=True)
+    print(
+        f"        {'commands':<24} v_x {tuple(ranges.lin_vel_x)}  "
+        f"v_y {tuple(ranges.lin_vel_y)}  w_z {tuple(ranges.ang_vel_z)}",
+        flush=True,
+    )
+    dropped = "  ".join(f"{n} {cfg.rewards.__dict__[n].weight:+g}" for n in deleted)
+    print(f"        {'deleted (' + str(len(deleted)) + ')':<24} {dropped}", flush=True)
+
+
 def check_the_money(cfg) -> None:
     """Standing's share and the penalty budget, computed from the live config.
 
@@ -973,6 +1329,8 @@ CFG_CHECKS: list[tuple[str, Callable]] = [
     ("terrain-is-gentle-mix", check_terrain_is_the_gentle_mix),
     ("the-money", check_the_money),
     ("forward-variant-is-reward-only", check_forward_variant_is_reward_only),
+    ("ladder-rungs-are-income-plus-one", check_ladder_rungs_are_income_plus_one),
+    ("overnight-task-is-declared-table", check_overnight_task_is_the_declared_table),
 ]
 
 
