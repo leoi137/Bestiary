@@ -3,90 +3,76 @@
 > 🚧 **Work in progress.** Functional and reproducible today, actively being
 > polished. Expect frequent updates — issues and PRs welcome.
 
-Custom legged robots authored as MuJoCo MJCF by generator scripts rather than
-hand-written XML, trained with Soft Actor-Critic (Stable-Baselines3), and
-written up as they go. Two machines so far — **Spyder**, a 12-DoF spider, and
-**Hound**, a 16-DoF wheel-legged dog — plus **Whelp**, Hound's 2.3 kg printable
-counterpart, which exists to answer the question simulation cannot: what
-actually breaks. Plus the standard Gymnasium MuJoCo
-benchmarks (`Ant-v5`, `Walker2d-v5`, `Humanoid-v5`) kept around as controls.
+Legged robots authored as **code** — MJCF and URDF emitted by generator scripts,
+never hand-written XML — and trained three ways: **SAC from scratch** in MuJoCo,
+**PPO at scale** in Isaac Lab, and now **supervised next-token imitation** of a
+recorded teacher. Three machines so far, plus the stock Gymnasium benchmarks as
+controls. Everything is written up as it happens, failed runs included.
 
-Three pointers before the pictures:
-
-- [`research/`](research/) — what each run taught us, which decisions are
-  settled, and what would reverse them. **The weights are disposable; that
-  folder is not.**
-- [`docs/lessons/`](docs/lessons/README.md) — start here if you are learning the
-  field rather than following the project. One idea per page, from scratch, with
-  the equation worked on a number this repo actually produced.
-- [`ROADMAP.md`](ROADMAP.md) — where this is going next.
+| | |
+| --- | --- |
+| [**`research/`**](research/) | what each run taught us, which decisions are settled, and what would reverse them. **The weights are disposable; that folder is not.** |
+| [**`docs/lessons/`**](docs/lessons/README.md) | start here if you are learning the field rather than following the project. One idea per page, from scratch, with the equation worked on a number this repo produced. |
+| [**`ROADMAP.md`**](ROADMAP.md) | where this is going next |
 
 ---
 
-## The robots
+## The bestiary
 
-### Spyder-v0 — custom 12-DoF spider
+### Spot, imitated — a 25.3M-parameter transformer that drives the robot
+*Newest result, 2026-08-07.*
 
 <p align="center">
-  <img src="assets/spyder_walk_v3.gif" alt="SAC policy on the custom Spyder-v0 spider environment" width="390"/>
-  <img src="assets/spyder_shell_turntable.gif" alt="Turntable of the Blender-authored visual shell on Spyder-v0" width="390"/>
+  <img src="assets/spot_ntp_drive.gif" alt="A from-scratch causal transformer driving the quadruped closed-loop in Isaac Sim" width="620"/>
 </p>
 
 <p align="center">
-  <em><strong>Left:</strong> the trained 3.75M-step bounding run (eval 7,392).
-  <strong>Right:</strong> a turntable of the Blender-authored shell — a procedural
-  pose sweep, not a policy, showing the model the left-hand run is simulating.</em>
+  <em>Nothing in the loop but the transformer: it reads the last 32 timesteps
+  and emits the next 12 joint targets, 50 times a second.</em>
 </p>
 
-This repo's own environment: model in `assets/spyder12.xml`, env in
-`envs/spyder.py`, Ant-style reward plus an upright-termination rule. Earlier
-versions were reward-hacked twice — first a jump-to-termination exploit, then a
-cartwheeling gait — and both fixes are written up as a postmortem in the
-`envs/spyder.py` docstring. With the loopholes closed, SAC trained clean: an
-upright 3.2 m/s walk by 400K steps, accelerating into a ~6.5 m/s bounding run by
-3.75M with full 1000-step episodes.
+A pretrained flat-terrain walking policy was recorded in Isaac Sim — 1,038
+episodes, 3.2 hours of `(observation, action)` tape at 50 Hz — rewritten as an
+interleaved diary `o₀, a₀, o₁, a₁, …`, and a causal transformer trained from
+scratch to predict the next entry. **No reward, no environment in the loop, no
+exploration**: 11.5 minutes of plain supervised training to a best validation
+loss of **0.0013**. Closed-loop on 12 held-out command scripts it survives
+**12/12** — same as the teacher — and covers **7.223 m** against the teacher's
+**7.215 m**. Blind: 48 proprioceptive numbers in, 12 joint-position offsets out.
 
-The shell is modelled in Blender by `robots/spyder/build_mesh.py` and attached as
-visual-only geoms (`contype=0 conaffinity=0 density=0`), so the capsules
-underneath still carry every gram and every contact. `robots/spyder/check.py`
-proves it: strip the shell out and `qpos`/`qvel`/`cfrc_ext` match bit-for-bit
-over 2,000 contact-rich steps. Press `3` in the viewer to see the capsules.
+**Read more:** [the method on one page](research/NTP_STAGE1_METHOD.md) ·
+[the dataset contract](research/SPOT_ROLLOUTS_SPEC.md) · code in
+[`ntp/`](src/bestiary/ntp/), [`record_spot.py`](src/bestiary/isaac/record_spot.py),
+[`play_ntp.py`](src/bestiary/isaac/play_ntp.py)
 
-> Viewing note: the floor's checker texture is only rendered over an 80×80 m
-> patch (`size="40 40 40"` — collisions are infinite, rendering isn't). The
-> spider outruns it mid-episode and later frames show a bare horizon. It is on
-> the ground the whole time.
-
-```bash
-venv/bin/python -m bestiary.train.watch --run spyder_walk_v3
-```
-
-### Spyder-12 in Isaac Lab — PPO, forward velocity only
+### Spyder-12 — the 12-DoF spider
 
 <p align="center">
-  <img src="assets/spyder_isaac_forward.gif" alt="Spyder-12 running the demo ramp in Isaac Lab under a forward-velocity-only reward" width="620"/>
+  <img src="assets/spyder_walk_v3.gif" alt="SAC policy on the custom Spyder-v0 spider environment" width="250"/>
+  <img src="assets/spyder_isaac_forward.gif" alt="Spyder-12 crossing the demo ramp in Isaac Lab under a forward-velocity-only reward" width="250"/>
+  <img src="assets/spyder_shell_turntable.gif" alt="Turntable of the Blender-authored visual shell on Spyder-v0" width="250"/>
 </p>
 
 <p align="center">
-  <em>Crossing the demo ramp: one continuous surface, flat at the left and
-  rising to the full relief of the training asset at the right.</em>
+  <em>SAC in MuJoCo (3.75M steps, eval 7,392) · PPO in Isaac Lab on the demo
+  ramp · a turntable of the Blender-authored shell. The floor texture is only
+  rendered over 80×80 m, so the spider outruns it — it is on the ground
+  throughout.</em>
 </p>
 
-The same machine ported to Isaac Lab and trained with PPO on GPU — 1,500
-iterations, 147M steps, 39 minutes. The reward here is **forward velocity and
-nothing else**, which is the whole point of this arm: with every shaping term
-removed, whatever the policy does is attributable to the stack rather than to a
-reward table. It reaches 4–6 m/s in a bounding gait.
+This repo's own environment. SAC was reward-hacked twice — a jump-to-termination
+exploit, then a cartwheel — and with both loopholes closed it walks upright at
+3.2 m/s by 400K steps and bounds at ~6.5 m/s by 3.75M. Ported to Isaac Lab and
+trained with PPO it reaches 4–6 m/s in 1,500 iterations (147M steps, 39 minutes)
+on a reward that is **forward velocity and nothing else** — no shaping, so what
+it does is attributable to the stack rather than to a reward table. It reads no
+command and holds no heading; steering is a separate arm.
 
-What it is not: this policy does not read a command. It holds no heading and
-cannot be steered, so it drifts as it runs. Command-following is a separate
-arm.
+**Read more:** [`envs/spyder.py`](src/bestiary/envs/spyder.py) — the
+reward-hacking postmortem is in its docstring ·
+[lesson 014, the anatomy of the Spyder policy](docs/lessons/014-anatomy-of-the-spyder-policy.md)
 
-The ramp it is running is `terrain/demo_hf.py` — a viewing surface, not a
-training one. Difficulty there is a smooth function of position rather than a
-property of which tile you stand on, so there are no tile seams to fall off.
-
-### Hound-v0 — custom 16-DoF wheel-legged dog · **currently being worked on**
+### Hound-16 — the 16-DoF wheel-legged dog
 
 <p align="center">
   <img src="assets/hound/preview.png" alt="HOUND-16 on the flat plane" width="390"/>
@@ -94,57 +80,60 @@ property of which tile you stand on, so there are no tile seams to fall off.
 </p>
 
 <p align="center">
-  <em><strong>Left:</strong> <code>Hound-v0</code> on the plane.
-  <strong>Right:</strong> the identical robot on the <code>HoundDesert-v0</code>
-  heightfield — the terrain the spider already runs on.</em>
+  <em><code>Hound-v0</code> on the plane, and the identical robot on the
+  <code>HoundDesert-v0</code> heightfield.</em>
 </p>
 
-Four legs of four joints each — **abduction, hip, knee, and a driven wheel where
-the foot would be**. Link lengths and masses are Unitree Go2's, read off
-[MuJoCo Menagerie](https://github.com/google-deepmind/mujoco_menagerie), so the
-mass distribution and torque limits describe a machine that could exist; the
-wheel is ours, since no vendor ships a wheel-legged MJCF. 17.0 kg, stands at
-0.363 m, 169-dim observation, 3.0 N·m at each wheel.
+Four legs of four joints each — abduction, hip, knee, and **a driven wheel where
+the foot would be**. Link lengths, masses and torque limits are Unitree Go2's,
+read off [MuJoCo Menagerie](https://github.com/google-deepmind/mujoco_menagerie),
+so the mass distribution describes a machine that could exist; the wheel is ours,
+since no vendor ships a wheel-legged MJCF. 17.0 kg, stands at 0.363 m, 169-dim
+observation, 3.0 N·m at each wheel. Models, env and a 38-assertion oracle are
+done; **training is the active work, and no result is published here until it
+clears this repo's ≥3-seed bar**.
 
-The models, the env and its checks are done. **Training is the active work, and
-no result is published here until it clears this repo's ≥3-seed bar** — the
-current runs and what they are testing live in [`research/`](research/).
+**Read more:** [`CARD.md`](src/bestiary/robots/hound/CARD.md) — every dimension,
+the solved stance, the spring sizing, and the traction budget that explains why
+the hub motors are small
 
-```bash
-venv/bin/python -m bestiary.robots.hound.build --report   # regenerate both models
-venv/bin/python -m bestiary.robots.hound.check            # 38 assertions on the mechanics
-```
-
-### Benchmarks — Ant-v5, Walker2d-v5, Humanoid-v5
+### Whelp-16 — the one that has to survive a floor
 
 <p align="center">
-  <img src="assets/baseline_2leg.gif" alt="Baseline SAC policy on Ant-v5" width="390"/>
-  <img src="assets/foot_contact_v1.gif" alt="Foot-contact-shaped SAC policy on Ant-v5" width="390"/>
+  <img src="assets/whelp/whelp16.png" alt="WHELP-16 skeleton at the solved stance, with its derived limits" width="720"/>
 </p>
+
+Hound's printable sibling: the same topology in 2.21 kg of PETG and brass,
+229 mm standing, on twelve hobby serial-bus servos. It exists to answer the
+question simulation cannot — *what actually breaks*. Every number is derived
+rather than estimated, and the derivations are unkind: 0.21 m/s top speed,
+4.7 rad/s of joint rate against the ~30 rad/s published legged-RL configs assume,
+and a drop envelope measured in millimetres because a 1:345 gearbox is a solid
+block on a 40 ms impact.
+
+**Read more:** [`CARD.md`](src/bestiary/robots/whelp/CARD.md) — the yield chain,
+the material choice, the print rules, and the sim-to-real settings that fail
+silently
+
+### Controls — Ant-v5, Walker2d-v5, Humanoid-v5
+
 <p align="center">
-  <img src="assets/walker_baseline.gif" alt="Baseline SAC policy on Walker2d-v5" width="390"/>
-  <img src="assets/humanoid_baseline.gif" alt="Baseline SAC policy on Humanoid-v5" width="390"/>
+  <img src="assets/baseline_2leg.gif" alt="Baseline SAC policy on Ant-v5" width="190"/>
+  <img src="assets/foot_contact_v1.gif" alt="Foot-contact-shaped SAC policy on Ant-v5" width="190"/>
+  <img src="assets/walker_baseline.gif" alt="Baseline SAC policy on Walker2d-v5" width="190"/>
+  <img src="assets/humanoid_baseline.gif" alt="Baseline SAC policy on Humanoid-v5" width="190"/>
 </p>
 
-<p align="center">
-  <em><strong>Top:</strong> Ant-v5 — default reward (converged to a two-legged
-  gait) and foot-contact shaping (uses all four).
-  <strong>Bottom:</strong> Walker2d-v5 and Humanoid-v5, both on the stock reward.</em>
-</p>
+The Ant pair is the point of this row. Nothing in the stock reward says "use all
+four legs", so SAC found a two-legged hop; `FootContactRewardWrapper`
+([`rewards/shaping.py`](src/bestiary/rewards/shaping.py)) adds one term — count
+the ankles that touched ground in the last 50 steps, penalise each idle leg — and
+trades a little velocity for a gait that is actually quadrupedal. Walker2d and
+Humanoid need no shaping: a biped has no degenerate gait to shape away.
 
-The Ant pair is the point of this row. Stock `Ant-v5` rewards forward velocity
-minus costs, plus a survival bonus — nothing in there says "use all four legs",
-so SAC found a two-legged hop that maximizes it. `FootContactRewardWrapper`
-(`rewards/shaping.py`) adds one term: count how many ankles touched ground in
-the last 50 steps and penalize each idle leg. The baseline still scores higher in
-raw reward because it never pays the penalty; the shaped run trades a little
-velocity for a gait that actually looks quadrupedal.
+---
 
-Walker2d and Humanoid need no shaping and use the same hyperparameters: a biped
-cannot move forward on a degenerate gait, so there is no local optimum to shape
-away — Humanoid just needs more steps.
-
-### Every trained policy
+## Every trained policy
 
 | Run | Env | Reward | Steps | Best eval | Gait |
 | --- | --- | --- | --- | --- | --- |
@@ -155,11 +144,8 @@ away — Humanoid just needs more steps.
 | `humanoid_baseline` | `Humanoid-v5` | default | 4M | 6,458 | upright 3D bipedal walk |
 
 ```bash
-venv/bin/python -m bestiary.train.watch --run <name>            # best-eval checkpoint
-venv/bin/python -m bestiary.train.watch --run <name> --latest   # most recent instead
+venv/bin/python -m bestiary.train.watch --run <name>   # add --latest for the newest checkpoint
 ```
-
----
 
 ## Install
 
@@ -172,66 +158,58 @@ venv/bin/pip install -e . --no-deps      # makes `bestiary` importable from anyw
 Python 3.13 · PyTorch 2.5.1 + CUDA 12.1 · Gymnasium 1.2 with MuJoCo 3.8 ·
 Stable-Baselines3 2.8. GPU: NVIDIA GeForce RTX 2080.
 
-> `requirements.txt` pins PyTorch against CUDA 12.1. For CPU-only or another
-> CUDA version, drop the `--extra-index-url` line and follow
-> <https://pytorch.org/get-started/locally/>.
->
-> `--no-deps` is deliberate: every dependency is already pinned, and letting pip
-> re-resolve them can silently move a version out from under a reproducible run.
->
-> Call `venv/bin/python` directly rather than `source venv/bin/activate` — this
-> venv was created elsewhere and moved, so `activate` exports a stale
+> For CPU-only or another CUDA version, drop the `--extra-index-url` line from
+> `requirements.txt` and follow <https://pytorch.org/get-started/locally/>.
+> `--no-deps` is deliberate: re-resolving pinned versions can silently move one
+> out from under a reproducible run. Call `venv/bin/python` directly — this venv
+> was created elsewhere and moved, so `source venv/bin/activate` exports a stale
 > `VIRTUAL_ENV` and leaves no `python` on `PATH`.
 
 ## Quick start
 
-`--env` is given **once**, at creation, and pinned in that run's `config.json`;
-it defaults to `Ant-v5`. `--steps` is per-invocation, not a cumulative target.
+`--env` is given **once**, at creation, and pinned in that run's `config.json`
+(default `Ant-v5`). `--steps` is per-invocation, not a cumulative target.
 
 ```bash
-# a fresh run
-venv/bin/python -m bestiary.train.train --run-name my_baseline --seed 0 --steps 1_000_000
-
-# a different environment — just pass --env once
+# fresh run — --env once, then never again
 venv/bin/python -m bestiary.train.train --run-name walker_baseline --env Walker2d-v5 --seed 0 --steps 1_000_000
 
-# foot-contact reward shaping (Ant-only)
-venv/bin/python -m bestiary.train.train --run-name my_shaped --seed 0 --steps 1_000_000 \
-    --wrapper foot_contact \
-    --wrapper-kwargs '{"penalty": 1.0, "window": 50, "contact_threshold": 1.0}'
-
-# resume — env, wrapper and seed are read back from config.json
+# resume — env, wrapper and seed come back from config.json, which WINS on conflict
 venv/bin/python -m bestiary.train.train --run-name walker_baseline --steps 2_000_000
+
+# reward shaping (foot_contact is Ant-only)
+venv/bin/python -m bestiary.train.train --run-name my_shaped --seed 0 --steps 1_000_000 \
+    --wrapper foot_contact --wrapper-kwargs '{"penalty": 1.0, "window": 50, "contact_threshold": 1.0}'
 ```
 
-> The foot-contact wrapper resolves four ankle geoms and raises at init on any
-> other env. Baseline is the right choice for non-Ant envs anyway.
+## Repo layout
 
-## What a run looks like on disk
+An installable package under `src/`, so nothing depends on the current working
+directory and there are no `sys.path` games.
 
-```
-runs/foot_contact_v1/
-├── ant_sac.zip          # latest checkpoint — what a resume reads
-├── ant_sac_best.zip     # best-ever eval policy — what watch.py loads
-├── ant_sac_best.txt     # best-eval high-water mark, resume-safe
-├── ant_buffer.pkl       # replay buffer (~2.6 GB, resume-only)
-├── ant_tb/              # TensorBoard event files
-├── videos/              # one MP4 per eval snapshot, named by global step
-└── config.json          # env, wrapper, kwargs, seed, hyperparameters
-```
+| Path | Purpose |
+| --- | --- |
+| `src/bestiary/paths.py` | **every** filesystem path in the project resolves from here |
+| `src/bestiary/train/` | `train.py` (train / resume SAC on any env), `watch.py` (render a run's policy) |
+| `src/bestiary/envs/` | custom Gymnasium envs (`Spyder-v0`, `Hound-v0`, their `*Desert-v0` variants); importing registers them |
+| `src/bestiary/ntp/` | next-token imitation — data, model, training loop |
+| `src/bestiary/isaac/` | Isaac Lab / Isaac Sim tasks, env configs, recording and playback |
+| `src/bestiary/robots/<name>/` | `build.py` (MJCF generator), `check.py` (assertions), `CARD.md` |
+| `src/bestiary/rewards/`, `terrain/`, `guards/` | shaping wrappers · heightfield generate/read/hash · the lessons already paid for, as assertions |
+| `research/`, `docs/` | the record; the teaching track, and the math when it becomes load-bearing |
+| `assets/` | **generated** output — model XMLs, meshes, terrain, figures, README media. They stay here: MuJoCo resolves `<mesh>` and `<hfield>` paths relative to the XML's own directory |
+| `runs/<name>/` | one self-contained experiment; gitignored, tens of GB |
 
-`config.json` is the source of truth for what produced a run: on resume it
-**overrides** any conflicting `--env` / `--wrapper` / `--seed` on the CLI, so you
-cannot change the environment or reward semantics mid-run and contaminate a
-replay buffer filled under different dynamics.
+---
 
-Two checkpoints, because RL policies can briefly degrade late in training: a
-resumed run that goes worse costs you nothing, since `_best.zip` is only
-overwritten when an eval actually beats the previous best. Every `--video-every`
-steps (default 50,000) one greedy eval episode is written to `videos/` — play
-them in order to watch the gait emerge.
+## Appendix — reading a SAC run
 
-## TensorBoard
+`runs/<name>/` holds the latest and best-eval checkpoints, the replay buffer
+(~2.6 GB, resume-only), TensorBoard events, one eval MP4 per `--video-every`
+steps, and `config.json` — which **overrides** any conflicting
+`--env`/`--wrapper`/`--seed` on resume, so reward semantics cannot change mid-run
+and contaminate a buffer filled under different dynamics. The full set of
+invariants is in [`CLAUDE.md`](CLAUDE.md).
 
 ```bash
 venv/bin/tensorboard --logdir runs/     # then open http://localhost:6006
@@ -248,42 +226,10 @@ venv/bin/tensorboard --logdir runs/     # then open http://localhost:6006
 | `train/ent_coef` | auto-tuned entropy temperature α |
 
 `eval/base_reward` and `eval/mean_idle_legs` only have data for runs that used a
-wrapper — the baseline predates it.
+wrapper — the baseline predates them.
 
-## Repo layout
-
-The library is an installable package under `src/`, so nothing depends on the
-current working directory and there are no `sys.path` games.
-
-| Path | Purpose |
-| --- | --- |
-| `src/bestiary/paths.py` | **every** filesystem path in the project resolves from here |
-| `src/bestiary/train/` | `train.py` (train / resume SAC on any env), `watch.py` (render a run's policy) |
-| `src/bestiary/envs/` | custom Gymnasium envs (`Spyder-v0`, `Hound-v0`, and their `*Desert-v0` variants); importing registers them |
-| `src/bestiary/rewards/shaping.py` | reward-shaping wrappers and the `WRAPPERS` registry |
-| `src/bestiary/terrain/` | generate the desert heightfield, read it back, hash the compiled one |
-| `src/bestiary/robots/<name>/` | `build.py` (MJCF generator), `check.py` (assertions), `render.py` (figures) |
-| `src/bestiary/robots/whelp/` | the one robot that is **hardware**: parametric OpenSCAD, a URDF for Isaac Lab, and a torque budget that says what will break — see [`CARD.md`](src/bestiary/robots/whelp/CARD.md) |
-| `src/bestiary/guards/` | the lessons this project already paid for, as assertions |
-| `research/` | learnings, decisions, episodes, and the append-only run ledger |
-| `docs/lessons/`, `docs/theory/` | the teaching track, and the math written when it becomes load-bearing |
-| `concepts/anvil/` | Blender concept art — runs under Blender's Python, not this package |
-| `assets/` | **generated** output — model XMLs, meshes, terrain, figures, README media |
-| `runs/<name>/` | one self-contained experiment; gitignored, tens of GB |
-
-Model XMLs live in `assets/` and must stay there: MuJoCo resolves
-`<mesh file="meshes/…">` and `<hfield file="terrain/…">` relative to the XML's
-own directory. Robot folders hold source; `assets/` holds generated output.
-
-## What to expect (SAC on Ant-v5, default reward)
-
-| Steps | Behavior |
-| --- | --- |
-| 0 – 50k | random flailing, falls over constantly; returns near 0 |
-| 50k – 150k | learns to stand, then shuffles; returns 500–1500 |
-| 150k – 300k | a recognizable gait emerges; returns 2000–3500 |
-| 300k – 500k | smoother gait; returns 3500–5500 |
-| 1M+ | "solved" territory (~6000+) |
-
-With foot-contact shaping the curve tracks the same shape but base reward grows
-a little slower — the policy has to explore four-legged gaits before locking in.
+**Roughly what SAC on `Ant-v5` does**, default reward: flailing to 50k steps
+(returns near 0); standing, then shuffling, to 150k (500–1500); a recognisable
+gait by 300k (2000–3500); smoother by 500k (3500–5500); "solved" past 1M
+(~6000+). Foot-contact shaping tracks the same curve with base reward growing a
+little slower — the policy has to explore four-legged gaits first.
