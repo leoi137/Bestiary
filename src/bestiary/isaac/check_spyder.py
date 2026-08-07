@@ -3,7 +3,8 @@
     PYTHONPATH=src ~/IsaacLab/isaaclab.sh -p -m bestiary.isaac.check_spyder
 
 Run after ANY change to `assets/spyder12.xml`, `spyder_usd.py`, `spyder_cfg.py`,
-`commands.py` or `spyder_gentle_env_cfg.py`, and before every training launch.
+`commands.py`, `spyder_gentle_env_cfg.py`, `rewards.py` or
+`spyder_forward_env_cfg.py`, and before every training launch.
 
 Three groups, mirroring `check_hound.py`'s structure because the failure modes
 are the Hound port's failure modes minus the wheels:
@@ -19,7 +20,10 @@ are the Hound port's failure modes minus the wheels:
      retargeted regex resolves on this robot, and the money adds up: standing
      earns a bounded fraction of income and the penalty budget stays under the
      30% flag (`research/decisions/0005`'s rule, `learnings/011` and `015` the
-     failures it exists to keep from repeating).
+     failures it exists to keep from repeating). Last in this group, the
+     forward-velocity DIAGNOSTIC variant is asserted to carry exactly one
+     reward term and to differ from the training config in nothing else — a
+     one-variable experiment is only one variable if something checks.
 
 The one check this file CANNOT make: whether the policy actually drives. That
 is `vx_span_ratio` and the per-cell grid, measured after training — an oracle
@@ -778,6 +782,61 @@ def check_terrain_is_the_gentle_mix(cfg) -> None:
         raise AssertionError("curriculum is off; terrain_levels_vel would be inert")
 
 
+def check_forward_variant_is_reward_only(cfg) -> None:
+    """The v_x diagnostic carries ONE reward term and moves nothing else.
+
+    `Bestiary-Forward-Spyder-v0` exists to tell "the reward table is wrong"
+    apart from "the port is wrong" (`spyder_forward_env_cfg.py` carries the
+    argument). It can only do that if it is a ONE-VARIABLE experiment, and
+    "one variable" is a claim about a whole config, not about the lines
+    someone remembered to write — so it is asserted the strongest available
+    way: dump both configs and require the difference to be the `rewards` key
+    and nothing else.
+
+    That form catches what a hand-written list of assertions cannot: a
+    termination quietly dropped, a command range nudged, an observation term
+    added, an event disabled. Two constructions of the SAME config dict-compare
+    equal (measured 2026-08-06), so the comparison has no false positives to
+    tolerate — any key that moves is a real second variable.
+
+    No simulator is needed: both configs construct pre-app, which is the same
+    property `commands.py` depends on.
+    """
+    from bestiary.isaac import rewards as bestiary_rewards
+    from bestiary.isaac.spyder_forward_env_cfg import (
+        REWARD_TERM_NAME,
+        REWARD_WEIGHT,
+        SpyderForwardEnvCfg,
+        single_reward_term,
+    )
+
+    fwd = SpyderForwardEnvCfg()
+    # Raises unless exactly one non-None term survives, naming what it found.
+    name, term = single_reward_term(fwd.rewards)
+    if name != REWARD_TERM_NAME:
+        raise AssertionError(f"the one reward term is {name!r}, not {REWARD_TERM_NAME!r}")
+    if term.func is not bestiary_rewards.forward_velocity:
+        raise AssertionError(
+            f"{name}.func is {getattr(term.func, '__name__', term.func)!r}, not "
+            "bestiary.isaac.rewards.forward_velocity — the diagnostic is measuring "
+            "something other than base-frame forward speed."
+        )
+    if term.weight != REWARD_WEIGHT:
+        raise AssertionError(f"{name}.weight is {term.weight}, not {REWARD_WEIGHT}")
+
+    gentle_d, fwd_d = cfg.to_dict(), fwd.to_dict()
+    moved = sorted(k for k in set(gentle_d) | set(fwd_d) if gentle_d.get(k) != fwd_d.get(k))
+    if moved != ["rewards"]:
+        raise AssertionError(
+            f"the forward diagnostic differs from the gentle config in {moved}, "
+            "but it may differ ONLY in 'rewards'. Anything else here makes the "
+            "run a multi-variable experiment: whatever it shows about the stack "
+            "would be uninterpretable. (Terminations, commands, observations, "
+            "actions, terrain and curriculum are all inherited on purpose — the "
+            "episode-reset machinery is not a reward.)"
+        )
+
+
 def check_the_money(cfg) -> None:
     """Standing's share and the penalty budget, computed from the live config.
 
@@ -913,6 +972,7 @@ CFG_CHECKS: list[tuple[str, Callable]] = [
     ("reset-scatter-not-degenerate", check_reset_scatter_is_not_degenerate),
     ("terrain-is-gentle-mix", check_terrain_is_the_gentle_mix),
     ("the-money", check_the_money),
+    ("forward-variant-is-reward-only", check_forward_variant_is_reward_only),
 ]
 
 
