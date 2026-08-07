@@ -87,10 +87,11 @@ The gentle task pays eleven terms. Five are kept; these six are deleted:
                                    the untaxed control on both reward and
                                    episode length, so it is the one term the
                                    ladder gives a reason NOT to carry.
-    undesired_contacts  -1.0       femur contact. Priced at 66.7% of income if
-                                   sustained (`check_the_money` prints it) with
-                                   the frequency never measured, and the Hound
-                                   deleted its analogue after measuring 106%.
+    undesired_contacts  -1.0       femur contact. Worth 66.7% of the tracking
+                                   terms' ceiling if sustained (`check_the_money`
+                                   prints it) with the frequency never measured,
+                                   and the Hound deleted its analogue after
+                                   measuring 106%.
                                    A 15,000-iteration run is the wrong place to
                                    find out.
     dof_torques_l2      -1e-05     joint-effort taxes, both silent in the mean:
