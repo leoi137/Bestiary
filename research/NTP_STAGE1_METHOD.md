@@ -61,6 +61,27 @@ opened by training. Validation (seed % 10 == 1) — whole episodes, so val
 loss measures cross-episode generalization. Normalization statistics — fit
 episodes only, saved as the run's `stats.json`, read back at deployment.
 
+## Result — run `ntp_spot_s0`, 2026-08-07 (single seed: a probe, not a finding)
+
+Trained 20,000 steps in 11.5 min on one RTX 5070 Ti. Best validation loss
+**0.0013** against a predict-the-mean baseline of 1.5 (exact by construction
+of the normalization) — pre-registered bar was ≤ 0.30.
+
+Closed-loop (`bestiary.isaac.play_ntp`), teacher vs transformer on 12
+byte-identical holdout command scripts neither had seen:
+
+| | teacher | transformer |
+|---|---|---|
+| survived | 12/12 | 12/12 |
+| mean distance | 7.215 m | 7.223 m |
+
+Per-episode |Δdistance| mean 0.065 m, max 0.179 m; transformer mean
+\|v_x − cmd\| = 0.314 m/s. Numbers computed from
+`runs/ntp_spot_s0/eval_{teacher,ntp}/results.jsonl` by the comparison
+snippet in the session log; the demo clip is `assets/spot_ntp_drive.gif`.
+Adversarial refutation of this result is still owed before any learning is
+written from it — until then it is a probe.
+
 ## Training defaults (`bestiary.ntp.train`)
 
 AdamW, lr 3e-4, 500-step warmup then cosine, batch 64, 20k steps, grad-clip
