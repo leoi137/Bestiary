@@ -195,6 +195,75 @@ class ScriptDriver:
         pass
 
 
+def _aim_camera(env, eye, target) -> None:
+    """Point the render camera at `target` from `eye`, world frame, +Z up.
+
+    Three mechanisms exist on this install and two of them are silent no-ops
+    on the offscreen --video path (both measured, 2026-08-06, each costing a
+    take of empty terrain): `viewer.origin_type = "asset_root"` never updates
+    without a GUI, and `sim.set_camera_view` moves a viewport camera the
+    offscreen render product does not read. Writing the camera prim's USD
+    transform is the one that works everywhere, so the working paths are
+    tried in order: viewport controller (live viewer), then the prim write.
+    pxr import stays inside the function — module import must remain pre-app
+    safe (see commands.py).
+    """
+    import omni.usd
+    from pxr import Gf, UsdGeom
+
+    stage = omni.usd.get_context().get_stage()
+    if not hasattr(_aim_camera, "_cams"):
+        # Every camera prim on the stage, because the offscreen render
+        # product's camera is none of the documented ones: viewer cfg,
+        # set_camera_view and /OmniverseKit_Persp writes were each measured
+        # as no-ops on the recorded frames (2026-08-06, three takes).
+        _aim_camera._cams = [p for p in stage.Traverse() if p.IsA(UsdGeom.Camera)]
+        print(
+            f"[bestiary] follow: driving {len(_aim_camera._cams)} stage cameras: "
+            f"{[str(p.GetPath()) for p in _aim_camera._cams]}",
+            flush=True,
+        )
+    view = Gf.Matrix4d()
+    view.SetLookAt(Gf.Vec3d(*eye), Gf.Vec3d(*target), Gf.Vec3d(0.0, 0.0, 1.0))
+    cam_to_world = view.GetInverse()
+    for prim in _aim_camera._cams:
+        if not prim.IsValid():
+            continue
+        xf = UsdGeom.Xformable(prim)
+        ops = xf.GetOrderedXformOps()
+        if len(ops) == 1 and ops[0].GetOpType() == UsdGeom.XformOp.TypeTransform:
+            op = ops[0]
+        else:
+            xf.ClearXformOpOrder()
+            op = xf.AddTransformOp()
+        op.Set(cam_to_world)
+    # The USD write above is invisible to the RTX pass when the fabric scene
+    # delegate owns the render transforms (this robot needs fabric ON to be
+    # drawn at all — see the boot comment). Mirror the pose into Fabric via
+    # USDRT so the renderer sees it too.
+    try:
+        import usdrt
+        from usdrt import Rt
+
+        rt_stage = usdrt.Usd.Stage.Attach(omni.usd.get_context().get_stage_id())
+        rot = cam_to_world.ExtractRotationQuat()
+        pos = usdrt.Gf.Vec3d(*eye)
+        quat = usdrt.Gf.Quatf(
+            float(rot.GetReal()), *[float(v) for v in rot.GetImaginary()]
+        )
+        for prim in _aim_camera._cams:
+            rt_prim = rt_stage.GetPrimAtPath(str(prim.GetPath()))
+            if not rt_prim.IsValid():
+                continue
+            rt_xf = Rt.Xformable(rt_prim)
+            rt_xf.GetWorldPositionAttr().Set(pos)
+            rt_xf.GetWorldOrientationAttr().Set(quat)
+    except Exception as exc:  # surfaced once, not per frame — 50 Hz spam
+        if not getattr(_aim_camera, "_rt_warned", False):
+            _aim_camera._rt_warned = True
+            print(f"[bestiary] follow: USDRT mirror failed: {exc!r}", flush=True)
+
+
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument(
@@ -226,6 +295,22 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--max_seconds", type=float, default=0.0,
         help="stop after this many sim seconds (0 = run until q / script end)",
+    )
+    parser.add_argument(
+        "--follow", action="store_true",
+        help="camera tracks the robot instead of the fixed world view — "
+        "required for policies that cover ground (a 3 m/s runner exits the "
+        "fixed frame in ~5 s)",
+    )
+    parser.add_argument(
+        "--cam",
+        type=str,
+        default="",
+        help="fixed camera override 'ex,ey,ez,lx,ly,lz' (world frame, m). "
+        "The boot-time viewer pose is the ONE camera control the offscreen "
+        "renderer honours (asset_root, set_camera_view, USD and USDRT prim "
+        "writes are all measured no-ops there), so filming a fast policy "
+        "means parking this beside its known path.",
     )
     AppLauncher.add_app_launcher_args(parser)
     # A live window is the point, and on this machine that means the KIT
@@ -281,9 +366,22 @@ def main(args: argparse.Namespace) -> int:
     # config, so one bad boot (a failed 1-env probe saved a sky-pointing
     # camera) poisons every later recording that trusts the default. World
     # frame, high enough to hold the 3x3 play grid, aimed at its centre.
+    # --follow re-aims the camera at the robot EVERY FRAME inside the loop
+    # below, via sim.set_camera_view. The declarative route
+    # (viewer.origin_type = "asset_root") was measured a no-op on the
+    # offscreen --video path on this install — the viewport controller that
+    # honours it never updates without a GUI, and the take came out as 20 s
+    # of empty terrain. A policy holding >1 m/s leaves the fixed world view
+    # inside 5 s, so fast policies need the flag.
     env_cfg.viewer.origin_type = "world"
     env_cfg.viewer.eye = (9.0, 9.0, 5.0)
     env_cfg.viewer.lookat = (0.0, 0.0, 0.3)
+    if args.cam:
+        vals = [float(x) for x in args.cam.split(",")]
+        if len(vals) != 6:
+            raise SystemExit(f"--cam needs 6 comma-separated floats, got {len(vals)}: {args.cam!r}")
+        env_cfg.viewer.eye = tuple(vals[:3])
+        env_cfg.viewer.lookat = tuple(vals[3:])
 
     render_mode = "rgb_array" if args.video else None
     env = gym.make(args.task, cfg=env_cfg, render_mode=render_mode)
@@ -397,6 +495,10 @@ def main(args: argparse.Namespace) -> int:
             with torch.inference_mode():
                 obs, _, _, _ = wrapper.step(policy(obs))
             if recorder is not None:
+                if args.follow:
+                    p = robot.data.root_pos_w.torch if hasattr(robot.data.root_pos_w, "torch") else robot.data.root_pos_w
+                    px, py, pz = float(p[0, 0]), float(p[0, 1]), float(p[0, 2])
+                    _aim_camera(env.unwrapped, (px + 2.6, py + 2.6, pz + 1.6), (px, py, pz + 0.2))
                 frame = env.render()
                 if frame is not None:
                     recorder.add(frame)
@@ -404,9 +506,11 @@ def main(args: argparse.Namespace) -> int:
             if sim_t >= next_report:
                 v = robot.data.root_lin_vel_b.torch if hasattr(robot.data.root_lin_vel_b, "torch") else robot.data.root_lin_vel_b
                 w = robot.data.root_ang_vel_b.torch if hasattr(robot.data.root_ang_vel_b, "torch") else robot.data.root_ang_vel_b
+                pw = robot.data.root_pos_w.torch if hasattr(robot.data.root_pos_w, "torch") else robot.data.root_pos_w
                 print(
                     f"  t={sim_t:6.1f}s  cmd(vx={driver.vx:+.2f}, wz={driver.wz:+.2f})  "
-                    f"achieved(vx={float(v[0, 0]):+.2f} m/s, wz={float(w[0, 2]):+.2f} rad/s)",
+                    f"achieved(vx={float(v[0, 0]):+.2f} m/s, wz={float(w[0, 2]):+.2f} rad/s)  "
+                    f"pos({float(pw[0, 0]):+.1f}, {float(pw[0, 1]):+.1f}, {float(pw[0, 2]):+.1f})",
                     flush=True,
                 )
                 next_report = sim_t + 1.0
