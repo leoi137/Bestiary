@@ -16,7 +16,7 @@ logs. Nothing in this file was typed from a terminal.
 ## The two questions, and why they are one episode
 
 Episode 014 deleted ten of the gentle task's eleven reward terms, kept
-base-frame `v_x`, and got a machine that ran 44.7 m (147 ft) per 20 s episode
+base-frame `v_x`, and got a machine that ran 147 ft (44.7 m) per 20 s episode
 and could not be steered. Its third reading named the gap: *the span between
 one term and eleven is unexplored; add one term at a time and watch which
 single term buys the most survivable gait.*
@@ -44,7 +44,7 @@ would let the second look like an independent result, and it is not.
   cannot say which of them did anything**, and its own module docstring says so
   before any result existed. It is a production run, not an experiment.
 
-Both open the lateral command range to ±0.4 m/s (±0.89 mph). Strafe is
+Both open the lateral command range to ±0.89 mph (±0.4 m/s). Strafe is
 commanded here for the first time in this project.
 
 ## The setup, verified from what launched
@@ -262,7 +262,7 @@ Every band above 40% still reads over-confident.
 
 ## Strafe: commanded, and completely unmeasured
 
-All four runs launched with `lin_vel_y = (−0.4, 0.4)` m/s (±0.89 mph), verified
+All four runs launched with ±0.89 mph (`lin_vel_y = (−0.4, 0.4)` m/s), verified
 from each run's own config dump. That is the first lateral command in this
 project's history, and the observation width did not move to get it — exactly
 what `spyder_gentle_env_cfg.py` reserved the slot for.
@@ -275,8 +275,8 @@ of the four runs' 20 logged scalars.
 
 So the honest summary of the strafe change is: **a lateral command was
 introduced into four runs and its effect was not measured once.** The commanded
-box's corner is now √(0.6² + 0.4²) = 0.721 m/s (1.61 mph), 20% past a forward
-ceiling of 0.6 m/s (1.34 mph) that was itself never verified — so a fifth of
+box's corner is now √(0.6² + 0.4²) = 1.61 mph (0.721 m/s), 20% past a forward
+ceiling of 1.34 mph (0.6 m/s) that was itself never verified — so a fifth of
 the command distribution may be unreachable, and no reading distinguishes
 "cannot strafe" from "will not strafe" from "was never asked in a way that
 shows".

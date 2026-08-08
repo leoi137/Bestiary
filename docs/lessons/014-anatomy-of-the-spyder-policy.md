@@ -28,10 +28,10 @@ actor. The actor multiplies it through four weight matrices and returns 12
 numbers, one per leg joint. Those 12 are not torques and not angles: each is
 halved and added to that joint's rest angle to make a *target* angle, and a
 spring-and-damper law in the simulator turns the gap between target and actual
-into a torque, capped at 40 N·m (354 lbf·in). Three of the 235 inputs —
+into a torque, capped at 354 lbf·in (40 N·m). Three of the 235 inputs —
 positions 9, 10 and 11 — are the command: forward speed, sideways speed, turn
-rate, which is where W/A/S/D will enter (W/S sets slot 9 to ±0.6 m/s
-(±1.34 mph), A/D sets slot 11 to ±0.8 rad/s, space sets all three to exactly
+rate, which is where W/A/S/D will enter (W/S sets slot 9 to ±1.34 mph
+(±0.6 m/s), A/D sets slot 11 to ±0.8 rad/s, space sets all three to exactly
 zero). The critic sees the same 235 numbers, returns one number — "how much
 total reward do I expect from here?" — and is thrown away when training ends.
 
@@ -125,18 +125,18 @@ training and switched off in the Play config.
 The script asserts this sum equals `mlp.0.weight.shape[1]`; if a block were
 wrong the script fails rather than the table misleading you.
 
-Where the height scan looks: a 2.56 × 1.6 m (8.4 × 5.2 ft) rectangle centred on
-the torso, sampled every 0.16 m (6.3 in), which gives 17 × 11 = 187 rays. That
-footprint is chosen so the ±0.76 m (±29.9 in) foot centres are inside it — the policy must
-never place a foot on ground it cannot see — and so it reaches 1.28 m (4.2 ft)
+Where the height scan looks: an 8.4 × 5.2 ft (2.56 × 1.6 m) rectangle centred on
+the torso, sampled every 6.3 in (0.16 m), which gives 17 × 11 = 187 rays. That
+footprint is chosen so the ±29.9 in (±0.76 m) foot centres are inside it — the policy must
+never place a foot on ground it cannot see — and so it reaches 4.2 ft (1.28 m)
 ahead, about two seconds of travel at the top command.
 
 Slots 9–11 are the whole human interface. `lin_vel_y` is pinned to `(0, 0)`
 today, so slot 10 is always 0.0 — the slot exists anyway, because widening the
 observation later would orphan every checkpoint ([013](013-what-an-observation-is.md)).
-Commands are dead-zoned: a driving command has `|v_x| ∈ [0.25, 0.6]` m/s
-(0.56–1.34 mph), a turn has `|w_z| ∈ [0.2, 0.8]` rad/s, and 10% of resamples
-zero all three. There is no ambiguous middle, which is exactly the
+Commands are dead-zoned: a driving command has 0.56–1.34 mph
+(`|v_x| ∈ [0.25, 0.6]` m/s), a turn has `|w_z| ∈ [0.2, 0.8]` rad/s, and 10% of
+resamples zero all three. There is no ambiguous middle, which is exactly the
 key-or-nothing interface a keyboard gives you.
 
 ## 4 — The action: 12 numbers, and the two steps that make them torques
@@ -161,15 +161,15 @@ second (four physics steps per policy step):
 
     tau[j] = KP · (q_cmd[j] − q[j]) − KD · qd[j],   clipped to ±40 N·m
 
-- `KP = 30.0` N·m/rad (266 lbf·in/rad) — stiffness. How hard the joint pulls
+- 266 lbf·in/rad (`KP = 30.0` N·m/rad) — stiffness. How hard the joint pulls
   per radian of error. It is the authored MuJoCo spring constant, kept so the
   Isaac machine and the MuJoCo machine hold the same arch.
 - `q[j]` — the joint's actual angle, rad. `q_cmd − q` is the error.
-- `KD = 5.585696` N·m·s/rad (49.4 lbf·in·s/rad) — damping, the brake on joint
+- 49.4 lbf·in·s/rad (`KD = 5.585696` N·m·s/rad) — damping, the brake on joint
   speed. Derived, not tuned: `KD = 2·ζ·√(KP·I)` with `ζ = 0.5` and
-  `I = 1.04` kg·m² (3554 lb·in²), the measured joint-space inertia.
+  3554 lb·in² (`I = 1.04` kg·m²), the measured joint-space inertia.
 - `qd[j]` — the joint's actual angular velocity, rad/s.
-- `±40` N·m (±354 lbf·in) — the effort ceiling, `gear × ctrlrange` from the
+- ±354 lbf·in (`±40` N·m) — the effort ceiling, `gear × ctrlrange` from the
   authored MJCF.
 
 ### The arithmetic, on the trained weights
@@ -178,15 +178,15 @@ Compose the two steps at zero error and zero speed (`q = 0`, `qd = 0`):
 
     tau = KP · 0.5 · a = 15.0 · a
 
-So **one unit of action is 15 N·m (133 lbf·in)**, and `|a| ≥ 40/15 = 2.667`
+So **one unit of action is 133 lbf·in (15 N·m)**, and `|a| ≥ 40/15 = 2.667`
 saturates the drive before physics is consulted. Now put the real learned noise
 through it. The smallest of the twelve learned standard deviations is 0.3565:
 
     0.3565 × 0.5   = 0.1782 rad of jitter on the target angle
-    0.3565 × 15.0  = 5.35 N·m (47.4 lbf·in) of jitter on the torque
+    0.3565 × 15.0  = 47.4 lbf·in (5.35 N·m) of jitter on the torque
 
 **Physically: even after 1500 iterations, the policy is still shaking each leg
-with about 5 N·m (44 lbf·in) of deliberate randomness — that is what exploration costs, in
+with about 44 lbf·in (5 N·m) of deliberate randomness — that is what exploration costs, in
 torque, on this machine.** It is why a policy watched at training-time noise
 looks drunk and the same policy played deterministically does not.
 
@@ -226,15 +226,15 @@ Weight 1.0, and the reward manager multiplies by `step_dt`:
 
     per-step reward = v_x · 0.02 s = metres travelled during that step
 
-Summing metres-per-step over an episode gives metres. At the 0.37 m/s
-(0.83 mph) this repository's SAC Spyder-12 actually walked
+Summing metres-per-step over an episode gives metres. At the 0.83 mph
+(0.37 m/s) this repository's SAC Spyder-12 actually walked
 ([`research/learnings/001`](../../research/learnings/001-flat-reward-breaks-on-terrain.md)):
 
     0.37 × 0.02          = 0.0074 per step
     0.0074 × 1000 steps  = 7.40
 
 **Physically: the episode return is not a score, it is a distance — 7.40 means
-7.40 m (24.3 ft) of ground covered in the 20-second episode.** That is the
+24.3 ft (7.40 m) of ground covered in the 20-second episode.** That is the
 whole point of the diagnostic: a number nobody has to interpret. Standing still
 scores exactly 0, falling early forfeits the rest, and the gentle task's
 kernel-based returns are a different currency that must never be put in the

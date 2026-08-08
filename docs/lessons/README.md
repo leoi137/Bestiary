@@ -21,6 +21,11 @@ detail rather than a hand-wave.**
 - **The equation is written out**, every symbol defined with units, and
   **worked on a real number from this repo** — not a toy example. The
   arithmetic is what turns a symbol into an idea.
+- **Explained quantities read US-first with SI in parentheses** —
+  `4.87 lb (2.21 kg)`, `9.0 in (229 mm)`. The math, the code, and every
+  number quoted from a log stay SI; angles and dimensionless ratios have no
+  US twin and are left alone. (Lessons 001–014 predate this convention and
+  read SI-first.)
 - **One plain sentence after the algebra** saying what it means physically.
   That sentence is the lesson; the algebra is the evidence.
 - **Ends with where it bites** — the file in this repo where the idea is

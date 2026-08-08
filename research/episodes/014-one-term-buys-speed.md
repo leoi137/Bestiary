@@ -44,7 +44,7 @@ oracle 25/25 on the box before launch. Artifacts under
 | 1417 | 34.72 | 589.10 |
 | 1499 | 44.72 | 572.52 |
 
-Locomotion emerged fast and unambiguously: 18 m (59 ft) per episode within
+Locomotion emerged fast and unambiguously: 59 ft (18 m) per episode within
 157 iterations. The interesting structure is the iteration-514 row: reward
 rose while episode length *fell* — a reckless-sprint phase where dying young
 at high speed out-earned living carefully. It resolved on its own; by the
@@ -53,8 +53,8 @@ time_out 0.4683, base_contact 0.5319) while the terrain curriculum promoted
 the population to level ~6.
 
 Played back deterministically (`play_spyder`, seed 1000), the checkpoint
-holds 4.2–5.4 m/s (9.4–12.1 mph) — ~13 body-lengths per second — as a
-bounding, airborne, visibly violent gait, covers ~30 m (98 ft) in 8 s, and
+holds 9.4–12.1 mph (4.2–5.4 m/s) — ~13 body-lengths per second — as a
+bounding, airborne, visibly violent gait, covers ~98 ft (30 m) in 8 s, and
 then sprints off the southern edge of the play terrain and free-falls: an
 edge is a thing it never once saw in training. It is deaf to commands by
 construction; W changes nothing. Video: `runs/spyder_forward_s1/forward_sprint.mp4`.

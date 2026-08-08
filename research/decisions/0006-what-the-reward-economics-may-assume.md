@@ -71,10 +71,10 @@ difficulty, not only on reward.
 **5. "Self-pricing through physics" is refuted, and it was the elegant claim.**
 The argument was that below-threshold leaning needs no penalty because weight on
 linkage unloads the wheels and traction is proportional to normal load. Traction
-is nowhere near binding. The friction cap is **3.1904 N·m per wheel**
-(2.35 lbf·ft); demand at the measured 2.0 m/s² (6.6 ft/s²) saturation is
+is nowhere near binding. The friction cap is **2.35 lbf·ft per wheel**
+(3.1904 N·m); demand at the measured 6.6 ft/s² (2.0 m/s²) saturation is
 **0.7227 N·m, 22.65% of the cone**; steady cruise needs only the 0.3990 N·m
-wheel frictionloss, **12.51%**. With a limb resting at 40 N (9.0 lbf) the cone
+wheel frictionloss, **12.51%**. With a limb resting at 9.0 lbf (40 N) the cone
 is still only 16.5% used at cruise. Top speed is set by a velocity limit and
 thrust by a wheelie, not by force — and **no reward term prices wheel torque at
 all**: `dof_torques_l2` is scoped to the legs, and the only wheel-scoped term,
@@ -85,7 +85,7 @@ income at zero cost. The exploit is live.
 **6. Two design choices survive.** The **count form over the graded form**:
 `undesired_contacts` sums booleans, so its per-step charge is bounded by
 `n_bodies · |w| · dt`, while `contact_forces` takes max-over-history and clips
-only at min = 0 — a 5,000 N (1,124 lbf) solver impact spike costs 52.80% of
+only at min = 0 — a 1,124 lbf (5,000 N) solver impact spike costs 52.80% of
 income and a 50,000 N spike 537.75%, unbounded in the peak. And **all of the
 refutation's arithmetic reproduces to six digits** wherever its inputs are
 stated.
@@ -248,7 +248,7 @@ independently of the terrain.
 The no-lateral-slip constraint `a_i · (v + ω × r_i) = 0` for four wheels is a
 4×6 matrix. With a common abduct roll all four axles are identical, and the
 matrix has **rank 3, nullspace dimension 3**; the rolling direction itself lies
-in it to machine precision. Verified stable under a 2 cm (0.8 in) random
+in it to machine precision. Verified stable under a 0.8 in (2 cm) random
 perturbation of the contact points, so the rank is not an artifact of exact
 symmetry.
 
@@ -261,10 +261,10 @@ purely-rolling machine *produces*. Cost as a fraction of
 
 | speed | 18.4° | 20° | 38.8° |
 |---|---|---|---|
-| 0.20 m/s (0.66 ft/s) | 1.52% | 1.75% | 4.59% |
-| 0.30 m/s (0.98 ft/s) | 3.38% | 3.89% | 10.04% |
-| 0.50 m/s (1.64 ft/s) | 9.11% | 10.45% | 25.47% |
-| 0.80 m/s (2.62 ft/s) | 21.70% | 24.61% | 52.88% |
+| 0.66 ft/s (0.20 m/s) | 1.52% | 1.75% | 4.59% |
+| 0.98 ft/s (0.30 m/s) | 3.38% | 3.89% | 10.04% |
+| 1.64 ft/s (0.50 m/s) | 9.11% | 10.45% | 25.47% |
+| 2.62 ft/s (0.80 m/s) | 21.70% | 24.61% | 52.88% |
 
 0.20 m/s is the terrain curriculum's own promote threshold (4.0 m of
 displacement over a 20 s episode), so the top row is the slowest speed at which
@@ -277,13 +277,13 @@ a dune face — and calls it skid.** `±0.3` keeps the channel falsifiable at
 
 | quantity | value | share of the cone |
 |---|---|---|
-| static load per wheel | 41.705 N (9.4 lbf) | — |
-| friction cap, μ = 0.9 | 3.1904 N·m (2.35 lbf·ft) | 100% |
+| static load per wheel | 9.4 lbf (41.705 N) | — |
+| friction cap, μ = 0.9 | 2.35 lbf·ft (3.1904 N·m) | 100% |
 | `gear_wheel` | 3.0000 N·m | 94.0% |
 | demand at measured saturation 2.0 m/s² | 0.7227 N·m | **22.65%** |
 | demand at the CARD wheelie limit 5.22 m/s² | 1.8866 N·m | 59.13% |
 | demand at steady cruise (frictionloss only) | 0.3990 N·m | **12.51%** |
-| cruise, with a limb resting at 40 N (9.0 lbf) | 0.3990 N·m of 2.4254 | 16.5% |
+| cruise, with a limb resting at 9.0 lbf (40 N) | 0.3990 N·m of 2.4254 | 16.5% |
 
 **A disagreement inside our own record, recorded rather than resolved.**
 `CARD.md`'s traction budget and `robots/hound/check.py:276` both say the cone is
