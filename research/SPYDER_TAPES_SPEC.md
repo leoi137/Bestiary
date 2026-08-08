@@ -81,9 +81,9 @@ recorded there.
 | fact | value |
 |---|---|
 | resolution | 224×224 RGB (PaliGemma's input size — SigLIP-So400m/14, arXiv:2407.07726) |
-| mount | torso frame, (0.18, 0, 0.12) m, pitched 20° down, ROS optical convention |
+| mount | torso frame, (0.18, 0, 0.22) m, pitched 25° down, ROS optical convention |
 | lens | 12 mm focal, 20.955 mm aperture → ~82° horizontal FOV |
-| geometry | view centres ~1 m ahead at stance; covers the scan's 1.28 m forward reach |
+| geometry | view centres ~1 m ahead at stance; covers the scan's 1.28 m forward reach. Mount raised from (0.18, 0, 0.12)/20° after the first smoke filmed the torso shell over the bottom ~40% of frame (operator decision, 2026-08-08) |
 | encoding | H.264 (libx264, CRF 18, yuv420p) at 10 fps, one MP4 per episode |
 
 The recorder refuses to tape blank frames (per-env std guard at first grab —

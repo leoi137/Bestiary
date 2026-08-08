@@ -67,13 +67,14 @@ CAM_RES_PX = 224
 FRAME_HZ = 10.0
 #: Mount: torso frame, forward of and above the torso centre, pitched down so
 #: the view covers the ground the height scan prices — the scan reaches
-#: 1.28 m ahead (`spyder_gentle_env_cfg` footprint). With the lens ~0.35 m
-#: over ground at stance, a 20 deg down-pitch centres the view ~1 m ahead and
-#: an 82 deg horizontal FOV (12 mm focal, 20.955 mm aperture) spans near-feet
-#: to horizon. VERIFY ON SMOKE FRAMES — these numbers are geometry, not yet
-#: measurement.
-CAM_POS_M = (0.18, 0.0, 0.12)
-CAM_PITCH_DEG = 20.0
+#: 1.28 m ahead (`spyder_gentle_env_cfg` footprint). First smoke (2026-08-08,
+#: z=0.12, pitch 20) filmed the torso shell over the bottom ~40% of frame —
+#: the near ground was hidden — so the mount rose to 0.22 m and 25 deg
+#: (operator decision on the smoke stills): lens ~0.45 m over ground at
+#: stance, centre ray hits ~0.97 m ahead, 82 deg horizontal FOV (12 mm focal,
+#: 20.955 mm aperture) spans near-feet to horizon over the shell's front edge.
+CAM_POS_M = (0.18, 0.0, 0.22)
+CAM_PITCH_DEG = 25.0
 CAM_FOCAL_MM = 12.0
 
 parser = argparse.ArgumentParser(description="Record Spyder camera tapes from a trained checkpoint.")
