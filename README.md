@@ -23,11 +23,13 @@ controls. Everything is written up as it happens, failed runs included.
 *Newest result, 2026-08-07.*
 
 <p align="center">
-  <img src="assets/spot_ntp_drive.gif" alt="A from-scratch causal transformer driving the quadruped closed-loop in Isaac Sim" width="620"/>
+  <img src="assets/spot_ntp_tour.gif" alt="Command tour: the from-scratch causal transformer driving the quadruped through each command in isolation, titled" width="620"/>
 </p>
 
 <p align="center">
-  <em>Nothing in the loop but the transformer: it reads the last 32 timesteps
+  <em>The command tour, one command at a time with a full stop between each:
+  FORWARD · BACKWARD · SIDE-STEP LEFT/RIGHT · TURN LEFT/RIGHT · STOP.
+  Nothing in the loop but the transformer: it reads the last 32 timesteps
   and emits the next 12 joint targets, 50 times a second.</em>
 </p>
 
