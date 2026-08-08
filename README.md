@@ -37,8 +37,11 @@ interleaved diary `o₀, a₀, o₁, a₁, …`, and a causal transformer traine
 scratch to predict the next entry. **No reward, no environment in the loop, no
 exploration**: 11.5 minutes of plain supervised training to a best validation
 loss of **0.0013**. Closed-loop on 12 held-out command scripts it survives
-**12/12** — same as the teacher — and covers **7.223 m** against the teacher's
-**7.215 m**. Blind: 48 proprioceptive numbers in, 12 joint-position offsets out.
+**12/12** and covers **7.223 m** against the teacher's **7.215 m**; the same
+architecture with random weights falls within two seconds. Blind: 48
+proprioceptive numbers in, 12 joint-position offsets out. An adversarial
+refutation pass bounds what this shows — *walks from tapes*, not yet
+*matches the teacher's gait* — details on the method page.
 
 **Read more:** [the method on one page](research/NTP_STAGE1_METHOD.md) ·
 [the dataset contract](research/SPOT_ROLLOUTS_SPEC.md) · code in
