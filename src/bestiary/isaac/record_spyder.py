@@ -232,9 +232,24 @@ def main() -> int:
     dof_names = list(scene["robot"].data.joint_names)
     terrain_md5 = hashlib.md5(paths.GENTLE_HFIELD.read_bytes()).hexdigest()
 
-    def _obs() -> torch.Tensor:
+    def _obs():
         got = wrapper.get_observations()
         return got[0] if isinstance(got, tuple) else got
+
+    def _pol(o) -> torch.Tensor:
+        """The policy-group tensor out of whatever the wrapper returned.
+
+        rsl-rl 5.x hands back a TensorDict whose batch shape is (num_envs,) —
+        `.shape[1]` does not exist on it even though the policy consumes it
+        directly (measured on the 2026-08-08 smoke run). The tape stores the
+        actual network input, so it is extracted here; older wrappers return
+        the raw tensor and pass through untouched.
+        """
+        if torch.is_tensor(o):
+            return o
+        if hasattr(o, "keys") and "policy" in o.keys():
+            return o["policy"]
+        raise RuntimeError(f"cannot find the policy obs tensor in {type(o).__name__}")
 
     n = args.num_envs
     settle_steps = int(SETTLE_S / step_dt)
@@ -257,9 +272,10 @@ def main() -> int:
 
         env.unwrapped.reset()
         obs = _obs()
-        if obs.shape[1] != EXPECTED_OBS_DIM:
+        obs_w = int(_pol(obs).shape[-1])
+        if obs_w != EXPECTED_OBS_DIM:
             raise RuntimeError(
-                f"obs width {obs.shape[1]} != expected {EXPECTED_OBS_DIM} — the task's "
+                f"obs width {obs_w} != expected {EXPECTED_OBS_DIM} — the task's "
                 "observation layout moved; recorder and spec must be re-verified."
             )
 
@@ -291,7 +307,7 @@ def main() -> int:
                 frame_log.append(frames)
             with torch.inference_mode():
                 act = policy(obs)
-                obs_log.append(obs.detach().cpu().numpy().copy())
+                obs_log.append(_pol(obs).detach().cpu().numpy().copy())
                 act_log.append(act.detach().cpu().numpy().copy())
                 cmd_log.append(term.vel_command_b.detach().cpu().numpy().copy())
                 obs, _, dones, _ = wrapper.step(act)
