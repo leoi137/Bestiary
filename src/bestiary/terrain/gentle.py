@@ -1,13 +1,27 @@
 """The gentle terrain: the desert's own recipe with the mountains turned down.
 
-    venv/bin/python -m bestiary.terrain.gentle            # writes the asset
+    venv/bin/python -m bestiary.terrain.gentle            # writes the V5 asset
     venv/bin/python -m bestiary.terrain.gentle --stats    # numbers only, writes nothing
 
-Writes `assets/terrain/gentle_hfield.bin` (+ a baked-albedo preview PNG) in the
+Writes `assets/terrain/gentle_v5_hfield.bin` (+ texture + preview PNG) in the
 same MuJoCo custom-heightfield format as the desert, over the same 80 x 80 m
 footprint at the same 7.8 cm sampling — so `terrain/isaac_hf.py` serves it to
 Isaac Lab through the exact machinery the desert already uses, and nothing
 downstream learns a second file format.
+
+FIFTH ITERATION (2026-08-07): v4's ridged crests measured up to 47 deg on the
+0.5 m-smoothed surface — past any angle of repose, knife-edged by the
+`1-|f|` crease in both ridged layers. The operator reviewed a measured
+4-candidate sweep at true robot scale and picked C1 "smooth-ridge": the same
+world (seed, layers, layout) with every crease rounded (`ridge_eps` = 0.30 in
+`generate.build_height_m`), the fine ridged layer made additive instead of
+multiplied onto crests, and a 36 deg repose cap as a backstop guarantee.
+**The committed v4 files (`gentle_hfield.bin` etc.) are untouched and stay** —
+every Spyder policy so far trained on those exact bytes; this module now
+generates v5 alongside, and the env cfgs keep pointing at v4 until the next
+training arm deliberately switches (terrain is a one-way door). The v4 asset
+no longer reproduces from this module; it needs `ridge_eps=0,
+fine_additive=False` against the layer history in git.
 
 WHAT THIS IS, FOURTH ITERATION, AND WHY THE FIRST THREE DIED
 ------------------------------------------------------------
@@ -86,7 +100,7 @@ from bestiary.terrain.generate import (
 )
 
 #: Total elevation span, metres, EXACT by rescale (see module docstring).
-#: 2.25 m (7.4 ft) against the desert's 5.05 m (16.6 ft): mountains become
+#: 7.4 ft (2.25 m) against the desert's 16.6 ft (5.05 m): mountains become
 #: hills a learning spider can be dwarfed by and still climb.
 Z_SPAN_M = 2.25
 
@@ -102,19 +116,71 @@ SEED = 11
 #: gravel and the spawn pad are the desert's own, untouched.
 MOUNTAIN_AMP = 1.0
 
+#: v5 crest rounding, passed to `generate.build_height_m`. 0.30 was picked by
+#: the measured 4-candidate sweep of 2026-08-07 (crest radius 6.2 -> 7.2 ft at
+#: unchanged relief) and confirmed by the operator at true robot scale.
+RIDGE_EPS = 0.30
+
+#: Backstop, degrees: after composition NO 0.5 m-scale slope may exceed this.
+#: Dry granular repose is 30-34 deg; 36 leaves margin for embedded rock while
+#: killing the 47 deg crests v4 shipped with. Enforced by _repose_limit, and
+#: loudly re-checked after the final span rescale.
+REPOSE_CAP_DEG = 36.0
+
+
+def _repose_limit(h: np.ndarray, cap_deg: float) -> np.ndarray:
+    """Clamp every cell to min over 8 neighbours of (neighbour + repose rise).
+
+    Morphological cone erosion — the talus operator. Iterated to convergence;
+    afterwards no directional cell-to-cell slope exceeds `cap_deg`. Periodic
+    edges, matching the FFT-synthesised field.
+    """
+    rise = np.tan(np.radians(cap_deg)) * CELL
+    rise_d = rise * np.sqrt(2.0)
+    m = h.copy()
+    for _ in range(600):
+        prev = m
+        cand = np.full_like(m, np.inf)
+        for axis, shift in ((0, 1), (0, -1), (1, 1), (1, -1)):
+            np.minimum(cand, np.roll(m, shift, axis=axis) + rise, out=cand)
+        for sx in (1, -1):
+            for sy in (1, -1):
+                np.minimum(cand, np.roll(np.roll(m, sx, 0), sy, 1) + rise_d, out=cand)
+        m = np.minimum(m, cand)
+        if float(np.max(prev - m)) < 1e-9:
+            return m
+    raise ValueError(f"repose limit did not converge in 600 sweeps at {cap_deg} deg")
+
 
 def build_height_m(seed: int) -> np.ndarray:
-    """The desert recipe at MOUNTAIN_AMP, rescaled to the exact declared span.
+    """The v5 field: desert recipe at MOUNTAIN_AMP with rounded crests, capped
+    at REPOSE_CAP_DEG, rescaled to the exact declared span.
 
     Same conventions as `generate.build_height_m`: (GRID, GRID), row axis =
-    y, col axis = x, spawn surface at 0 before normalisation.
+    y, col axis = x, spawn surface at 0 before normalisation. The cap runs
+    AFTER the span rescale (rescaling amplifies slopes, so capping first would
+    ship steeper ground than the cap names), then the tiny relief the cap
+    removes is restored by one more rescale+cap round and verified loudly.
     """
-    h = _desert_recipe(seed, mountain_amp=MOUNTAIN_AMP)
+    h = _desert_recipe(seed, mountain_amp=MOUNTAIN_AMP,
+                       ridge_eps=RIDGE_EPS, fine_additive=True)
     raw_span = float(np.ptp(h))
     if raw_span <= 0.0:
         raise ValueError(f"composed field is flat (span {raw_span}); the recipe is broken")
-    h *= Z_SPAN_M / raw_span
     build_height_m.last_rescale = Z_SPAN_M / raw_span  # type: ignore[attr-defined]
+    for _ in range(2):
+        h *= Z_SPAN_M / np.ptp(h)
+        h = _repose_limit(h, REPOSE_CAP_DEG)
+    h *= Z_SPAN_M / np.ptp(h)
+
+    worst = float(np.max(np.abs(np.diff(h, axis=0)))) / CELL
+    worst = max(worst, float(np.max(np.abs(np.diff(h, axis=1)))) / CELL)
+    worst_deg = float(np.degrees(np.arctan(worst)))
+    if worst_deg > REPOSE_CAP_DEG + 1.0:
+        raise ValueError(
+            f"final rescale re-steepened the field to {worst_deg:.2f} deg, past the "
+            f"{REPOSE_CAP_DEG} deg cap + 1 deg tolerance — raise the cap rounds"
+        )
     return h
 
 
@@ -153,10 +219,86 @@ def _stats(h: np.ndarray) -> dict[str, float]:
     }
 
 
+#: 1 ft = 0.3048 m exactly (NIST Handbook 44). Display conversion only — every
+#: computation in this module stays in metres.
+_FT_PER_M = 1.0 / 0.3048
+
+
+def write_preview(h: np.ndarray, path=None) -> None:
+    """Bake the operator-facing preview PNG next to the asset.
+
+    Labels read US-first with SI in parentheses — the workspace units
+    convention for anything explained rather than computed. The heightfield
+    itself stays metres, and this function writes ONLY the PNG: the pinned
+    ``.bin`` (terrain-spec hash) cannot move from here. `path` defaults to
+    the v5 preview; pass `paths.GENTLE_PREVIEW` to re-bake v4's from its bin.
+    """
+    if path is None:
+        path = paths.GENTLE_V5_PREVIEW
+    import matplotlib
+
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+    from matplotlib.colors import LightSource
+
+    half_ft = HALF_EXTENT * _FT_PER_M
+    ls = LightSource(azdeg=315, altdeg=40)
+    fig = plt.figure(figsize=(14, 7))
+    gs = fig.add_gridspec(2, 2, width_ratios=[1.35, 1.0], height_ratios=[2.4, 1.0])
+
+    ax = fig.add_subplot(gs[:, 0])
+    rgb = ls.shade(h, cmap=plt.cm.gist_earth, vert_exag=2.0, blend_mode="soft",
+                   dx=CELL, dy=CELL)
+    ax.imshow(rgb, extent=[-half_ft, half_ft, -half_ft, half_ft], origin="lower")
+    ax.set_title(
+        f"gentle — desert recipe, mountains at {MOUNTAIN_AMP}/3.3, "
+        f"span {np.ptp(h) * _FT_PER_M:.1f} ft ({np.ptp(h):.2f} m)"
+    )
+    ax.set_xlabel("x (ft)")
+    ax.set_ylabel("y (ft)")
+
+    ax2 = fig.add_subplot(gs[0, 1])
+    half_zoom = int(round(12.5 / CELL))  # 82x82 ft (25x25 m) window
+    mid = GRID // 2
+    zoom = h[mid - half_zoom : mid + half_zoom, mid - half_zoom : mid + half_zoom]
+    zoom_ft = 12.5 * _FT_PER_M
+    rgb2 = ls.shade(zoom, cmap=plt.cm.gist_earth, vert_exag=2.0, blend_mode="soft",
+                    dx=CELL, dy=CELL)
+    ax2.imshow(rgb2, extent=[-zoom_ft, zoom_ft, -zoom_ft, zoom_ft], origin="lower")
+    ax2.set_title("82x82 ft (25x25 m) around the spawn pad")
+    ax2.set_xlabel("ft")
+
+    ax3 = fig.add_subplot(gs[1, 1])
+    y_cut_m = 14.7  # same cut the first hand-made preview showed
+    row = h[int(round((y_cut_m + HALF_EXTENT) / CELL))] * _FT_PER_M
+    x_ft = np.linspace(-half_ft, half_ft, GRID)
+    ax3.fill_between(x_ft, row, row.min() - 0.3, color="tan")
+    ax3.set_xlabel("x (ft)")
+    ax3.set_ylabel("z (ft)")
+
+    fig.tight_layout()
+
+    # Title the cut with its measured vertical exaggeration, so nobody reads
+    # display steepness as ground steepness again (it once read ~17x too
+    # sharp). Computed from the final axes geometry, after tight_layout.
+    box = ax3.get_position()
+    fig_w, fig_h = fig.get_size_inches()
+    x_ft_per_inch = (2 * half_ft) / (box.width * fig_w)
+    z_ft_per_inch = float(np.ptp(row) + 0.3) / (box.height * fig_h)
+    ax3.set_title(
+        f"cross-section at y = +{y_cut_m * _FT_PER_M:.0f} ft (+{y_cut_m} m) — "
+        f"z stretched ~{x_ft_per_inch / z_ft_per_inch:.0f}x"
+    )
+    fig.savefig(path, dpi=110)
+    plt.close(fig)
+
+
 def main() -> None:
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument("--seed", type=int, default=SEED)
     p.add_argument("--stats", action="store_true", help="print numbers, write nothing")
+    p.add_argument("--preview", action="store_true",
+                   help="rewrite the preview PNG only; never touches the .bin")
     args = p.parse_args()
 
     h = build_height_m(args.seed)
@@ -173,10 +315,18 @@ def main() -> None:
         return
 
     paths.TERRAIN_DIR.mkdir(parents=True, exist_ok=True)
-    h_min, h_max = save_hfield_bin(h, paths.GENTLE_HFIELD)
-    save_texture(h, paths.GENTLE_TEXTURE, args.seed)
-    print(f"wrote {paths.GENTLE_HFIELD}")
-    print(f"wrote {paths.GENTLE_TEXTURE}")
+
+    if args.preview:
+        write_preview(h)
+        print(f"wrote {paths.GENTLE_V5_PREVIEW} (preview only; .bin untouched)")
+        return
+
+    h_min, h_max = save_hfield_bin(h, paths.GENTLE_V5_HFIELD)
+    save_texture(h, paths.GENTLE_V5_TEXTURE, args.seed)
+    write_preview(h)
+    print(f"wrote {paths.GENTLE_V5_HFIELD}")
+    print(f"wrote {paths.GENTLE_V5_TEXTURE}")
+    print(f"wrote {paths.GENTLE_V5_PREVIEW}")
     print(f"XML check: <hfield ... size=\"{HALF_EXTENT:.0f} {HALF_EXTENT:.0f} "
           f"{h_max - h_min:.2f} 1.0\"/> and hfield geom pos = \"0 0 {h_min:.2f}\"")
 

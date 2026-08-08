@@ -57,6 +57,10 @@ DESERT_TEXTURE = TERRAIN_DIR / "desert_texture.png"
 # edit in place is not an option. Written by `terrain/gentle.py`.
 GENTLE_HFIELD = TERRAIN_DIR / "gentle_hfield.bin"
 GENTLE_TEXTURE = TERRAIN_DIR / "gentle_texture.png"
+GENTLE_PREVIEW = TERRAIN_DIR / "gentle_preview.png"
+GENTLE_V5_HFIELD = TERRAIN_DIR / "gentle_v5_hfield.bin"
+GENTLE_V5_TEXTURE = TERRAIN_DIR / "gentle_v5_texture.png"
+GENTLE_V5_PREVIEW = TERRAIN_DIR / "gentle_v5_preview.png"
 
 # --- Whelp: the PHYSICAL robot ----------------------------------------------
 # Whelp is CAD rather than MJCF, so it does not follow the "model XML sits next

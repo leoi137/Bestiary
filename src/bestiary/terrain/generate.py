@@ -109,7 +109,9 @@ def _warp(field: np.ndarray, dx: np.ndarray, dy: np.ndarray) -> np.ndarray:
             + (field[r1, c0] * (1 - fc) + field[r1, c1] * fc) * fr)
 
 
-def build_height_m(seed: int, mountain_amp: float = 3.3) -> np.ndarray:
+def build_height_m(seed: int, mountain_amp: float = 3.3, *,
+                   ridge_eps: float = 0.0,
+                   fine_additive: bool = False) -> np.ndarray:
     """The composed terrain in meters, spawn surface = 0. Returns (GRID, GRID),
     row axis = y (south->north), col axis = x (west->east).
 
@@ -118,7 +120,15 @@ def build_height_m(seed: int, mountain_amp: float = 3.3) -> np.ndarray:
     oracle's byte-reproduction of the seed-7 asset) is unchanged. The
     parameter exists for `terrain/gentle.py`, whose whole design is this
     recipe with the mountains turned down; giving it a knob here is what
-    keeps that from becoming a drifting copy of these layers."""
+    keeps that from becoming a drifting copy of these layers.
+
+    `ridge_eps` and `fine_additive` are gentle v5's crest knobs. The defaults
+    (0.0, False) take the ORIGINAL code paths, byte-identical, so the desert
+    stays reproducible. With `ridge_eps > 0` every `1-|f|` crease becomes the
+    rounded `1-sqrt(f^2+eps^2)` (parabolic cap, radius grows with eps), and
+    `fine_additive` swaps the fine ridged layer from multiplied-on-crests to
+    a low, smooth additive term — the multiplicative form re-sharpens every
+    crest it decorates, which is the v4 knife-edge mechanism."""
     rng = np.random.default_rng(seed)
     n = GRID
 
@@ -132,7 +142,11 @@ def build_height_m(seed: int, mountain_amp: float = 3.3) -> np.ndarray:
     # and rounds the interdune flat, the classic transverse-dune profile.
     f_dune = _spectral_field(rng, n, beta=2.0, stretch=(1.0, 0.35),
                              band=(14.0, 30.0))
-    crest = np.clip(1.0 - np.abs(f_dune), 0.0, None) ** 1.5
+    if ridge_eps > 0.0:
+        crest = np.clip(1.0 - np.sqrt(f_dune * f_dune + ridge_eps * ridge_eps),
+                        0.0, None) ** 1.5
+    else:
+        crest = np.clip(1.0 - np.abs(f_dune), 0.0, None) ** 1.5
     dunes = 0.8 * (crest - crest.mean())
 
     # -- Mountains -----------------------------------------------------------
@@ -144,11 +158,19 @@ def build_height_m(seed: int, mountain_amp: float = 3.3) -> np.ndarray:
     # keeps the wavelengths it is meant to model.
     wx = 5.0 * _spectral_field(rng, n, beta=2.5, band=(20.0, 80.0))
     wy = 5.0 * _spectral_field(rng, n, beta=2.5, band=(20.0, 80.0))
-    r1 = 1.0 - np.abs(_warp(_spectral_field(rng, n, beta=2.2, band=(14.0, 80.0)),
-                            wx, wy))
-    r2 = 1.0 - np.abs(_spectral_field(rng, n, beta=1.8, band=(3.0, 10.0)))
+    f_ridge = _warp(_spectral_field(rng, n, beta=2.2, band=(14.0, 80.0)), wx, wy)
+    f_fine = _spectral_field(rng, n, beta=1.8, band=(3.0, 10.0))
+    if ridge_eps > 0.0:
+        r1 = 1.0 - np.sqrt(f_ridge * f_ridge + ridge_eps * ridge_eps)
+    else:
+        r1 = 1.0 - np.abs(f_ridge)
     ridged = np.clip(r1, 0.0, None) ** 1.8
-    ridged *= 1.0 + 0.25 * r2
+    if fine_additive:
+        # 0.08 amp / 0.6 width from the measured 4-candidate sweep, 2026-08-07
+        # (C1 row: crest radius 7.2 ft vs v4's 6.2, foot-step P99 3.7 in).
+        ridged = ridged + 0.08 * np.exp(-((f_fine / 0.6) ** 2))
+    else:
+        ridged *= 1.0 + 0.25 * (1.0 - np.abs(f_fine))
     # smoothstep gate: 0 inside r=10 m, 1 beyond r=32 m
     t = np.clip((dist - 10.0) / 22.0, 0.0, 1.0)
     gate = t * t * (3.0 - 2.0 * t)
