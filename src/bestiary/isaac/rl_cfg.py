@@ -115,6 +115,51 @@ class HoundForwardV5PPORunnerCfg(AnymalCRoughPPORunnerCfg):
         self.experiment_name = "hound_forward_v5"
 
 
+@configclass
+class HoundOvernightPPORunnerCfg(HoundForwardV5PPORunnerCfg):
+    """The commanded Hound long run. Same agent as the forward probe, new run dir.
+
+    Subclasses the FORWARD-V5 Hound runner rather than re-deriving from
+    `AnymalCRoughPPORunnerCfg`, and the shared claim is specific: these two tasks
+    run the SAME BODY on the SAME GROUND, so the only thing that makes their
+    wall-clock numbers comparable is that the network, the rollout length
+    (`num_steps_per_env` 24) and the update size are identical by construction.
+    The launch ceiling for this run is sized off the forward probe's measured
+    iteration time (`runs/hound_forward_v5_s1/box_console.log`, 4096 envs,
+    ~2.5 s/iter in steady state), and that arithmetic is only valid while the
+    agent config is inherited rather than restated.
+
+    `experiment_name` moves and it MUST. rsl_rl files runs under
+    `logs/rsl_rl/<experiment_name>/`, and `hound_forward_v5/` already holds the
+    2026-08-08 probe — a run whose reward is `v_x` alone and whose policy cannot
+    read a command. Two different rewards' checkpoints in one directory is the
+    `anymal_c_rough` mis-filing this file exists to stop, and here it would be
+    worse than indistinguishable: both runs are Hound-on-v5 at 4096 envs, so the
+    directory would read as one lineage and is two.
+
+    MAX_ITERATIONS IS NOT PINNED HERE, for `SpyderOvernightPPORunnerCfg`'s
+    reason: it stays at the inherited 1500 and is overridden per launch, so the
+    run length is a property of the launch line — which is where the declared
+    wall-clock ceiling that authorises it also lives.
+
+    SAVE_INTERVAL: INHERITED AT 50, and the disk arithmetic is this body's, not
+    the Spyder's. rsl_rl saves at every iteration index divisible by
+    `save_interval` and once more at the end, so N iterations produce
+    `floor((N-1)/50) + 2` checkpoints. Measured on the forward probe, the same
+    network on the same observation: 31 files of 6,987,125 B each
+    (`runs/hound_forward_v5_s1/box_logs/2026-08-08_05-13-54/model_*.pt`), and
+    `floor(1499/50) + 2 = 31` reproduces the count exactly. At 12,000 iterations
+    that gives **241 checkpoints x 6,987,125 B = 1,683,897,125 B = 1.68 GB
+    (1.57 GiB)**, plus a tensorboard event file that should land near 15 MB.
+    Comfortably inside the run budget, so the interval is inherited rather than
+    set — one fewer number that differs from the probe beside it.
+    """
+
+    def __post_init__(self) -> None:
+        super().__post_init__()
+        self.experiment_name = "hound_overnight"
+
+
 # ---------------------------------------------------------------------------
 # The reward-ablation ladder: full command-tracking income + at most ONE
 # penalty, three ways. `spyder_ladder_env_cfg.py` carries the question.

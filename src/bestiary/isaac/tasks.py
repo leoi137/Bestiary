@@ -54,6 +54,7 @@ _SPYDER_CFG_MODULE = "bestiary.isaac.spyder_gentle_env_cfg"
 _SPYDER_FWD_CFG_MODULE = "bestiary.isaac.spyder_forward_env_cfg"
 _SPYDER_FWD_V5_CFG_MODULE = "bestiary.isaac.spyder_forward_v5_env_cfg"
 _HOUND_FWD_V5_CFG_MODULE = "bestiary.isaac.hound_forward_v5_env_cfg"
+_HOUND_OVERNIGHT_CFG_MODULE = "bestiary.isaac.hound_overnight_env_cfg"
 _SPYDER_LADDER_CFG_MODULE = "bestiary.isaac.spyder_ladder_env_cfg"
 _SPYDER_OVERNIGHT_CFG_MODULE = "bestiary.isaac.spyder_overnight_env_cfg"
 _SPYDER_FAST_CFG_MODULE = "bestiary.isaac.spyder_fast_env_cfg"
@@ -78,6 +79,13 @@ _SPYDER_FWD_RSL_RL_CFG = "bestiary.isaac.rl_cfg:SpyderForwardPPORunnerCfg"
 #: compared and whose difference nothing records.
 _SPYDER_FWD_V5_RSL_RL_CFG = "bestiary.isaac.rl_cfg:SpyderForwardV5PPORunnerCfg"
 _HOUND_FWD_V5_RSL_RL_CFG = "bestiary.isaac.rl_cfg:HoundForwardV5PPORunnerCfg"
+
+#: The commanded Hound long run. `experiment_name` = `hound_overnight`, and the
+#: separation from `hound_forward_v5/` is load-bearing rather than tidy: both
+#: tasks are the same body on the same v5 ground at the same env count, so one
+#: shared log tree would read as a single lineage while holding two rewards —
+#: one that pays `v_x` and cannot be driven, one that pays command tracking.
+_HOUND_OVERNIGHT_RSL_RL_CFG = "bestiary.isaac.rl_cfg:HoundOvernightPPORunnerCfg"
 
 #: The reward-ladder rungs' runner cfgs. One `experiment_name` each —
 #: `spyder_ladder_bare` / `_actionrate` / `_tilt` — so the three arms of a
@@ -190,6 +198,26 @@ def register() -> None:
             "Bestiary-ForwardV5-Hound-Play-v0",
             f"{_HOUND_FWD_V5_CFG_MODULE}:HoundForwardV5EnvCfg_PLAY",
             _HOUND_FWD_V5_RSL_RL_CFG,
+        ),
+        # The COMMANDED Hound: the Spyder's steering pipeline — dead-zoned rate
+        # commands, heading mode off, the arc-corrected terrain curriculum — on
+        # the wheel-legged body, on the same v5 ground the forward probe ran on,
+        # with the reward cut to command-tracking income plus `action_rate_l2`
+        # and `lin_vel_z_l2`. First Hound task that can be DRIVEN: the forward
+        # probe's reward never read a command, and its final block shows what
+        # that buys (error_vel_xy 11.39, 203.56 m per episode).
+        # `feet_air_time` is deliberately absent — a cadence term is undefined on
+        # a rolling wheel — and `hound_overnight_env_cfg.py` argues it, along with
+        # the kernel widths that are NOT rescaled with the ±1.5 box.
+        (
+            "Bestiary-Overnight-Hound-v0",
+            f"{_HOUND_OVERNIGHT_CFG_MODULE}:HoundOvernightEnvCfg",
+            _HOUND_OVERNIGHT_RSL_RL_CFG,
+        ),
+        (
+            "Bestiary-Overnight-Hound-Play-v0",
+            f"{_HOUND_OVERNIGHT_CFG_MODULE}:HoundOvernightEnvCfg_PLAY",
+            _HOUND_OVERNIGHT_RSL_RL_CFG,
         ),
         # The reward-ablation LADDER: three arms, each paying the gentle task's
         # full command-tracking income plus AT MOST ONE penalty, and each

@@ -206,19 +206,20 @@ def live_reward_names(rewards) -> set[str]:
     }
 
 
-def apply_keep_list_and_strafe(cfg, keep, what: str) -> None:
-    """Reduce a constructed gentle config to a declared reward table, plus strafe.
+def apply_keep_list(cfg, keep, what: str) -> None:
+    """Reduce a constructed config's reward table to a declared list of terms.
 
-    Two edits and two post-conditions, in place. Called after
-    `super().__post_init__()` by both the training and the Play class of every
-    variant — the same shared-mutator pattern
-    `spyder_forward_env_cfg.use_forward_velocity_only` uses, and for the same
-    reason: a Play config that inherits the gentle Play overrides cannot also
-    inherit the variant's, so the variant has to live in a function both call.
+    ROBOT-AGNOSTIC, and that is why it is its own function rather than the first
+    half of `apply_keep_list_and_strafe`. It reads nothing about the machine —
+    no body names, no joint groups, no command channel — so
+    `hound_overnight_env_cfg.py` uses it on a body with driven hub wheels, the
+    same way `hound_forward_v5_env_cfg.py` reuses
+    `spyder_forward_env_cfg.use_forward_velocity_only`. Shared machinery lives
+    where it was written; only the robots are separate.
 
     `what` names the caller in every failure message ("ladder rung 'tilt'", "the
-    overnight task"), because the same surgery now serves two modules and a bare
-    "the config" would not say which one is wrong.
+    overnight task", "the overnight Hound task"), because the same surgery now
+    serves three modules and a bare "the config" would not say which is wrong.
 
     The reward surgery is a KEEP LIST, not a delete list, and that is the whole
     safety argument. `spyder_forward_env_cfg` met the same problem — upstream's
@@ -226,12 +227,12 @@ def apply_keep_list_and_strafe(cfg, keep, what: str) -> None:
     releases, and a list of nine deletions silently stops being complete the
     day a twelfth term ships, re-shaping every variant without anyone editing
     this file. It solved it with a fresh one-field config class; that is not
-    available here, because these tasks must carry the gentle task's terms with
-    the gentle task's exact weights, params and body-name retargets already
-    applied, which means keeping the objects the gentle config built. So
-    instead: enumerate what is live, keep exactly the declared names, None out
-    everything else whatever it is called. A term upstream adds tomorrow is
-    deleted tomorrow, without a code change.
+    available here, because these tasks must carry the base config's terms with
+    its exact weights, params and body-name retargets already applied, which
+    means keeping the objects that config built. So instead: enumerate what is
+    live, keep exactly the declared names, None out everything else whatever it
+    is called. A term upstream adds tomorrow is deleted tomorrow, without a code
+    change.
 
     `RewardManager._prepare_terms` skips `None` terms (`continue` on
     `term_cfg is None`, reward_manager.py:226 in the pinned release), which is
@@ -242,27 +243,45 @@ def apply_keep_list_and_strafe(cfg, keep, what: str) -> None:
     missing = sorted(keep - live)
     if missing:
         raise AssertionError(
-            f"{what} wants to keep {missing}, but the gentle config does not "
+            f"{what} wants to keep {missing}, but the base config does not "
             f"have those reward terms live. It has {sorted(live)}. Upstream "
-            "renamed a term, or the gentle config deleted one — either way "
+            "renamed a term, or the base config deleted one — either way "
             "this task would train on a reward table nobody declared."
         )
     for name in sorted(live - keep):
         setattr(cfg.rewards, name, None)
 
-    # Strafe. Only the y range moves; x, yaw, both dead zones, the standing
-    # fraction and heading-off are the gentle task's, untouched.
-    cfg.commands.base_velocity.ranges.lin_vel_y = (-VY_MAX_MS, VY_MAX_MS)
-
-    # Post-conditions. Both failures are silent otherwise: a reward table with
-    # a term that should have died still trains, and a strafe range that did
-    # not take still trains — as the gentle task, mis-labelled.
+    # Post-condition. The failure is silent otherwise: a reward table with a
+    # term that should have died still trains, as a task nobody declared.
     got = sorted(live_reward_names(cfg.rewards))
     if got != sorted(keep):
         raise AssertionError(
             f"{what} ended up with reward terms {got}, not {sorted(keep)} — "
-            "the surgery in apply_keep_list_and_strafe did not take."
+            "the surgery in apply_keep_list did not take."
         )
+
+
+def apply_keep_list_and_strafe(cfg, keep, what: str) -> None:
+    """Reduce a constructed gentle config to a declared reward table, plus strafe.
+
+    Two edits and two post-conditions, in place. Called after
+    `super().__post_init__()` by both the training and the Play class of every
+    Spyder keep-list variant — the same shared-mutator pattern
+    `spyder_forward_env_cfg.use_forward_velocity_only` uses, and for the same
+    reason: a Play config that inherits the gentle Play overrides cannot also
+    inherit the variant's, so the variant has to live in a function both call.
+
+    The reward half is `apply_keep_list`, which is robot-agnostic and is shared
+    with the Hound; the strafe half is this function's own, because ±VY_MAX_MS
+    is a claim about a SPIDER's lateral envelope (its derivation is in this
+    module's docstring) and nothing about it ports to a machine on wheels.
+    """
+    apply_keep_list(cfg, keep, what)
+
+    # Strafe. Only the y range moves; x, yaw, both dead zones, the standing
+    # fraction and heading-off are the gentle task's, untouched.
+    cfg.commands.base_velocity.ranges.lin_vel_y = (-VY_MAX_MS, VY_MAX_MS)
+
     if tuple(cfg.commands.base_velocity.ranges.lin_vel_y) != (-VY_MAX_MS, VY_MAX_MS):
         raise AssertionError(
             f"{what} has lin_vel_y = {cfg.commands.base_velocity.ranges.lin_vel_y}, "

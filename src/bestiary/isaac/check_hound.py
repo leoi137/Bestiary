@@ -65,13 +65,26 @@ new name is caught for the same reason the current one is.
 
 AND THE TASK VARIANTS, WHICH NEED NO SIMULATOR AT ALL
 ------------------------------------------------------
-Section 5 pins `Bestiary-ForwardV5-Hound-v0` against the desert task it is one
-change away from: exactly one reward term (`v_x`, weight 1.0), the v5 ground of
-`research/decisions/0007` measured from the committed bytes, and a whole-config
-diff limited to `rewards` and the two sub-terrain keys inside `scene`. Those
-configs construct before the simulation app exists, so that group runs at a desk
-with no GPU — which is the only part of this oracle a session without the card
-can still hold.
+Section 5 pins the two tasks built on top of the desert config. Both groups of
+assertions read whole-config `to_dict()` dumps rather than the lines somebody
+remembered to write, because "one variable moved" is a claim about a config and
+not about a diff a human eyeballed.
+
+  * `Bestiary-ForwardV5-Hound-v0` — exactly one reward term (`v_x`, weight 1.0),
+    the v5 ground of `research/decisions/0007` measured from the committed bytes,
+    and a whole-config diff limited to `rewards` and the two sub-terrain keys
+    inside `scene`.
+  * `Bestiary-Overnight-Hound-v0` — the COMMANDED run: four reward terms at the
+    desert table's own weights, the dead-zone sampler on the ±1.5 / ±0.6 / ±1.5
+    envelope with heading mode off, the arc-corrected terrain curriculum, and a
+    diff that is four sections against the desert task and THREE against the
+    forward probe, whose ground it must match byte for byte. It also prices the
+    thing that ended arm 1: standing's expected share of drive-cell income,
+    flagged past 30%.
+
+Those configs construct before the simulation app exists, so that group runs at a
+desk with no GPU — which is the only part of this oracle a session without the
+card can still hold.
 """
 
 from __future__ import annotations
@@ -1541,6 +1554,624 @@ def check_forward_v5_is_vx_on_v5_ground() -> None:
             )
 
 
+#: The commanded long run's envelope, dead zones, standing fraction and kernel
+#: width — PINNED HERE, independent of the module that declares them.
+#:
+#: Pinned rather than imported, for the reason `check_spyder.py` pins the fast
+#: task's ranges: an oracle whose expectation is read out of the module it checks
+#: cannot catch that module changing. `hound_overnight_env_cfg` derives every one
+#: of its ranges from three constants in one file, so editing `VX_MAX_MS` there
+#: would move the config AND the expectation together and every assertion would
+#: stay green — which is the one failure this check most needs to catch, because
+#: the envelope is not a free parameter. Widening the box changes what fraction
+#: of the tracking kernel is earnable and where the terrain curriculum's demote
+#: bar sits; narrowing it changes what the run is for. Either is a new
+#: experiment, and it should go red here until the record says why.
+OVERNIGHT_COMMAND_RANGES: dict[str, tuple[float, float]] = {
+    "lin_vel_x": (-1.5, 1.5),
+    "lin_vel_y": (-0.6, 0.6),
+    "ang_vel_z": (-1.5, 1.5),
+}
+OVERNIGHT_DEAD_ZONES: dict[str, float] = {"min_lin_vel_x": 0.25, "min_ang_vel_z": 0.2}
+OVERNIGHT_REL_STANDING = 0.1
+OVERNIGHT_KERNEL_STD = 0.5
+
+#: The four reward terms the commanded run pays, sorted, and the five it deletes
+#: from the Hound desert table. Both pinned; the deletions are also RECOMPUTED
+#: from the live desert config inside the check, so an upstream release that adds
+#: or renames a term goes red here instead of being silently swallowed by a keep
+#: list that is safe by construction.
+OVERNIGHT_REWARD_TERMS: tuple[str, ...] = (
+    "action_rate_l2",
+    "lin_vel_z_l2",
+    "track_ang_vel_z_exp",
+    "track_lin_vel_xy_exp",
+)
+OVERNIGHT_DELETED_TERMS: tuple[str, ...] = (
+    "ang_vel_xy_l2",
+    "dof_acc_l2",
+    "dof_acc_wheel_l2",
+    "dof_pos_limits",
+    "dof_torques_l2",
+)
+
+#: Drive-cell tracking income a MOTIONLESS machine may collect in expectation
+#: before this oracle goes red. `check_spyder.py` carries the same constant for
+#: the same reason and `research/decisions/0005` is the source: 30%. The number
+#: it exists to keep out is 62.7% — where the Hound's arm-1 seed 2 sat when it
+#: parked and still beat the do-nothing control in 13 of 13 eval cells
+#: (`research/measurements/isaac_hound_arm1_s2.json`).
+STANDING_SHARE_FLAG = 0.30
+
+#: Top-level config sections the commanded run may differ in, against each of the
+#: two baselines it is checked against. Four against the desert task it descends
+#: from (`scene` is unavoidable — the terrain generator lives there) and THREE
+#: against the forward-v5 probe, whose ground it must match exactly.
+OVERNIGHT_SECTIONS_VS_DESERT = ["commands", "curriculum", "rewards", "scene"]
+OVERNIGHT_SECTIONS_VS_FORWARD_V5 = ["commands", "curriculum", "rewards"]
+
+
+def _dead_zone_mean_kernel(dz: float, hi: float, std: float) -> float:
+    """E[exp(-(c/std)^2)] for |c| ~ U(dz, hi) — what a machine holding zero on
+    that channel still earns. Closed form via erf; symmetric in the sign.
+
+    Deliberately a duplicate of `check_spyder.py`'s function of the same name,
+    for the reason `_diff_paths` above is a duplicate: the two oracles gate
+    launches independently, and a bad edit in one must not be able to take the
+    other down with it.
+    """
+    if hi <= dz:
+        raise ValueError(f"empty dead-zone range [{dz}, {hi}]")
+    return (std * math.sqrt(math.pi) / (2.0 * (hi - dz))) * (
+        math.erf(hi / std) - math.erf(dz / std)
+    )
+
+
+def _standing_share(cmd, lin, ang, std: float) -> float:
+    """Expected share of DRIVE-CELL tracking income a motionless machine earns.
+
+    The two channels are shaped differently and that is the whole arithmetic: the
+    linear dead zone is a magnitude RESAMPLE, so a parked machine faces
+    |v_x| ~ U(dz, hi); the yaw dead zone is a SNAP, so a fraction dz/hi of driving
+    envs carry w_z == 0 exactly — straight drivers, where a motionless machine
+    scores the full yaw kernel — and the survivors are uniform on ±[dz, hi]. The
+    policy-step dt cancels, so it is not a parameter.
+
+    `std` is passed rather than read off the terms so the check can price the
+    SAME configuration at a counterfactual kernel width — the 0.75 that would
+    preserve upstream's std/range ratio against this ±1.5 box, and that
+    `hound_overnight_env_cfg.py` argues against.
+
+    Standing ENVS are excluded throughout: a machine commanded to stand and
+    standing is earning honestly.
+    """
+    vx_dz, vx_hi = cmd.min_lin_vel_x, float(cmd.ranges.lin_vel_x[1])
+    wz_dz, wz_hi = cmd.min_ang_vel_z, float(cmd.ranges.ang_vel_z[1])
+    stand_lin = _dead_zone_mean_kernel(vx_dz, vx_hi, std)
+    p_straight = wz_dz / wz_hi
+    stand_ang = p_straight * 1.0 + (1.0 - p_straight) * _dead_zone_mean_kernel(
+        wz_dz, wz_hi, std
+    )
+    return (lin.weight * stand_lin + ang.weight * stand_ang) / (lin.weight + ang.weight)
+
+
+def measured_span(sub) -> float:
+    """Metres of relief a sub-terrain's committed bytes actually span.
+
+    A one-line helper so the dump below can print the measurement beside the
+    declaration; the ASSERTION on the same quantity lives in
+    `_assert_overnight_variant`, where a mismatch is a failure rather than a
+    printed curiosity.
+    """
+    from bestiary.terrain.isaac_hf import load_desert_m
+
+    return float(np.ptp(load_desert_m(sub.hfield_path, sub.z_span_m)))
+
+
+def _assert_overnight_variant(cfg, desert_base, v5_base, arm: str) -> None:
+    """One commanded-Hound config against its two baselines. Eight assertions.
+
+    `arm` says which of the pair is being read ("train" or "play"). Both are
+    checked, and that is not decoration: `HoundOvernightEnvCfg_PLAY` descends
+    from the DESERT Play class, so it gets its whole surgery from a second call
+    to `apply_overnight`, and an edit that reached one call and not the other
+    would give the viewer a policy driven under a different reward, a different
+    command distribution or a different world than the one that trained.
+
+    Every assertion catches something the others cannot, and each one is a
+    failure that otherwise TRAINS:
+
+      (a) The reward table is exactly the four declared names, each term
+          byte-identical to the desert task's own — so a weight typed by hand, a
+          param dropped with a retarget, or an upstream term surviving the keep
+          list all fail here.
+      (b) No live term reads contact TIMING, under any name. Structural, and it
+          needs no articulation: this body has no feet, so a contact-timing term
+          is wrong at every scope, not merely wrong on the wheels.
+      (c) The command term is the dead-zone sampler with the lazy `class_type`,
+          heading off, and exactly the pinned ranges, dead zones and standing
+          fraction — and the DESERT baseline is not already dead-zoned, so the
+          comparison is not a config against itself.
+      (d) Both kernel widths are the pinned 0.5 AND equal the desert task's own,
+          so the deliberate non-rescaling is asserted against its source.
+      (e) The terrain curriculum is the arc bar, and the desert baseline's is not.
+      (f) The ground is the committed v5 asset at decision 0007's span, measured
+          from the bytes, with the desert tile gone from the mix.
+      (g) Against the DESERT task: four sections move, and inside `scene` exactly
+          the two sub-terrain keys.
+      (h) Against the FORWARD-V5 probe: three sections move and `scene` does not
+          move at all — the strongest available statement that this run stands on
+          byte-identical ground to the arm that already ran here.
+    """
+    from bestiary import paths
+    from bestiary.isaac.commands import DeadZoneVelocityCommandCfg
+    from bestiary.isaac.curriculums import terrain_levels_vel_arc
+    from bestiary.isaac.hound_overnight_env_cfg import FORBIDDEN_CADENCE_TERM
+    from bestiary.isaac.spyder_forward_v5_env_cfg import GENTLE_SUBTERRAIN_KEY
+    from bestiary.terrain.isaac_hf import load_desert_m
+
+    base_d, var_d = desert_base.to_dict(), cfg.to_dict()
+
+    # (a) The reward table: the declared names, at the desert table's own values.
+    live = {
+        name: term
+        for name, term in var_d["rewards"].items()
+        if not name.startswith("_") and term is not None
+    }
+    if sorted(live) != sorted(OVERNIGHT_REWARD_TERMS):
+        raise AssertionError(
+            f"the overnight Hound task ({arm}) pays {sorted(live)}, but its "
+            f"declared table is {sorted(OVERNIGHT_REWARD_TERMS)}. An extra term is "
+            "a reward nobody wrote down; a missing one makes this a different task "
+            "than the record says trained."
+        )
+    for name, term in sorted(live.items()):
+        base_term = base_d["rewards"].get(name)
+        if base_term is None:
+            raise AssertionError(
+                f"the overnight Hound task ({arm}) pays {name!r}, which "
+                "Bestiary-Desert-Hound-v0 does not have live — it invented a reward "
+                "term, so 'at the Hound table's weights' is meaningless for it."
+            )
+        if term != base_term:
+            raise AssertionError(
+                f"the overnight Hound task ({arm}) term {name!r} is {term}, the "
+                f"desert task's is {base_term}. A keep-list variant chooses WHICH "
+                "terms are paid, never what a term should cost."
+            )
+
+    # (b) No contact-timing reward survives, under any name. `feet_air_time` is
+    # named separately because its absence is this task's one deliberate
+    # departure from the Spyder overnight's recipe, and a check that only tested
+    # the structural property would let it back in under a rename.
+    terms = _live_reward_terms(cfg)
+    if FORBIDDEN_CADENCE_TERM in terms:
+        raise AssertionError(
+            f"the overnight Hound task ({arm}) has {FORBIDDEN_CADENCE_TERM!r} live "
+            f"at weight {terms[FORBIDDEN_CADENCE_TERM].weight}. On a driven hub "
+            "wheel it pays the machine to HOP — air time can only be earned by "
+            "breaking the rolling contact the wheel exists to keep. Its absence is "
+            "the one deliberate difference from Bestiary-Overnight-Spyder-v0, and "
+            "restoring a cadence incentive here needs a NEW term with the opposite "
+            "sign, not this one (research/decisions/0004 Part B, 0005's gate)."
+        )
+    timing_offenders = sorted(
+        f"{name} reads {_reads(term.func, CONTACT_TIMING_FIELDS)}"
+        for name, term in terms.items()
+        if _reads(term.func, CONTACT_TIMING_FIELDS)
+    )
+    if timing_offenders:
+        raise AssertionError(
+            f"the overnight Hound task ({arm}) pays for contact TIMING: "
+            f"{timing_offenders}. This body's feet are wheels, so a timing term is "
+            "wrong at every scope — re-scoping it onto other bodies does not repair "
+            "the incentive."
+        )
+
+    # (c) The command sampler, and that it really replaced something else.
+    cmd = cfg.commands.base_velocity
+    if not isinstance(cmd, DeadZoneVelocityCommandCfg):
+        raise AssertionError(
+            f"the overnight Hound task ({arm}) commands through "
+            f"{type(cmd).__name__}, not DeadZoneVelocityCommandCfg. The plain "
+            "sampler draws v_x uniformly over a symmetric range, so a large share "
+            "of commands sit where standing is nearly the right answer — the "
+            "distribution that produced the parked arm-1 seed."
+        )
+    if isinstance(desert_base.commands.base_velocity, DeadZoneVelocityCommandCfg):
+        raise AssertionError(
+            "Bestiary-Desert-Hound-v0 is ALREADY using the dead-zone sampler, so "
+            "this check is comparing a config against itself. If the desert task "
+            "adopted it deliberately, this check needs a different baseline; if it "
+            "did not, something rewrote a shared config object."
+        )
+    if not (
+        isinstance(cmd.class_type, str)
+        and str(cmd.class_type).endswith("commands_impl:DeadZoneVelocityCommand")
+    ):
+        raise AssertionError(
+            f"the overnight Hound task ({arm}) has class_type {cmd.class_type!r} — "
+            "it must be the lazy string "
+            "'bestiary.isaac.commands_impl:DeadZoneVelocityCommand'. An eager class "
+            "object imports the runtime chain (and the pip pxr) before Kit boots, "
+            "which heap-corrupts the app 1.5 s into every launch."
+        )
+    facts = {
+        "heading_command": (cmd.heading_command, False),
+        "rel_standing_envs": (cmd.rel_standing_envs, OVERNIGHT_REL_STANDING),
+        "min_lin_vel_x": (cmd.min_lin_vel_x, OVERNIGHT_DEAD_ZONES["min_lin_vel_x"]),
+        "min_ang_vel_z": (cmd.min_ang_vel_z, OVERNIGHT_DEAD_ZONES["min_ang_vel_z"]),
+    }
+    for name, want in OVERNIGHT_COMMAND_RANGES.items():
+        facts[name] = (tuple(getattr(cmd.ranges, name)), want)
+    wrong = {k: f"{got!r} (want {want!r})" for k, (got, want) in facts.items() if got != want}
+    if wrong:
+        raise AssertionError(
+            f"the overnight Hound task ({arm}) command config drifted from the "
+            f"pinned design: {wrong}. The envelope and both dead zones are what "
+            "make every driving command distinguishable from standing, and where "
+            "the terrain curriculum's demote bar sits."
+        )
+
+    # (d) The kernel widths, against the pin AND against the desert task's own.
+    for term_name in ("track_lin_vel_xy_exp", "track_ang_vel_z_exp"):
+        got = float(getattr(cfg.rewards, term_name).params["std"])
+        inherited = float(getattr(desert_base.rewards, term_name).params["std"])
+        if got != OVERNIGHT_KERNEL_STD or inherited != OVERNIGHT_KERNEL_STD:
+            raise AssertionError(
+                f"the overnight Hound task ({arm}) has {term_name} std {got} and "
+                f"the desert task has {inherited}; this oracle pins "
+                f"{OVERNIGHT_KERNEL_STD}. Rescaling the kernel with the widened "
+                "range (0.75 preserves upstream's 0.5 ratio) takes standing's "
+                "expected share of drive-cell income from 21.4% to 37.2%, past "
+                f"the {STANDING_SHARE_FLAG:.0%} flag — which is the door the whole "
+                "dead-zone stack exists to keep shut."
+            )
+
+    # (e) The terrain curriculum, and that it really replaced something else.
+    if cfg.curriculum.terrain_levels.func is not terrain_levels_vel_arc:
+        raise AssertionError(
+            f"the overnight Hound task ({arm}) curriculum is "
+            f"{getattr(cfg.curriculum.terrain_levels.func, '__name__', '?')!r}, not "
+            "terrain_levels_vel_arc. Upstream's demote bar is straight-line "
+            "kinematics applied to an arc, so a perfect tracker of a turning "
+            "command is demoted every episode while a yaw-blind straight driver is "
+            "promoted — learnings/015's failure taught on purpose, on a task whose "
+            "whole point is obedience."
+        )
+    if desert_base.curriculum.terrain_levels.func is terrain_levels_vel_arc:
+        raise AssertionError(
+            "Bestiary-Desert-Hound-v0 ALREADY uses the arc bar, so the curriculum "
+            "half of this check compares a config against itself. If the desert "
+            "task adopted it, this check needs a different baseline."
+        )
+
+    # (f) The ground is the committed v5 asset, and the desert is gone.
+    gen = cfg.scene.terrain.terrain_generator
+    sub = gen.sub_terrains.get(GENTLE_SUBTERRAIN_KEY)
+    if sub is None:
+        raise AssertionError(
+            f"the overnight Hound task ({arm}) has no {GENTLE_SUBTERRAIN_KEY!r} "
+            f"sub-terrain; it carries {sorted(gen.sub_terrains)}. The terrain swap "
+            "did not run."
+        )
+    if "bestiary_desert" in gen.sub_terrains:
+        raise AssertionError(
+            f"the overnight Hound task ({arm}) still carries a 'bestiary_desert' "
+            "tile. Half its tiles would be the 5.05 m desert, which is not the "
+            "ground research/decisions/0007 puts new arms on."
+        )
+    if not sub.hfield_path.endswith(V5_HFIELD_BASENAME):
+        raise AssertionError(
+            f"the overnight Hound task ({arm}) reads {sub.hfield_path}, whose name "
+            f"is not {V5_HFIELD_BASENAME!r}."
+        )
+    if sub.hfield_path != str(paths.GENTLE_V5_HFIELD):
+        raise AssertionError(
+            f"the overnight Hound task ({arm}) reads {sub.hfield_path}, but "
+            f"paths.GENTLE_V5_HFIELD is {paths.GENTLE_V5_HFIELD}"
+        )
+    if abs(sub.z_span_m - V5_Z_SPAN_M) > 1e-12:
+        raise AssertionError(
+            f"the overnight Hound task ({arm}) declares z_span_m = {sub.z_span_m}, "
+            f"decision 0007 says {V5_Z_SPAN_M}. Every slope on this terrain scales "
+            "with that number."
+        )
+    measured = float(np.ptp(load_desert_m(paths.GENTLE_V5_HFIELD, V5_Z_SPAN_M)))
+    if abs(measured - V5_Z_SPAN_M) > 1e-6:
+        raise AssertionError(
+            f"the committed v5 bytes span {measured} m, not decision 0007's "
+            f"{V5_Z_SPAN_M}."
+        )
+
+    # (g) Against the desert task: four sections, and inside `scene` two keys.
+    moved = sorted(k for k in set(base_d) | set(var_d) if base_d.get(k) != var_d.get(k))
+    if moved != OVERNIGHT_SECTIONS_VS_DESERT:
+        raise AssertionError(
+            f"the overnight Hound task ({arm}) differs from "
+            f"Bestiary-Desert-Hound-v0 in {moved}, but it may differ ONLY in "
+            f"{OVERNIGHT_SECTIONS_VS_DESERT}. The observation (243 wide — a ONE-WAY "
+            "door, and the reason a multi-hour run can be started at all), the "
+            "wheel-aware action split, the trunk-contact termination, the events "
+            "and the reset scatter are all inherited on purpose."
+        )
+    scene_paths = _diff_paths(base_d["scene"], var_d["scene"])
+    if scene_paths != V5_SCENE_DIFF_PATHS:
+        raise AssertionError(
+            f"the overnight Hound task ({arm}) moves these scene fields: "
+            f"{scene_paths}. The only legal diff is {V5_SCENE_DIFF_PATHS} — the "
+            "desert tile leaving the mix and the v5 gentle tile taking its place. "
+            "Moving the robot, the height scanner, the contact sensor, the env "
+            "count or the spacing here hides a second change inside a terrain "
+            "swap, which is the quietest failure this repository has "
+            "(CLAUDE.md, the terrain invariant)."
+        )
+
+    # (h) Against the forward-v5 probe: the ground does not move AT ALL.
+    fwd_d = v5_base.to_dict()
+    moved_v5 = sorted(k for k in set(fwd_d) | set(var_d) if fwd_d.get(k) != var_d.get(k))
+    if moved_v5 != OVERNIGHT_SECTIONS_VS_FORWARD_V5:
+        raise AssertionError(
+            f"the overnight Hound task ({arm}) differs from "
+            f"Bestiary-ForwardV5-Hound-v0 in {moved_v5}, but it may differ ONLY in "
+            f"{OVERNIGHT_SECTIONS_VS_FORWARD_V5}. `scene` in particular must be "
+            "byte-identical: these two runs are the same body at the same env "
+            "count, and 'same ground' is the fact that makes anything measured "
+            "across them comparable at all."
+        )
+
+
+def check_overnight_task_is_the_commanded_hound() -> None:
+    """`Bestiary-Overnight-Hound-v0` is the declared table, envelope and ground.
+
+    The commanded Hound (`hound_overnight_env_cfg.py`) applies the Spyder's
+    steering pipeline to the wheel-legged body: a reward cut to command-tracking
+    income plus `action_rate_l2` and `lin_vel_z_l2`, the dead-zone sampler on the
+    ±1.5 / ±0.6 / ±1.5 envelope with heading mode off, the arc-corrected terrain
+    curriculum, and the v5 ground the forward probe already ran on.
+
+    It is a PRODUCTION run with no arm beside it, which raises the stakes on this
+    check rather than lowering them: a ladder arm under the wrong reward costs 46
+    minutes and is caught by the arm next to it; this one runs for hours and is
+    the only thing that will be measured.
+
+    Eight assertions per config in `_assert_overnight_variant`, on both the
+    training config and the Play twin, plus four this function does itself:
+
+      * THE PINS AND THE DECLARATION AGREE. This file's six numbers and
+        `hound_overnight_env_cfg`'s are two independent statements of the same
+        envelope, and this is what makes editing `VX_MAX_MS` a RED check rather
+        than a silently self-consistent one.
+      * THE DELETIONS ARE THE DECLARED ONES, recomputed from the LIVE desert
+        table rather than trusted from a tuple. The keep-list surgery deletes
+        whatever is live and not kept — safe by construction, and silent if
+        Isaac Lab ships a tenth reward term. This is the loud half.
+      * THE MONEY. Standing's expected share of drive-cell income is computed and
+        flagged past 30%, and the counterfactual at the ratio-preserving std of
+        0.75 is printed beside it so the docstring's central argument is a
+        number this oracle produces rather than a claim it repeats.
+      * NON-VACUOUSNESS. Every assertion above is a comparison; a comparison over
+        an empty table or against an identical baseline passes silently, which is
+        `research/learnings/014`'s shape exactly.
+
+    No simulator is needed: every config here constructs pre-app, the same
+    property `commands_impl.py` depends on.
+    """
+    from bestiary.isaac.curriculums import arc_displacement_m
+    from bestiary.isaac.hound_cfg import wheel_action_scale
+    from bestiary.isaac.hound_desert_env_cfg import HoundDesertEnvCfg, HoundDesertEnvCfg_PLAY
+    from bestiary.isaac.hound_forward_v5_env_cfg import (
+        HoundForwardV5EnvCfg,
+        HoundForwardV5EnvCfg_PLAY,
+    )
+    from bestiary.isaac.hound_overnight_env_cfg import (
+        EXPECTED_DELETED_TERMS,
+        KERNEL_STD,
+        OVERNIGHT_RANGES,
+        OVERNIGHT_TERMS,
+        REL_STANDING,
+        VX_MIN_MS,
+        WZ_MIN_RADS,
+        HoundOvernightEnvCfg,
+        HoundOvernightEnvCfg_PLAY,
+    )
+    from bestiary.isaac.spyder_ladder_env_cfg import live_reward_names
+    from bestiary.robots.hound.build import SPEC
+
+    # The pins and the module's own declaration: two statements of one design.
+    declared = {
+        "ranges": {name: tuple(value) for name, value in OVERNIGHT_RANGES.items()},
+        "dead zones": {"min_lin_vel_x": VX_MIN_MS, "min_ang_vel_z": WZ_MIN_RADS},
+        "rel_standing_envs": REL_STANDING,
+        "kernel std": KERNEL_STD,
+        "reward terms": tuple(sorted(OVERNIGHT_TERMS)),
+        "deleted terms": tuple(sorted(EXPECTED_DELETED_TERMS)),
+    }
+    pinned = {
+        "ranges": OVERNIGHT_COMMAND_RANGES,
+        "dead zones": OVERNIGHT_DEAD_ZONES,
+        "rel_standing_envs": OVERNIGHT_REL_STANDING,
+        "kernel std": OVERNIGHT_KERNEL_STD,
+        "reward terms": tuple(sorted(OVERNIGHT_REWARD_TERMS)),
+        "deleted terms": tuple(sorted(OVERNIGHT_DELETED_TERMS)),
+    }
+    drifted = {k: (declared[k], pinned[k]) for k in pinned if declared[k] != pinned[k]}
+    if drifted:
+        raise AssertionError(
+            f"`hound_overnight_env_cfg` declares {[(k, v[0]) for k, v in drifted.items()]}; "
+            f"this oracle pins {[(k, v[1]) for k, v in drifted.items()]}. The "
+            "envelope, the dead zones and the reward table are the whole content "
+            "of this run — changing one is a new experiment, so update the pin, "
+            "the module docstring's arithmetic and the record together."
+        )
+
+    desert, desert_play = HoundDesertEnvCfg(), HoundDesertEnvCfg_PLAY()
+    train_cfg = HoundOvernightEnvCfg()
+    _assert_overnight_variant(train_cfg, desert, HoundForwardV5EnvCfg(), "train")
+    _assert_overnight_variant(
+        HoundOvernightEnvCfg_PLAY(), desert_play, HoundForwardV5EnvCfg_PLAY(), "play"
+    )
+
+    # The deletions, recomputed from the live desert table.
+    desert_live = live_reward_names(desert.rewards)
+    deleted = sorted(desert_live - set(OVERNIGHT_TERMS))
+    if not deleted:
+        raise AssertionError(
+            f"the overnight table {sorted(OVERNIGHT_TERMS)} deletes NOTHING from "
+            f"the desert table {sorted(desert_live)} — it is the desert task "
+            "relabelled, and every assertion above compares a config against "
+            "itself."
+        )
+    if deleted != sorted(OVERNIGHT_DELETED_TERMS):
+        raise AssertionError(
+            f"the overnight Hound task deletes {deleted}, but this oracle pins "
+            f"{sorted(OVERNIGHT_DELETED_TERMS)}. The keep-list surgery has already "
+            "deleted the difference silently and correctly — this is the "
+            "notification, not the failure. Either Isaac Lab's RewardsCfg "
+            "gained/renamed a term or HoundRewardsCfg did: write down which, then "
+            "update the pin, the module's EXPECTED_DELETED_TERMS and its docstring "
+            "enumeration together."
+        )
+
+    # -- The dump. Everything a reader needs to know what will train. ----------
+    cmd = train_cfg.commands.base_velocity
+    lin = train_cfg.rewards.track_lin_vel_xy_exp
+    ang = train_cfg.rewards.track_ang_vel_z_exp
+    dt = train_cfg.decimation * train_cfg.sim.dt
+    income = (lin.weight * 1.0 + ang.weight * 1.0) * dt
+    sub = train_cfg.scene.terrain.terrain_generator.sub_terrains["bestiary_gentle"]
+
+    print(
+        f"      the commanded Hound, {len(OVERNIGHT_TERMS)} terms "
+        f"(income + action_rate_l2 + lin_vel_z_l2; NO cadence term):",
+        flush=True,
+    )
+    for name in sorted(OVERNIGHT_TERMS):
+        term = getattr(train_cfg.rewards, name)
+        std = term.params.get("std")
+        extra = f"   std {std}" if std is not None else ""
+        print(f"        {name:<24} {term.weight:+g}{extra}", flush=True)
+    print(
+        f"        {'deleted (' + str(len(deleted)) + ')':<24} "
+        + "  ".join(f"{n} {getattr(desert.rewards, n).weight:+g}" for n in deleted),
+        flush=True,
+    )
+    print(
+        f"        {'commands':<24} v_x {tuple(cmd.ranges.lin_vel_x)}  "
+        f"v_y {tuple(cmd.ranges.lin_vel_y)}  w_z {tuple(cmd.ranges.ang_vel_z)}",
+        flush=True,
+    )
+    print(
+        f"        {'dead zones':<24} |v_x| >= {cmd.min_lin_vel_x} m/s (resample), "
+        f"|w_z| < {cmd.min_ang_vel_z} rad/s -> 0 (snap), stand "
+        f"{cmd.rel_standing_envs:.0%}, heading {cmd.heading_command}",
+        flush=True,
+    )
+    func = train_cfg.curriculum.terrain_levels.func
+    print(
+        f"        {'curriculum':<24} {func.__module__}:{func.__name__}",
+        flush=True,
+    )
+    print(
+        f"        {'terrain':<24} {sub.hfield_path}  span {sub.z_span_m} m  "
+        f"(measured {measured_span(sub):.6f} m)",
+        flush=True,
+    )
+
+    # Kernel geometry: the ratio this task deliberately does NOT restore.
+    corner = math.hypot(
+        OVERNIGHT_COMMAND_RANGES["lin_vel_x"][1], OVERNIGHT_COMMAND_RANGES["lin_vel_y"][1]
+    )
+    ratio_std = 0.5 * OVERNIGHT_COMMAND_RANGES["lin_vel_x"][1]
+    print(
+        f"      kernel std {KERNEL_STD} unchanged: std/v_max "
+        f"{KERNEL_STD / OVERNIGHT_COMMAND_RANGES['lin_vel_x'][1]:.4f}, std/w_max "
+        f"{KERNEL_STD / OVERNIGHT_COMMAND_RANGES['ang_vel_z'][1]:.4f}, "
+        f"2-D corner {corner:.4f} m/s (std/corner {KERNEL_STD / corner:.4f})",
+        flush=True,
+    )
+    share = _standing_share(cmd, lin, ang, KERNEL_STD)
+    share_ratio = _standing_share(cmd, lin, ang, ratio_std)
+    print(
+        f"      standing share, drive cells {share:.2%} at std {KERNEL_STD} "
+        f"vs {share_ratio:.2%} at the ratio-preserving std {ratio_std} "
+        f"(flag {STANDING_SHARE_FLAG:.0%}; Hound's parked seed: 63%)",
+        flush=True,
+    )
+    never_strafes = _dead_zone_mean_kernel(
+        0.0, OVERNIGHT_COMMAND_RANGES["lin_vel_y"][1], KERNEL_STD
+    )
+    print(
+        f"      strafe is optional (v_y has no dead zone): a perfect v_x tracker "
+        f"that never sidesteps still earns {never_strafes:.2%} of the linear kernel"
+        f" (Bestiary-Fast-Spyder-v0, ±0.6 at std 0.3: "
+        f"{_dead_zone_mean_kernel(0.0, 0.6, 0.3):.2%})",
+        flush=True,
+    )
+    # The worst-case reading of the lateral channel, printed at BOTH lateral
+    # ranges the Hound has now commanded. It is a LOWER bound on the linear
+    # kernel's ceiling — the machine demonstrably makes some v_y (the desert
+    # task's ARM 2 note, measured |v_y|/|v| = 0.332) — and it is the number that
+    # `research/learnings/011`'s "charging the unremovable" would be read from.
+    ceilings = {
+        half: (KERNEL_STD * math.sqrt(math.pi) / (2.0 * half)) * math.erf(half / KERNEL_STD)
+        for half in (0.3, OVERNIGHT_COMMAND_RANGES["lin_vel_y"][1])
+    }
+    print(
+        "      worst case, v_y wholly unachievable: linear-kernel ceiling "
+        + ", ".join(f"{c:.4f} at ±{h}" for h, c in sorted(ceilings.items())),
+        flush=True,
+    )
+
+    # The two penalties, at labelled operating points. [ASSUMED] means no Hound
+    # policy has been measured at them, so none of these may enter the record.
+    dact_rms, vz_rms = 0.1, 0.15
+    for label, value, note in (
+        (
+            f"action_rate_l2 (16 actions, {dact_rms} rms)",
+            -abs(train_cfg.rewards.action_rate_l2.weight) * 16 * dact_rms**2 * dt,
+            "[ASSUMED]",
+        ),
+        (
+            f"lin_vel_z_l2 ({vz_rms} m/s rms)",
+            -abs(train_cfg.rewards.lin_vel_z_l2.weight) * vz_rms**2 * dt,
+            "[ASSUMED]",
+        ),
+    ):
+        print(
+            f"      {label:<40} {value:+.6f}/step  {abs(value) / income:6.2%} of "
+            f"income  {note}",
+            flush=True,
+        )
+
+    # The curriculum's two bars against what this machine's DRIVE alone can do.
+    # This is the number that makes it legitimate to ask this run for rolling:
+    # if the demote bar sat above the drive's own reach, the curriculum would
+    # require the gallop the forward probe found.
+    rim_speed = wheel_action_scale() * SPEC.wheel_r
+    episode_s = float(train_cfg.episode_length_s)
+    vx_hi = OVERNIGHT_COMMAND_RANGES["lin_vel_x"][1]
+    demote_m = 0.5 * float(arc_displacement_m(vx_hi, 0.0, episode_s))
+    promote_m = float(train_cfg.scene.terrain.terrain_generator.size[0]) / 2.0
+    rolled_m = rim_speed * episode_s
+    print(
+        f"      curriculum @ top straight cmd: demote below {demote_m:.1f} m, "
+        f"promote above {promote_m:.1f} m; the wheel drive alone reaches "
+        f"{rim_speed:.4f} m/s = {rolled_m:.2f} m per {episode_s:.0f} s episode",
+        flush=True,
+    )
+    if rolled_m <= demote_m:
+        raise AssertionError(
+            f"a machine rolling at the drive's saturation speed covers "
+            f"{rolled_m:.2f} m per episode, which does NOT clear the {demote_m:.1f} m "
+            "demote bar at the top straight command. The terrain curriculum would "
+            "then require the machine to gallop in order to be promoted — the mode "
+            "the forward-v5 probe already found at 203.56 m/episode — and this task "
+            "would be asking for rolling while paying for the opposite. Narrow "
+            "lin_vel_x or re-derive the bar."
+        )
+
+
 # ---------------------------------------------------------------------------
 # Runner
 # ---------------------------------------------------------------------------
@@ -1587,6 +2218,7 @@ SIM_CHECKS: tuple[tuple[str, Callable[[object], None]], ...] = (
 #: since the forward diagnostic; this is its Hound twin.
 CFG_CHECKS: tuple[tuple[str, Callable[[], None]], ...] = (
     ("forward-v5 task is v_x on v5 ground, nothing else", check_forward_v5_is_vx_on_v5_ground),
+    ("overnight task is the commanded Hound", check_overnight_task_is_the_commanded_hound),
 )
 
 
