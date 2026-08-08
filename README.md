@@ -150,6 +150,24 @@ is the luckiest episode, that a crash count was 0.9% of a gap we had already
 attributed to crashes, that a policy had learned one trot rather than a command.
 Every measurement discipline the rest of the repo now runs on was paid for here.
 
+**Its first Isaac Lab run chose to gallop.** Given a reward with one term in it
+and no instruction about how to move, the Hound ran on its legs and left its
+wheels out of it. One seed, so this is a probe and not a finding — but it is the
+first time this machine has been fast.
+
+<p align="center">
+  <img src="assets/hound_strip_chase.gif" alt="Hound-16 galloping up the demo strip in Isaac Lab under a forward-velocity-only reward, chase camera" width="620"/>
+</p>
+
+<p align="center">
+  <em>The Hound's first Isaac Lab run — about 65 minutes of training from
+  scratch, under a reward that is forward velocity and nothing else. It chose to
+  <strong>gallop</strong> at 18–22 mph (8–10 m/s) rather than use its wheels,
+  whose drives saturate at 2.0 mph (0.906 m/s) of rim speed. Shown charging 84%
+  of the demo strip's difficulty gradient before the steepest face wins. Chase
+  camera.</em>
+</p>
+
 **Read more:** [`CARD.md`](src/bestiary/robots/hound/CARD.md) — every dimension,
 the solved stance, the spring sizing, and the traction budget that explains why
 the hub motors are small ·
