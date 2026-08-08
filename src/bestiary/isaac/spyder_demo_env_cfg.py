@@ -48,7 +48,7 @@ actually run the strip end to end.
 from __future__ import annotations
 
 from isaaclab.terrains.terrain_generator_cfg import TerrainGeneratorCfg
-from isaaclab.utils import configclass
+from isaaclab.utils.configclass import configclass
 
 from bestiary import paths
 from bestiary.isaac.spyder_gentle_env_cfg import SpyderGentleEnvCfg_PLAY
@@ -136,13 +136,25 @@ class SpyderDemoEnvCfg_PLAY(SpyderGentleEnvCfg_PLAY):
         if getattr(self, "curriculum", None) is not None:
             self.curriculum.terrain_levels = None
 
-        # Pinned spawn: mid-pad, facing +x, at rest. Offsets are relative to
-        # the env origin, which for a single tile is the strip's centre.
+        # Spawn: mid-pad x, facing +x, at rest. y is SCATTERED, not pinned:
+        # one tile means every env shares the strip-centre origin, and the
+        # player runs 9 physics twins (render anomaly: 1 env draws no robot)
+        # — nine machines at one pinned point spawn inside each other. ±9 m
+        # across the 78 m width separates them; the visible robot still
+        # starts on the pad facing up the ramp.
         self.events.reset_base.params["pose_range"] = {
             "x": (SPAWN_X_M, SPAWN_X_M),
-            "y": (0.0, 0.0),
+            "y": (-9.0, 9.0),
             "yaw": (0.0, 0.0),
         }
+        # The demo strip is a driving surface, so the keyboard envelope is
+        # the FAST task's (play_spyder reads these ranges for its clamps).
+        # Play-only task, sampler exiled by the player: these numbers gate
+        # what may be COMMANDED, not what was trained — a gentle-era
+        # checkpoint driven here simply cannot use the top of the range.
+        self.commands.base_velocity.ranges.lin_vel_x = (-1.5, 1.5)
+        self.commands.base_velocity.ranges.lin_vel_y = (-0.6, 0.6)
+        self.commands.base_velocity.ranges.ang_vel_z = (-1.5, 1.5)
         self.events.reset_base.params["velocity_range"] = {
             "x": (0.0, 0.0), "y": (0.0, 0.0), "z": (0.0, 0.0),
             "roll": (0.0, 0.0), "pitch": (0.0, 0.0), "yaw": (0.0, 0.0),
