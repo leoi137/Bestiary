@@ -73,6 +73,19 @@ on a reward that is **forward velocity and nothing else** — no shaping, so wha
 it does is attributable to the stack rather than to a reward table. It reads no
 command and holds no heading; steering is a separate arm.
 
+<p align="center">
+  <img src="assets/spyder_command_tour.gif" alt="Command tour: the velocity-commanded PPO policy driven through each command in isolation — forward, backward, side-steps, turns — with a full stop between each, titled" width="620"/>
+</p>
+
+<p align="center">
+  <em>That separate arm, delivered: a 287K-parameter policy (235–512–256–128 → 12)
+  tracking six velocity commands — forward/backward to 1.5 m/s, side-steps,
+  turns — one command at a time with a commanded full stop between each.
+  Trained with PPO on command-tracking reward plus three shaping terms
+  (2.06B steps, ~10.7 h on one GPU), then fine-tuned to a 2.5× wider speed
+  envelope from its own checkpoint.</em>
+</p>
+
 **Read more:** [`envs/spyder.py`](src/bestiary/envs/spyder.py) — the
 reward-hacking postmortem is in its docstring ·
 [lesson 014, the anatomy of the Spyder policy](docs/lessons/014-anatomy-of-the-spyder-policy.md)
