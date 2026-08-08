@@ -4,9 +4,9 @@
 
 Run after ANY change to `assets/spyder12.xml`, `spyder_usd.py`, `spyder_cfg.py`,
 `commands.py`, `spyder_gentle_env_cfg.py`, `rewards.py`,
-`spyder_forward_env_cfg.py`, `spyder_ladder_env_cfg.py`,
-`spyder_overnight_env_cfg.py` or `spyder_fast_env_cfg.py`, and before every
-training launch.
+`spyder_forward_env_cfg.py`, `spyder_forward_v5_env_cfg.py`,
+`spyder_ladder_env_cfg.py`, `spyder_overnight_env_cfg.py` or
+`spyder_fast_env_cfg.py`, and before every training launch.
 
 Three groups, mirroring `check_hound.py`'s structure because the failure modes
 are the Hound port's failure modes minus the wheels:
@@ -22,10 +22,14 @@ are the Hound port's failure modes minus the wheels:
      retargeted regex resolves on this robot, and the money adds up: standing
      earns a bounded fraction of income and the penalty budget stays under the
      30% flag (`research/decisions/0005`'s rule, `learnings/011` and `015` the
-     failures it exists to keep from repeating). Last in this group, the four
+     failures it exists to keep from repeating). Last in this group, the five
      TASK VARIANTS are pinned the same way, each against the config it claims
      to be one change away from: the forward-velocity diagnostic carries exactly
-     one reward term and differs from the training config in nothing else; each
+     one reward term and differs from the training config in nothing else; the
+     v5 re-run of that diagnostic differs from IT in one leaf — which bytes the
+     bestiary tile reads — while `Bestiary-Gentle-Spyder-v0` still reads v4's,
+     which is what keeps `research/decisions/0007` from silently invalidating
+     every run that already stood on v4; each
      rung of the reward LADDER carries the income terms plus at most one
      declared penalty and differs in nothing but `rewards` and one command
      range; the OVERNIGHT task carries the ladder's winning rung plus its two
@@ -904,6 +908,171 @@ def check_forward_variant_is_reward_only(cfg) -> None:
         )
 
 
+#: The ONLY dotted path at which the v5 diagnostic may differ from the v4 one:
+#: which bytes the bestiary tile reads. `research/decisions/0007` changed the
+#: ground and nothing else, so a config diff with a second entry is a second
+#: variable smuggled in beside a terrain swap — and a terrain swap is the one
+#: change nothing downstream would notice (`CLAUDE.md`, the terrain invariant:
+#: every checkpoint still loads and every ledger row silently becomes
+#: incomparable).
+V5_TERRAIN_DIFF_PATH = (
+    "terrain.terrain_generator.sub_terrains.bestiary_gentle.hfield_path"
+)
+
+#: Basename of the committed v5 asset, asserted literally. `paths.GENTLE_V5_HFIELD`
+#: is checked too, but a check that ONLY compares against the constant passes
+#: when the constant itself is repointed; the literal is the independent half.
+V5_HFIELD_BASENAME = "gentle_v5_hfield.bin"
+
+
+def check_forward_v5_changes_only_the_ground(cfg) -> None:
+    """The v5 diagnostic is the v4 diagnostic on different bytes. Nothing else.
+
+    `Bestiary-ForwardV5-Spyder-v0` exists because `research/decisions/0007`
+    found that v4's crests reach 47 degrees — past any angle of repose, ground
+    that cannot physically exist — and made v5 mandatory for every new arm while
+    leaving v4 committed and untouched for the lineages that trained on it.
+
+    Four things are asserted, and the fourth is the one that protects the OLD
+    runs rather than the new one:
+
+      (a) the reward survived the terrain swap: exactly one term,
+          `forward_velocity` at weight 1.0, resolving to
+          `bestiary.isaac.rewards.forward_velocity`. A v5 task that quietly
+          gained a term would be a two-variable experiment against 014.
+      (b) the ground is the committed v5 asset — the path ends in
+          `gentle_v5_hfield.bin` AND equals `paths.GENTLE_V5_HFIELD` — and its
+          bytes MEASURE a 2.25 m span, read back through the same bridge Isaac
+          Lab reads them through. Decision 0007's number is not taken on trust
+          from the config; the config is checked against the file.
+      (c) the whole-config diff against `Bestiary-Forward-Spyder-v0` is that one
+          hfield path and nothing else, on the training config and on the Play
+          twin. The Play twin is not decoration: it gets its swap from a SECOND
+          call to the mutator, so an edit reaching one call and not the other
+          would give the viewer ground the policy never trained on.
+      (d) `Bestiary-Gentle-Spyder-v0` — the root of the v4 lineage, passed in as
+          `cfg` — still reads `paths.GENTLE_HFIELD`. This is 0007's other half:
+          a well-meaning "point everything at v5" edit is exactly how every
+          existing Spyder run, video and grid eval would become uninterpretable
+          against ground nothing recorded.
+
+    No simulator is needed: all four configs construct pre-app.
+    """
+    from bestiary import paths
+    from bestiary.isaac import rewards as bestiary_rewards
+    from bestiary.isaac.spyder_forward_env_cfg import (
+        REWARD_TERM_NAME,
+        REWARD_WEIGHT,
+        SpyderForwardEnvCfg,
+        SpyderForwardEnvCfg_PLAY,
+        single_reward_term,
+    )
+    from bestiary.isaac.spyder_forward_v5_env_cfg import (
+        GENTLE_SUBTERRAIN_KEY,
+        V5_Z_SPAN_M,
+        SpyderForwardV5EnvCfg,
+        SpyderForwardV5EnvCfg_PLAY,
+    )
+    from bestiary.terrain.gentle import Z_SPAN_M
+    from bestiary.terrain.isaac_hf import load_desert_m
+
+    arms = (
+        ("train", SpyderForwardV5EnvCfg(), SpyderForwardEnvCfg()),
+        ("play", SpyderForwardV5EnvCfg_PLAY(), SpyderForwardEnvCfg_PLAY()),
+    )
+
+    for arm, v5, v4 in arms:
+        # (a) The reward is still the diagnostic's one term.
+        name, term = single_reward_term(v5.rewards)
+        if name != REWARD_TERM_NAME:
+            raise AssertionError(f"the v5 diagnostic ({arm}) pays {name!r}, not {REWARD_TERM_NAME!r}")
+        if term.func is not bestiary_rewards.forward_velocity:
+            raise AssertionError(
+                f"the v5 diagnostic ({arm}) pays {name!r} through "
+                f"{getattr(term.func, '__name__', term.func)!r}, not "
+                "bestiary.isaac.rewards.forward_velocity — it is measuring "
+                "something other than base-frame forward speed."
+            )
+        if term.weight != REWARD_WEIGHT:
+            raise AssertionError(
+                f"the v5 diagnostic ({arm}) pays {name!r} at weight {term.weight}, "
+                f"not {REWARD_WEIGHT}"
+            )
+
+        # (b) The ground is the committed v5 asset, at the span 0007 declares.
+        sub = v5.scene.terrain.terrain_generator.sub_terrains.get(GENTLE_SUBTERRAIN_KEY)
+        if sub is None:
+            raise AssertionError(
+                f"the v5 diagnostic ({arm}) has no {GENTLE_SUBTERRAIN_KEY!r} "
+                f"sub-terrain; it carries "
+                f"{sorted(v5.scene.terrain.terrain_generator.sub_terrains)}"
+            )
+        if not sub.hfield_path.endswith(V5_HFIELD_BASENAME):
+            raise AssertionError(
+                f"the v5 diagnostic ({arm}) reads {sub.hfield_path}, whose name is "
+                f"not {V5_HFIELD_BASENAME!r}. v4's crests reach 47 degrees "
+                "(research/decisions/0007); this task's whole reason to exist is "
+                "that it does not train on them."
+            )
+        if sub.hfield_path != str(paths.GENTLE_V5_HFIELD):
+            raise AssertionError(
+                f"the v5 diagnostic ({arm}) reads {sub.hfield_path}, but "
+                f"paths.GENTLE_V5_HFIELD is {paths.GENTLE_V5_HFIELD}"
+            )
+        if abs(sub.z_span_m - V5_Z_SPAN_M) > 1e-12:
+            raise AssertionError(
+                f"the v5 diagnostic ({arm}) declares z_span_m = {sub.z_span_m}, "
+                f"decision 0007 says {V5_Z_SPAN_M}. Every slope on this terrain "
+                "scales with that number."
+            )
+        measured = float(np.ptp(load_desert_m(paths.GENTLE_V5_HFIELD, V5_Z_SPAN_M)))
+        if abs(measured - V5_Z_SPAN_M) > 1e-6 or abs(Z_SPAN_M - V5_Z_SPAN_M) > 1e-12:
+            raise AssertionError(
+                f"the committed v5 bytes span {measured} m and terrain/gentle.py "
+                f"says Z_SPAN_M = {Z_SPAN_M}, against decision 0007's "
+                f"{V5_Z_SPAN_M}. The generator rescales the field so these are "
+                "equal by construction; a disagreement means the asset was not "
+                "written by this generator."
+            )
+
+        # (c) One leaf of difference against the v4 diagnostic. Nothing else.
+        v4_d, v5_d = v4.to_dict(), v5.to_dict()
+        moved = sorted(k for k in set(v4_d) | set(v5_d) if v4_d.get(k) != v5_d.get(k))
+        if moved != ["scene"]:
+            raise AssertionError(
+                f"the v5 diagnostic ({arm}) differs from Bestiary-Forward-Spyder-v0 "
+                f"in {moved}, but it may differ ONLY in 'scene' — the terrain "
+                "generator lives there. The reward, the commands, the "
+                "observations, the actions, the events, the terminations and the "
+                "curriculum are inherited on purpose: this task's single variable "
+                "is the ground."
+            )
+        scene_paths = _dict_diff_paths(v4_d["scene"], v5_d["scene"])
+        if scene_paths != [V5_TERRAIN_DIFF_PATH]:
+            raise AssertionError(
+                f"the v5 diagnostic ({arm}) moves these scene fields: "
+                f"{scene_paths}. The only legal diff is "
+                f"[{V5_TERRAIN_DIFF_PATH!r}] — WHICH BYTES the bestiary tile "
+                "reads. The mix proportions, the tile size, the border widths, "
+                "the two Isaac Lab sub-terrains, the horizontal sampling, the "
+                "grid shape, the robot and the height scanner all stay, because "
+                "a terrain change confounded with any of them is not a terrain "
+                "measurement."
+            )
+
+    # (d) The v4 lineage still stands on v4. 0007's other half.
+    gentle_sub = cfg.scene.terrain.terrain_generator.sub_terrains.get(GENTLE_SUBTERRAIN_KEY)
+    if gentle_sub is None or gentle_sub.hfield_path != str(paths.GENTLE_HFIELD):
+        raise AssertionError(
+            f"Bestiary-Gentle-Spyder-v0 reads "
+            f"{getattr(gentle_sub, 'hfield_path', None)}, not {paths.GENTLE_HFIELD}. "
+            "research/decisions/0007 keeps v4 committed and UNTOUCHED: every "
+            "Spyder policy to date trained on those exact bytes, and their runs, "
+            "videos and grid evals are only interpretable against that ground. "
+            "The v5 switch happens by adding a task, never by repointing one."
+        )
+
+
 #: The ONE command range a keep-list variant is allowed to move against the
 #: gentle task. A dotted path into `to_dict()`, so the assertion below reads as
 #: the sentence the ladder's docstring makes: "strafe, and nothing else". The
@@ -1650,6 +1819,7 @@ CFG_CHECKS: list[tuple[str, Callable]] = [
     ("terrain-is-gentle-mix", check_terrain_is_the_gentle_mix),
     ("the-money", check_the_money),
     ("forward-variant-is-reward-only", check_forward_variant_is_reward_only),
+    ("forward-v5-changes-only-the-ground", check_forward_v5_changes_only_the_ground),
     ("ladder-rungs-are-income-plus-one", check_ladder_rungs_are_income_plus_one),
     ("overnight-task-is-declared-table", check_overnight_task_is_the_declared_table),
     ("fast-task-widens-only-commands", check_fast_task_widens_only_the_command_box),

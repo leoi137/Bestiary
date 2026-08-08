@@ -52,6 +52,8 @@ _ANYMAL_CFG_MODULE = "bestiary.isaac.anymal_desert_env_cfg"
 _HOUND_CFG_MODULE = "bestiary.isaac.hound_desert_env_cfg"
 _SPYDER_CFG_MODULE = "bestiary.isaac.spyder_gentle_env_cfg"
 _SPYDER_FWD_CFG_MODULE = "bestiary.isaac.spyder_forward_env_cfg"
+_SPYDER_FWD_V5_CFG_MODULE = "bestiary.isaac.spyder_forward_v5_env_cfg"
+_HOUND_FWD_V5_CFG_MODULE = "bestiary.isaac.hound_forward_v5_env_cfg"
 _SPYDER_LADDER_CFG_MODULE = "bestiary.isaac.spyder_ladder_env_cfg"
 _SPYDER_OVERNIGHT_CFG_MODULE = "bestiary.isaac.spyder_overnight_env_cfg"
 _SPYDER_FAST_CFG_MODULE = "bestiary.isaac.spyder_fast_env_cfg"
@@ -68,6 +70,14 @@ _SPYDER_RSL_RL_CFG = "bestiary.isaac.rl_cfg:SpyderGentlePPORunnerCfg"
 #: `spyder_forward` so its checkpoints never land in `spyder_gentle/` beside
 #: seed 1's — two rewards in one run directory is unrecoverable bookkeeping.
 _SPYDER_FWD_RSL_RL_CFG = "bestiary.isaac.rl_cfg:SpyderForwardPPORunnerCfg"
+
+#: The same diagnostic on the v5 terrain (`research/decisions/0007`), and on the
+#: Hound. One `experiment_name` each — `spyder_forward_v5` and `hound_forward_v5`
+#: — because the ground is what changed: two runs of the SAME reward on
+#: DIFFERENT terrain in one log tree is a directory whose rows cannot be
+#: compared and whose difference nothing records.
+_SPYDER_FWD_V5_RSL_RL_CFG = "bestiary.isaac.rl_cfg:SpyderForwardV5PPORunnerCfg"
+_HOUND_FWD_V5_RSL_RL_CFG = "bestiary.isaac.rl_cfg:HoundForwardV5PPORunnerCfg"
 
 #: The reward-ladder rungs' runner cfgs. One `experiment_name` each —
 #: `spyder_ladder_bare` / `_actionrate` / `_tilt` — so the three arms of a
@@ -149,6 +159,37 @@ def register() -> None:
             "Bestiary-Forward-Spyder-Play-v0",
             f"{_SPYDER_FWD_CFG_MODULE}:SpyderForwardEnvCfg_PLAY",
             _SPYDER_FWD_RSL_RL_CFG,
+        ),
+        # The same diagnostic on the v5 ground. `research/decisions/0007` makes
+        # v5 mandatory for every NEW arm and leaves v4 committed and untouched
+        # for the lineages that trained on it, so this is a task BESIDE
+        # `Bestiary-Forward-Spyder-v0`, never a repoint of it. One variable
+        # against that task, asserted: the bestiary tile's hfield path.
+        (
+            "Bestiary-ForwardV5-Spyder-v0",
+            f"{_SPYDER_FWD_V5_CFG_MODULE}:SpyderForwardV5EnvCfg",
+            _SPYDER_FWD_V5_RSL_RL_CFG,
+        ),
+        (
+            "Bestiary-ForwardV5-Spyder-Play-v0",
+            f"{_SPYDER_FWD_V5_CFG_MODULE}:SpyderForwardV5EnvCfg_PLAY",
+            _SPYDER_FWD_V5_RSL_RL_CFG,
+        ),
+        # The same question asked of the wheel-legged machine: reward = v_x
+        # only, on v5 ground. On a body whose feet are driven hub wheels the
+        # reward cannot distinguish rolling from galloping, and
+        # `hound_forward_v5_env_cfg.py` argues that the ambiguity IS the
+        # experiment. First Hound task with an `experiment_name` of its own —
+        # arms 1 and 2 filed themselves under `anymal_c_rough`.
+        (
+            "Bestiary-ForwardV5-Hound-v0",
+            f"{_HOUND_FWD_V5_CFG_MODULE}:HoundForwardV5EnvCfg",
+            _HOUND_FWD_V5_RSL_RL_CFG,
+        ),
+        (
+            "Bestiary-ForwardV5-Hound-Play-v0",
+            f"{_HOUND_FWD_V5_CFG_MODULE}:HoundForwardV5EnvCfg_PLAY",
+            _HOUND_FWD_V5_RSL_RL_CFG,
         ),
         # The reward-ablation LADDER: three arms, each paying the gentle task's
         # full command-tracking income plus AT MOST ONE penalty, and each

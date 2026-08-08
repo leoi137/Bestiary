@@ -62,6 +62,16 @@ These are structural checks, not name checks: they resolve each term's regex
 against the loaded articulation's real body and joint names and then read the
 reward function's own source to decide what it charges for. A future term under a
 new name is caught for the same reason the current one is.
+
+AND THE TASK VARIANTS, WHICH NEED NO SIMULATOR AT ALL
+------------------------------------------------------
+Section 5 pins `Bestiary-ForwardV5-Hound-v0` against the desert task it is one
+change away from: exactly one reward term (`v_x`, weight 1.0), the v5 ground of
+`research/decisions/0007` measured from the committed bytes, and a whole-config
+diff limited to `rewards` and the two sub-terrain keys inside `scene`. Those
+configs construct before the simulation app exists, so that group runs at a desk
+with no GPU — which is the only part of this oracle a session without the card
+can still hold.
 """
 
 from __future__ import annotations
@@ -1328,6 +1338,210 @@ def check_reward_budget_against_011_and_015(robot) -> None:
 
 
 # ---------------------------------------------------------------------------
+# 5. The task VARIANTS. Nothing here needs the articulation or the app: a config
+#    is a config, and every one of these configs constructs pre-app.
+# ---------------------------------------------------------------------------
+#: Basename of the committed v5 heightfield, asserted literally.
+#:
+#: `paths.GENTLE_V5_HFIELD` is asserted too, but a check that ONLY compares
+#: against the constant still passes when the constant itself is repointed at
+#: other bytes. The literal is the independent half of that pair.
+V5_HFIELD_BASENAME = "gentle_v5_hfield.bin"
+
+#: Metres of elevation the v5 asset spans, from `research/decisions/0007`.
+#: Typed here rather than imported for the same reason: the env cfg's own
+#: constant is one of the things being checked.
+V5_Z_SPAN_M = 2.25
+
+#: The dotted paths inside `scene` at which the forward-v5 task may differ from
+#: `Bestiary-Desert-Hound-v0`. Two, and they are one change: the desert tile
+#: leaves the mix and the gentle-v5 tile takes its place, so the sub-terrain
+#: DICT gains one key and loses another. `scene` is an unavoidable section —
+#: `terrain_generator` lives under it — and this list is what stops "unavoidable
+#: section" from becoming a licence to move the robot, the sensors, the env
+#: count or the spacing along with the ground.
+V5_SCENE_DIFF_PATHS = [
+    "terrain.terrain_generator.sub_terrains.bestiary_desert",
+    "terrain.terrain_generator.sub_terrains.bestiary_gentle",
+]
+
+
+def _diff_paths(a, b, prefix: str = "") -> list[str]:
+    """Dotted paths at which two `to_dict()` trees disagree, deepest-wins.
+
+    A key present in one tree and absent from the other reports as that key's
+    own path rather than recursing into it — which is what makes the desert tile
+    leaving and the gentle tile arriving read as two paths instead of a dozen
+    leaves.
+
+    Deliberately a duplicate of `check_spyder.py`'s `_dict_diff_paths` rather
+    than an import. The two oracles already duplicate `_to_numpy`, `_run` and
+    `_exit` for the same reason: they gate launches independently, and a syntax
+    error or a bad edit in one must not be able to take the other down with it.
+    """
+    if isinstance(a, dict) and isinstance(b, dict):
+        out: list[str] = []
+        for key in sorted(set(a) | set(b)):
+            path = f"{prefix}{key}"
+            if key not in a or key not in b:
+                out.append(path)
+            else:
+                out.extend(_diff_paths(a[key], b[key], f"{path}."))
+        return out
+    return [] if a == b else [prefix.rstrip(".")]
+
+
+def check_forward_v5_is_vx_on_v5_ground() -> None:
+    """`Bestiary-ForwardV5-Hound-v0` pays v_x alone, on v5 ground, and moves nothing else.
+
+    The task (`hound_forward_v5_env_cfg.py`) asks what an UNSHAPED speed reward
+    selects on a body that can both roll and gallop. That question only has an
+    answer if the reward really is unshaped: a single surviving penalty from the
+    desert table would be a thumb on the scale between the two modes, and
+    `HoundRewardsCfg` is full of terms that are exactly that (`lin_vel_z_l2` at
+    -2.0 prices the vertical bouncing a gallop is made of; the 100x split
+    between `dof_acc_l2` and `dof_acc_wheel_l2` prices stepping over rolling).
+    So "exactly one term" is asserted structurally, not by reading the file:
+
+      (a) ONE live reward term — `vars(cfg.rewards)` minus the Nones, which is
+          what `RewardManager` iterates — named `forward_velocity`, at weight
+          1.0, resolving to the `bestiary.isaac.rewards.forward_velocity`
+          function object itself rather than to something that shares its name.
+      (b) THE GROUND IS v5. The bestiary tile reads a path ending in
+          `gentle_v5_hfield.bin` that equals `paths.GENTLE_V5_HFIELD`, declares
+          decision 0007's 2.25 m span, and those bytes MEASURE that span through
+          the same bridge Isaac Lab reads them through. The desert tile is gone
+          from the mix: this task does not train on the 5.05 m desert.
+      (c) THE DIFF against `Bestiary-Desert-Hound-v0` is `rewards` and `scene`,
+          and inside `scene` it is exactly the two sub-terrain keys. Everything
+          else the desert task carries is inherited on purpose — the wheel-aware
+          action split, the observation with the four unbounded wheel angles
+          already dropped, the trunk-contact termination, the command ranges and
+          the retargeted body names.
+
+    Both the training config and the Play twin, because the Play class descends
+    from the desert Play class and gets its surgery from a SECOND call to
+    `apply_forward_v5`. An edit reaching one call and not the other would put
+    the viewer on different ground, or under a different reward, than the run.
+    """
+    import numpy as _np
+
+    from bestiary import paths
+    from bestiary.isaac import rewards as bestiary_rewards
+    from bestiary.isaac.hound_desert_env_cfg import HoundDesertEnvCfg, HoundDesertEnvCfg_PLAY
+    from bestiary.isaac.hound_forward_v5_env_cfg import (
+        HoundForwardV5EnvCfg,
+        HoundForwardV5EnvCfg_PLAY,
+    )
+    from bestiary.isaac.spyder_forward_env_cfg import REWARD_TERM_NAME, REWARD_WEIGHT
+    from bestiary.isaac.spyder_forward_v5_env_cfg import GENTLE_SUBTERRAIN_KEY
+    from bestiary.terrain.isaac_hf import load_desert_m
+
+    arms = (
+        ("train", HoundForwardV5EnvCfg(), HoundDesertEnvCfg()),
+        ("play", HoundForwardV5EnvCfg_PLAY(), HoundDesertEnvCfg_PLAY()),
+    )
+
+    for arm, v5, base in arms:
+        # (a) Exactly one reward term, and it is the one the task is named for.
+        terms = _live_reward_terms(v5)
+        if sorted(terms) != [REWARD_TERM_NAME]:
+            raise AssertionError(
+                f"the forward-v5 Hound task ({arm}) pays {sorted(terms)}, but the "
+                f"whole task is [{REWARD_TERM_NAME!r}]. A second term prices "
+                "rolling against galloping, which is the one thing this run must "
+                "not do: the question is which mode an UNSHAPED speed objective "
+                "selects on a body that has both."
+            )
+        term = terms[REWARD_TERM_NAME]
+        if term.func is not bestiary_rewards.forward_velocity:
+            raise AssertionError(
+                f"the forward-v5 Hound task ({arm}) pays {REWARD_TERM_NAME!r} "
+                f"through {getattr(term.func, '__name__', term.func)!r}, not "
+                "bestiary.isaac.rewards.forward_velocity — it is measuring "
+                "something other than base-frame forward speed."
+            )
+        if term.weight != REWARD_WEIGHT:
+            raise AssertionError(
+                f"the forward-v5 Hound task ({arm}) pays {REWARD_TERM_NAME!r} at "
+                f"weight {term.weight}, not {REWARD_WEIGHT}. At 1.0 the episode "
+                "return reads as metres of forward travel; any other weight is a "
+                "relabelling that makes the run's own number mean nothing."
+            )
+
+        # (b) The ground is the committed v5 asset, and the desert is gone.
+        gen = v5.scene.terrain.terrain_generator
+        sub = gen.sub_terrains.get(GENTLE_SUBTERRAIN_KEY)
+        if sub is None:
+            raise AssertionError(
+                f"the forward-v5 Hound task ({arm}) has no "
+                f"{GENTLE_SUBTERRAIN_KEY!r} sub-terrain; it carries "
+                f"{sorted(gen.sub_terrains)}. The terrain swap did not run."
+            )
+        if "bestiary_desert" in gen.sub_terrains:
+            raise AssertionError(
+                f"the forward-v5 Hound task ({arm}) still carries a "
+                "'bestiary_desert' tile alongside the gentle one. Half its tiles "
+                "would be the 5.05 m desert, which is not the ground "
+                "research/decisions/0007 puts new arms on."
+            )
+        if not sub.hfield_path.endswith(V5_HFIELD_BASENAME):
+            raise AssertionError(
+                f"the forward-v5 Hound task ({arm}) reads {sub.hfield_path}, whose "
+                f"name is not {V5_HFIELD_BASENAME!r}. v4's crests reach 47 degrees "
+                "— past any angle of repose — which is why 0007 made v5 mandatory "
+                "for every new arm."
+            )
+        if sub.hfield_path != str(paths.GENTLE_V5_HFIELD):
+            raise AssertionError(
+                f"the forward-v5 Hound task ({arm}) reads {sub.hfield_path}, but "
+                f"paths.GENTLE_V5_HFIELD is {paths.GENTLE_V5_HFIELD}"
+            )
+        if abs(sub.z_span_m - V5_Z_SPAN_M) > 1e-12:
+            raise AssertionError(
+                f"the forward-v5 Hound task ({arm}) declares z_span_m = "
+                f"{sub.z_span_m}, decision 0007 says {V5_Z_SPAN_M}. Every slope on "
+                "this terrain scales with that number, so the wrong span is a "
+                "different world at the same task id."
+            )
+        measured = float(_np.ptp(load_desert_m(paths.GENTLE_V5_HFIELD, V5_Z_SPAN_M)))
+        if abs(measured - V5_Z_SPAN_M) > 1e-6:
+            raise AssertionError(
+                f"the committed v5 bytes span {measured} m, not decision 0007's "
+                f"{V5_Z_SPAN_M}. `terrain/gentle.py` rescales the field until "
+                "these are equal by construction, so a disagreement means the "
+                "asset was not written by that generator."
+            )
+
+        # (c) Two sections, and inside `scene` exactly the two sub-terrain keys.
+        base_d, v5_d = base.to_dict(), v5.to_dict()
+        moved = sorted(k for k in set(base_d) | set(v5_d) if base_d.get(k) != v5_d.get(k))
+        if moved != ["rewards", "scene"]:
+            raise AssertionError(
+                f"the forward-v5 Hound task ({arm}) differs from "
+                f"Bestiary-Desert-Hound-v0 in {moved}, but it may differ ONLY in "
+                "['rewards', 'scene']. 'scene' is unavoidable — the terrain "
+                "generator lives there — and everything else is inherited on "
+                "purpose: the wheel-aware action split, the observation (a "
+                "one-way door), the trunk-contact termination, the commands, the "
+                "events and the retargeted body names. Two variables and the run "
+                "cannot say which one moved the result."
+            )
+        scene_paths = _diff_paths(base_d["scene"], v5_d["scene"])
+        if scene_paths != V5_SCENE_DIFF_PATHS:
+            raise AssertionError(
+                f"the forward-v5 Hound task ({arm}) moves these scene fields: "
+                f"{scene_paths}. The only legal diff is {V5_SCENE_DIFF_PATHS} — "
+                "the desert tile leaving the mix and the v5 gentle tile taking "
+                "its place. The robot, the height scanner, the contact sensor, "
+                "the env count and the spacing are the desert task's; moving one "
+                "of them here hides a second change inside a terrain swap, which "
+                "is the quietest failure this repository has "
+                "(CLAUDE.md, the terrain invariant)."
+            )
+
+
+# ---------------------------------------------------------------------------
 # Runner
 # ---------------------------------------------------------------------------
 #: Checks that need nothing but the files.
@@ -1361,6 +1575,18 @@ SIM_CHECKS: tuple[tuple[str, Callable[[object], None]], ...] = (
     ("wheels are not charged for spinning", check_wheel_joints_are_not_charged_for_spinning),
     ("leg velocity limit is Go2's rated speed", check_leg_velocity_limit_is_the_go2_rated_speed),
     ("reward budget priced against 011 and 015", check_reward_budget_against_011_and_015),
+)
+
+#: Checks that need only a constructed config — no articulation, no app.
+#:
+#: A third group rather than a fourth entry in SIM_CHECKS, because these are the
+#: only checks in this file that would run on a laptop with no GPU: every config
+#: here constructs before the simulation app exists (the same property
+#: `commands_impl.py` depends on), so a task-variant claim can be checked at the
+#: desk instead of on a rented box. `check_spyder.py` has carried this group
+#: since the forward diagnostic; this is its Hound twin.
+CFG_CHECKS: tuple[tuple[str, Callable[[], None]], ...] = (
+    ("forward-v5 task is v_x on v5 ground, nothing else", check_forward_v5_is_vx_on_v5_ground),
 )
 
 
@@ -1398,8 +1624,9 @@ def main() -> int:
     robot = Articulation(HOUND16_CFG.replace(prim_path="/World/Robot"))
     sim.reset()
     failures += sum(_run(name, lambda fn=fn: fn(robot)) for name, fn in SIM_CHECKS)
+    failures += sum(_run(name, fn) for name, fn in CFG_CHECKS)
 
-    total = len(FILE_CHECKS) + len(SIM_CHECKS)
+    total = len(FILE_CHECKS) + len(SIM_CHECKS) + len(CFG_CHECKS)
     print(f"\n{total - failures}/{total} checks pass", flush=True)
     return 1 if failures else 0
 

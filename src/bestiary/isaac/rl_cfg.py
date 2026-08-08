@@ -65,6 +65,56 @@ class SpyderForwardPPORunnerCfg(SpyderGentlePPORunnerCfg):
         self.experiment_name = "spyder_forward"
 
 
+@configclass
+class SpyderForwardV5PPORunnerCfg(SpyderForwardPPORunnerCfg):
+    """The forward diagnostic on v5 ground. Same agent, different run dir.
+
+    Subclasses the v4 forward runner for the reason every class in this file
+    subclasses its sibling: this task's claim is that it changes EXACTLY ONE
+    variable against `Bestiary-Forward-Spyder-v0` — the terrain — so its PPO
+    hyperparameters must be identical by construction rather than by two lists
+    of numbers that agree today.
+
+    `experiment_name` moves and it MUST. rsl_rl files runs under
+    `logs/rsl_rl/<experiment_name>/`, and `spyder_forward/` already holds the
+    seed-1 run of `research/episodes/014` — trained on v4, whose crests reach
+    47 degrees. Two DIFFERENT GROUNDS in one log directory is the quietest
+    version of the `anymal_c_rough` mis-filing this file exists to stop: the
+    checkpoints load, the reward is the same, the returns are in the same units,
+    and nothing in the directory records that they were earned on different
+    worlds (`research/decisions/0007`, and the terrain invariant in CLAUDE.md).
+    """
+
+    def __post_init__(self) -> None:
+        super().__post_init__()
+        self.experiment_name = "spyder_forward_v5"
+
+
+@configclass
+class HoundForwardV5PPORunnerCfg(AnymalCRoughPPORunnerCfg):
+    """The Hound's v_x-only diagnostic on v5 ground. ANYmal's agent, Hound's name.
+
+    Descends from `AnymalCRoughPPORunnerCfg` directly rather than from a Spyder
+    class, and that is not laziness: the Spyder runners are the same ANYmal
+    hyperparameters, so inheriting one of them would make this task's agent
+    config depend on a Spyder task's `experiment_name` chain for no shared
+    claim. The hyperparameters are the five-year recipe kept as a CONTROL, per
+    this file's module docstring; a first arm on a new body that also changed
+    them would measure two things at once.
+
+    `experiment_name` is the only field this class sets, and it is the whole
+    point. Hound arms 1 and 2 trained under ANYmal's agent config verbatim, so
+    their runs filed themselves under `logs/rsl_rl/anymal_c_rough/` — three
+    Hound seeds indistinguishable from ANYmal runs by path alone. This task does
+    not repeat that: it files under `hound_forward_v5/`, which names the robot,
+    the reward and the ground.
+    """
+
+    def __post_init__(self) -> None:
+        super().__post_init__()
+        self.experiment_name = "hound_forward_v5"
+
+
 # ---------------------------------------------------------------------------
 # The reward-ablation ladder: full command-tracking income + at most ONE
 # penalty, three ways. `spyder_ladder_env_cfg.py` carries the question.
