@@ -48,6 +48,38 @@ C_KNEE = "#3366D9"
 C_WHEEL = "#D18C1F"
 C_INK = "#1B1D21"
 
+# ── Units on the labels ──────────────────────────────────────────────────────
+# These figures explain the machine to a person who reads US customary, so a
+# text label carries US first with SI in parentheses. Nothing else converts:
+# every plotted value, axis and geometry below stays SI, and every label is
+# derived here from the SI source in SPEC rather than typed, so a label cannot
+# drift away from the machine it describes.
+#
+# Both factors are exact by definition (NIST SP 811, 2008, App. B.9):
+# 1 lbf = 4.4482216152605 N and 1 in = 0.0254 m, hence 1 N·m = 8.850745... lbf·in.
+_LBF_IN_PER_N_M = 1.0 / (4.4482216152605 * 0.0254)
+_IN_PER_M = 1.0 / 0.0254
+
+
+def _sig3(x: float) -> str:
+    """Three significant figures — the resolution a figure label is read at."""
+    return f"{x:.3g}"
+
+
+def _torque(n_m: float, per: str = "") -> str:
+    """A torque as the operator reads it: 23.7 -> '210 lbf·in (23.7 N·m)'.
+
+    `per` appends the same denominator to both halves, so a stiffness is
+    `_torque(11.6, "/rad")` -> '103 lbf·in/rad (11.6 N·m/rad)'.
+    """
+    return (f"{_sig3(n_m * _LBF_IN_PER_N_M)} lbf·in{per} "
+            f"({_sig3(n_m)} N·m{per})")
+
+
+def _length(m: float) -> str:
+    """A length as the operator reads it: 0.3634 -> '14.3 in (0.363 m)'."""
+    return f"{_sig3(m * _IN_PER_M)} in ({_sig3(m)} m)"
+
 
 # ── MuJoCo renders ───────────────────────────────────────────────────────────
 def render(model_path: str, out: Path, width=1600, height=1000, *,
@@ -164,11 +196,15 @@ def leg_diagram() -> None:
 
     # joints
     # Explicit label positions: the wheel is 0.085 m across, so a generic
-    # offset puts its caption inside the tyre.
+    # offset puts its caption inside the tyre. The hip caption sits hard against
+    # the left edge because it and the abduction caption share the y = 0.10 band,
+    # and a dual-unit torque is wide enough to run one into the other.
     for pt, col, name, sub, xy in (
-        (hip, C_HIP, "hip", "pitch, +Y\n23.7 N·m", (-0.30, 0.10)),
-        (knee, C_KNEE, "knee", "pitch, +Y\n40 N·m", (-0.40, -0.02)),
-        (axle, C_WHEEL, "wheel", "spin, +Y · UNLIMITED\n3 N·m", (-0.40, -0.20)),
+        (hip, C_HIP, "hip", f"pitch, +Y\n{_torque(SPEC.gear_hip)}", (-0.545, 0.10)),
+        (knee, C_KNEE, "knee", f"pitch, +Y\n{_torque(SPEC.gear_knee)}",
+         (-0.40, -0.02)),
+        (axle, C_WHEEL, "wheel",
+         f"spin, +Y · UNLIMITED\n{_torque(SPEC.gear_wheel)}", (-0.40, -0.20)),
     ):
         axL.add_patch(Circle(pt, 0.019, facecolor=col, edgecolor="white",
                              lw=2, zorder=6))
@@ -180,7 +216,7 @@ def leg_diagram() -> None:
     # abduction lives out of plane — show it as a marker on the hip
     axL.add_patch(Circle(hip, 0.030, facecolor="none", edgecolor=C_ABDUCT,
                          lw=2, ls=(0, (3, 2)), zorder=5))
-    axL.annotate("abduction\nroll, +X (out of page)\n23.7 N·m",
+    axL.annotate(f"abduction\nroll, +X (out of page)\n{_torque(SPEC.gear_abduct)}",
                  hip, xytext=(-0.20, 0.10), fontsize=9.5,
                  color=C_ABDUCT, weight="bold",
                  arrowprops=dict(arrowstyle="-", color=C_ABDUCT, lw=1.2,
@@ -190,8 +226,8 @@ def leg_diagram() -> None:
     axL.annotate("", (hip[0] + 0.10, hip[1]), (hip[0] + 0.10, ground),
                  arrowprops=dict(arrowstyle="<->", color="#6B7280", lw=1.3))
     axL.text(hip[0] + 0.115, (hip[1] + ground) / 2,
-             f"stand height\n{SPEC.stand_z:.3f} m", fontsize=9.5, color="#6B7280",
-             va="center")
+             f"stand height\n{_length(SPEC.stand_z)}", fontsize=9.5,
+             color="#6B7280", va="center")
     axL.plot([hip[0], hip[0]], [hip[1] + 0.02, ground - 0.03], color=C_HIP,
              lw=1.1, ls=(0, (2, 3)), zorder=1)
     axL.text(hip[0] - 0.005, ground - 0.045,
@@ -216,7 +252,13 @@ def leg_diagram() -> None:
         ("rest pose", "sprung toward the stance", "none; a spring would\nundo every metre driven"),
         ("in the observation", "angle AND velocity", "velocity ONLY — the angle\nis an unbounded integrator"),
         ("sized by", "the load it must hold", "what the ground accepts"),
-        ("peak torque", "23.7 / 23.7 / 40 N·m", "3.0 N·m"),
+        ("peak torque",
+         f"{_sig3(SPEC.gear_abduct * _LBF_IN_PER_N_M)} / "
+         f"{_sig3(SPEC.gear_hip * _LBF_IN_PER_N_M)} / "
+         f"{_sig3(SPEC.gear_knee * _LBF_IN_PER_N_M)} lbf·in\n"
+         f"({_sig3(SPEC.gear_abduct)} / {_sig3(SPEC.gear_hip)} / "
+         f"{_sig3(SPEC.gear_knee)} N·m)",
+         _torque(SPEC.gear_wheel)),
         ("passive stability", "stable (a foot grips)", "UNSTABLE fore-aft —\nthe contact rolls away"),
     ]
     y = 0.92
@@ -237,7 +279,8 @@ def leg_diagram() -> None:
              "A point foot grips, so a legged robot pivots about its foot and\n"
              "geometry fights back. A wheel rolls, so the contact patch slides\n"
              "out from under the leg: the hip becomes an inverted pendulum and\n"
-             "needs 11.6 N·m/rad of stiffness before it will stand at all.\n\n"
+             f"needs {_torque(SPEC.critical_stiffness()['hip'], '/rad')} of "
+             "stiffness before\nit will stand at all.\n\n"
              "A real wheel-legged robot holds station by BRAKING its wheels.\n"
              "So must a policy trained here.",
              fontsize=9.6, color="#4B5158", va="top", linespacing=1.55)
