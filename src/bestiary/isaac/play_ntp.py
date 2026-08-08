@@ -28,6 +28,11 @@ camera parented to Spot's body and writes PNG frames at 25 fps
 them into an mp4. Non-video episodes render at 5 Hz for speed (the
 recorder's measured lesson).
 
+`--tour` swaps the seeded script for `spot_commands.tour_schedule` — one
+labelled command at a time with a full stop between every pair — and prints
+the title timeline (video seconds, settle offset included) that the drawtext
+overlay is cut from. Everything downstream of `state["cmd"]` is unchanged.
+
 Metrics per episode -> <out>/results.jsonl: fell, steps survived, distance,
 mean |v_x - cmd_x| over driving phases (body frame, the policy's own
 tracking definition). Nothing here writes to the record; the ledger row is
@@ -49,6 +54,11 @@ parser.add_argument("--checkpoint", default="ntp_best.pt")
 parser.add_argument("--controller", choices=["ntp", "teacher"], default="ntp")
 parser.add_argument("--episodes", type=int, default=12, help="holdout scripts to replay (seeds 0,10,20,...)")
 parser.add_argument("--video-episodes", type=int, default=0, help="render the first N episodes to PNG frames")
+parser.add_argument(
+    "--tour",
+    action="store_true",
+    help="film the fixed command tour instead of a seeded script (single episode only)",
+)
 parser.add_argument("--out", type=Path, default=None, help="default runs/<run>/eval_<controller>")
 parser.add_argument("--device", type=str, choices=["cpu", "cuda"], default="cuda")
 parser.add_argument("--cam-dist", type=float, default=6.0, help="chase camera distance behind the body (m)")
@@ -79,7 +89,7 @@ np = import_module("numpy")
 
 from bestiary.paths import RUNS  # noqa: E402
 
-from .spot_commands import FALL_HEIGHT_M, STAND_S, phase_schedule  # noqa: E402
+from .spot_commands import FALL_HEIGHT_M, STAND_S, phase_schedule, tour_schedule  # noqa: E402
 
 #: Video cadence. 25 fps is watchable and half the policy rate; frames are
 #: captured on render ticks, so video episodes set render dt to this.
@@ -134,6 +144,10 @@ class NTPController(SpotFlatTerrainPolicy):
 
 
 def main() -> None:
+    if args.tour and args.episodes != 1:
+        # Every episode would be the same tape, and their frames would land in
+        # one directory — so the burned-in titles would drift by an episode.
+        raise SystemExit(f"--tour films exactly one episode; got --episodes {args.episodes}")
     run_dir = RUNS / args.run
     out = args.out or run_dir / f"eval_{args.controller}"
     out.mkdir(parents=True, exist_ok=True)
@@ -261,6 +275,17 @@ def main() -> None:
     omni.timeline.get_timeline_interface().play()
     simulation_app.update()
 
+    if args.tour:
+        # The overlay's cut list. The settle loop below runs BEFORE the
+        # schedule and its frames are recorded, so every window is offset by
+        # STAND_S and the tape opens on a stop.
+        t = STAND_S
+        print(f"tour titles (video seconds, settle offset {STAND_S:.2f} s):", flush=True)
+        print(f"  {0.0:6.2f} -> {t:6.2f}  STOP", flush=True)
+        for dur, _, label in tour_schedule():
+            print(f"  {t:6.2f} -> {t + dur:6.2f}  {label}", flush=True)
+            t += dur
+
     results_path = out / "results.jsonl"
     results = open(results_path, "a")
     survived = 0
@@ -269,7 +294,7 @@ def main() -> None:
         rng = np.random.default_rng(seed)
         video = capture["track"] is not None
 
-        yaw = float(rng.uniform(-math.pi, math.pi))
+        yaw = 0.0 if args.tour else float(rng.uniform(-math.pi, math.pi))
         spot.robot.set_world_poses(
             positions=[[0.0, 0.0, 0.8]],
             orientations=[[math.cos(yaw / 2), 0.0, 0.0, math.sin(yaw / 2)]],
@@ -289,7 +314,12 @@ def main() -> None:
 
         fell = False
         err_sum, err_n = 0.0, 0
-        for dur, cmd in phase_schedule(rng):
+        schedule = (
+            tour_schedule() if args.tour else [(d, c, "") for d, c in phase_schedule(rng)]
+        )
+        for dur, cmd, label in schedule:
+            if label:
+                print(f"  cmd {label}: {cmd} for {dur:.2f}s", flush=True)
             state["cmd"] = torch.tensor(cmd, device=args.device, dtype=torch.float32)
             steps = int(dur / dt)
             t_target = spot._policy_counter + steps

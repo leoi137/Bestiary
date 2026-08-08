@@ -30,6 +30,33 @@ PHASE_S = (2.0, 4.0)
 STOP_S = 1.0
 
 
+#: The command tour: a fixed, seedless schedule for filming. One command at a
+#: time, held long enough to read, with a full stop between every pair so the
+#: transformer is seen starting and stopping rather than blending one command
+#: into the next. Every value sits well inside the trained ranges above.
+#: Seedless on purpose: a title burned in at a computed timestamp stays
+#: correct across re-films only if the tape is the same tape every time.
+TOUR_ACTION_S = 4.5
+TOUR_STOP_S = 2.5
+TOUR_ACTIONS: tuple[tuple[str, tuple[float, float, float]], ...] = (
+    ("FORWARD", (1.5, 0.0, 0.0)),
+    ("BACKWARD", (-1.0, 0.0, 0.0)),
+    ("SIDE-STEP LEFT", (0.0, 1.0, 0.0)),
+    ("SIDE-STEP RIGHT", (0.0, -1.0, 0.0)),
+    ("TURN LEFT", (0.0, 0.0, 1.5)),
+    ("TURN RIGHT", (0.0, 0.0, -1.5)),
+)
+
+
+def tour_schedule() -> list[tuple[float, tuple[float, float, float], str]]:
+    """The filming script: [(duration_s, (vx, vy, wz), label), ...], ending stopped."""
+    out: list[tuple[float, tuple[float, float, float], str]] = []
+    for label, cmd in TOUR_ACTIONS:
+        out.append((TOUR_ACTION_S, cmd, label))
+        out.append((TOUR_STOP_S, (0.0, 0.0, 0.0), "STOP"))
+    return out
+
+
 def phase_schedule(rng) -> list[tuple[float, tuple[float, float, float]]]:
     """The episode's command script: [(duration_s, (vx, vy, wz)), ...]."""
     phases: list[tuple[float, tuple[float, float, float]]] = [(STAND_S, (0.0, 0.0, 0.0))]
