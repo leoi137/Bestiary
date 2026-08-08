@@ -3,10 +3,16 @@
 > 🚧 **Work in progress.** Functional and reproducible today, actively being
 > polished. Expect frequent updates — issues and PRs welcome.
 
-Legged robots authored as **code** — MJCF and URDF emitted by generator scripts,
-never hand-written XML — and trained three ways: **SAC from scratch** in MuJoCo,
-**PPO at scale** in Isaac Lab, and now **supervised next-token imitation** of a
-recorded teacher. Three machines so far, plus the stock Gymnasium benchmarks as
+Legged robots authored as **code** — MJCF and URDF emitted by generator
+scripts, never hand-written XML — and driven three different ways:
+
+| | |
+| --- | --- |
+| **SAC from scratch** | one MuJoCo env, CPU-bound, millions of steps. The trainer in this repo. |
+| **PPO at scale** | thousands of parallel envs in Isaac Lab, billions of steps, one GPU. |
+| **Supervised imitation** | no reward and no environment — a causal transformer predicting the next entry of a recorded tape. |
+
+Three machines of our own, one borrowed, and the stock Gymnasium benchmarks as
 controls. Everything is written up as it happens, failed runs included.
 
 | | |
@@ -17,78 +23,104 @@ controls. Everything is written up as it happens, failed runs included.
 
 ---
 
+## The same six commands, two different ways
+
+<p align="center">
+  <img src="assets/spyder_command_tour.gif" alt="Command tour: the velocity-commanded PPO policy driven through each command in isolation — forward, backward, side-steps, turns — with a full stop between each" width="396"/>
+  <img src="assets/spot_ntp_tour.gif" alt="Command tour: the from-scratch causal transformer driving the quadruped through each command in isolation" width="396"/>
+</p>
+
+<p align="center">
+  <em><strong>Left — Spyder-12, reinforcement learning.</strong> A 287K-parameter
+  policy found by PPO over 2.06B simulated steps.<br/>
+  <strong>Right — Spot, imitation.</strong> A 25.3M-parameter causal transformer
+  trained for 11.5 minutes on a tape of somebody else's policy, with no reward
+  and no environment in the loop.<br/>
+  Same six commands, one at a time, with a commanded full stop between each:
+  FORWARD · BACKWARD · SIDE-STEP LEFT/RIGHT · TURN LEFT/RIGHT · STOP.</em>
+</p>
+
+These two clips are the point of the repo. **They cost three orders of
+magnitude apart and they look about the same.**
+
+The left-hand policy was *searched for*: 2.06 billion steps of trial and error
+against a reward table, ~10.7 hours on one GPU, and it is 287K parameters
+because that is all a walking controller needs. The right-hand policy was
+*copied*: 1,038 episodes of a pretrained Isaac Sim walker were recorded as
+3.2 hours of `(observation, action)` tape at 50 Hz, rewritten as an interleaved
+diary `o₀, a₀, o₁, a₁, …`, and a transformer trained from scratch to predict the
+next entry — plain supervised learning to a best validation loss of **0.0013**.
+Blind, both of them: proprioception in, joint targets out, nothing else.
+
+On 12 held-out command scripts the transformer survives **12/12** and covers
+**7.223 m** against the teacher's **7.215 m**; the same architecture with random
+weights falls within two seconds. An adversarial refutation pass bounds what
+that shows — *it walks from tapes*, not yet *it matches the teacher's gait*.
+
+**Read more:** [the imitation method on one page](research/NTP_STAGE1_METHOD.md) ·
+[the dataset contract](research/SPOT_ROLLOUTS_SPEC.md) ·
+[lesson 014, the anatomy of the Spyder policy](docs/lessons/014-anatomy-of-the-spyder-policy.md)
+
+---
+
 ## The bestiary
 
-### Spot, imitated — a 25.3M-parameter transformer that drives the robot
-*Newest result, 2026-08-07.*
+| Machine | DoF | Where it lives | Driven by | What it is for |
+| --- | --- | --- | --- | --- |
+| [**Spyder-12**](#spyder-12--the-12-dof-spider) | 12 | MuJoCo · Isaac Lab | SAC, then PPO | the one that gets trained — every algorithm lands here first |
+| [**Hound-16**](#hound-16--the-16-dof-wheel-legged-dog) | 16 | MuJoCo · Isaac Lab | SAC, then PPO | the one that taught us how to measure — 11 of the 17 learnings came off it |
+| [**Whelp-16**](#whelp-16--the-one-that-has-to-survive-a-floor) | 16 | a print bed | nothing yet | the one that answers what simulation cannot: *what actually breaks* |
+| [**Spot**](#the-same-six-commands-two-different-ways) *(borrowed)* | 12 | Isaac Sim | supervised imitation | not ours — the machine the transformer learned to drive |
+| [**Controls**](#controls--ant-v5-walker2d-v5-humanoid-v5) | — | MuJoCo | SAC | stock Gymnasium benchmarks; the calibration set, not robots |
 
-<p align="center">
-  <img src="assets/spot_ntp_tour.gif" alt="Command tour: the from-scratch causal transformer driving the quadruped through each command in isolation, titled" width="620"/>
-</p>
-
-<p align="center">
-  <em>The command tour, one command at a time with a full stop between each:
-  FORWARD · BACKWARD · SIDE-STEP LEFT/RIGHT · TURN LEFT/RIGHT · STOP.
-  Nothing in the loop but the transformer: it reads the last 32 timesteps
-  and emits the next 12 joint targets, 50 times a second.</em>
-</p>
-
-A pretrained flat-terrain walking policy was recorded in Isaac Sim — 1,038
-episodes, 3.2 hours of `(observation, action)` tape at 50 Hz — rewritten as an
-interleaved diary `o₀, a₀, o₁, a₁, …`, and a causal transformer trained from
-scratch to predict the next entry. **No reward, no environment in the loop, no
-exploration**: 11.5 minutes of plain supervised training to a best validation
-loss of **0.0013**. Closed-loop on 12 held-out command scripts it survives
-**12/12** and covers **7.223 m** against the teacher's **7.215 m**; the same
-architecture with random weights falls within two seconds. Blind: 48
-proprioceptive numbers in, 12 joint-position offsets out. An adversarial
-refutation pass bounds what this shows — *walks from tapes*, not yet
-*matches the teacher's gait* — details on the method page.
-
-**Read more:** [the method on one page](research/NTP_STAGE1_METHOD.md) ·
-[the dataset contract](research/SPOT_ROLLOUTS_SPEC.md) · code in
-[`ntp/`](src/bestiary/ntp/), [`record_spot.py`](src/bestiary/isaac/record_spot.py),
-[`play_ntp.py`](src/bestiary/isaac/play_ntp.py)
+---
 
 ### Spyder-12 — the 12-DoF spider
 
 <p align="center">
-  <img src="assets/spyder_walk_v3.gif" alt="SAC policy on the custom Spyder-v0 spider environment" width="250"/>
-  <img src="assets/spyder_isaac_forward.gif" alt="Spyder-12 crossing the demo ramp in Isaac Lab under a forward-velocity-only reward" width="250"/>
+  <img src="assets/spyder_walk_v3.gif" alt="SAC policy on the custom Spyder-v0 spider environment in MuJoCo" width="210"/>
+  <img src="assets/spyder_isaac_forward.gif" alt="Spyder-12 crossing the demo ramp in Isaac Lab under a forward-velocity-only reward" width="374"/>
+</p>
+
+<p align="center">
+  <em><strong>Left:</strong> SAC in MuJoCo, 3.75M steps, eval 7,392 — a ~6.5 m/s
+  four-legged bound. The floor's checker texture is only drawn over an 80×80 m
+  patch, so <strong>this</strong> spider outruns it; it is on the ground
+  throughout.<br/>
+  <strong>Right:</strong> PPO in Isaac Lab on the demo ramp, under a reward that
+  is forward velocity and nothing else.</em>
+</p>
+
+This repo's own environment, and the machine every method gets tried on first.
+
+**SAC, from scratch.** Reward-hacked twice — a jump-to-termination exploit, then
+a cartwheel — and with both loopholes closed it walks upright at 3.2 m/s by
+400K steps and bounds at ~6.5 m/s by 3.75M.
+
+**PPO, at scale.** Ported to Isaac Lab it reaches 4–6 m/s in 1,500 iterations
+(147M steps, 39 minutes) on a reward that is **forward velocity and nothing
+else** — no shaping, so what it does is attributable to the stack rather than to
+a reward table. That policy reads no command and holds no heading. Steering was
+a separate arm, and it is the clip [at the top of this page](#the-same-six-commands-two-different-ways):
+command-tracking reward plus three shaping terms, then fine-tuned from its own
+checkpoint to a 2.5× wider speed envelope.
+
+<p align="center">
   <img src="assets/spyder_shell_turntable.gif" alt="Turntable of the Blender-authored visual shell on Spyder-v0" width="250"/>
 </p>
 
 <p align="center">
-  <em>SAC in MuJoCo (3.75M steps, eval 7,392) · PPO in Isaac Lab on the demo
-  ramp · a turntable of the Blender-authored shell. The floor texture is only
-  rendered over 80×80 m, so the spider outruns it — it is on the ground
-  throughout.</em>
-</p>
-
-This repo's own environment. SAC was reward-hacked twice — a jump-to-termination
-exploit, then a cartwheel — and with both loopholes closed it walks upright at
-3.2 m/s by 400K steps and bounds at ~6.5 m/s by 3.75M. Ported to Isaac Lab and
-trained with PPO it reaches 4–6 m/s in 1,500 iterations (147M steps, 39 minutes)
-on a reward that is **forward velocity and nothing else** — no shaping, so what
-it does is attributable to the stack rather than to a reward table. It reads no
-command and holds no heading; steering is a separate arm.
-
-<p align="center">
-  <img src="assets/spyder_command_tour.gif" alt="Command tour: the velocity-commanded PPO policy driven through each command in isolation — forward, backward, side-steps, turns — with a full stop between each, titled" width="620"/>
-</p>
-
-<p align="center">
-  <em>That separate arm, delivered: a 287K-parameter policy (235–512–256–128 → 12)
-  tracking six velocity commands — forward/backward to 1.5 m/s, side-steps,
-  turns — one command at a time with a commanded full stop between each.
-  Trained with PPO on command-tracking reward plus three shaping terms
-  (2.06B steps, ~10.7 h on one GPU), then fine-tuned to a 2.5× wider speed
-  envelope from its own checkpoint.</em>
+  <em>Not a result — the Blender-authored visual shell. Decorative only; the
+  collision geometry and the physics are unchanged.</em>
 </p>
 
 **Read more:** [`envs/spyder.py`](src/bestiary/envs/spyder.py) — the
 reward-hacking postmortem is in its docstring ·
-[lesson 014, the anatomy of the Spyder policy](docs/lessons/014-anatomy-of-the-spyder-policy.md)
+[episode 014, one term buys speed](research/episodes/014-one-term-buys-speed.md) ·
+[episode 015, ten times the training bought survival](research/episodes/015-ten-times-bought-survival.md) ·
+[episode 016, wider dials, same brain](research/episodes/016-wider-dials-same-brain.md)
+
+---
 
 ### Hound-16 — the 16-DoF wheel-legged dog
 
@@ -107,18 +139,34 @@ the foot would be**. Link lengths, masses and torque limits are Unitree Go2's,
 read off [MuJoCo Menagerie](https://github.com/google-deepmind/mujoco_menagerie),
 so the mass distribution describes a machine that could exist; the wheel is ours,
 since no vendor ships a wheel-legged MJCF. 17.0 kg, stands at 0.363 m, 169-dim
-observation, 3.0 N·m at each wheel. Models, env and a 38-assertion oracle are
-done; **training is the active work, and no result is published here until it
-clears this repo's ≥3-seed bar**.
+observation, 3.0 N·m at each wheel, and a 38-assertion oracle that fails if any
+of that moves.
+
+**It has no headline result, and that is worth saying plainly.** Five runs are in
+the ledger and not one of them cleared this repo's ≥3-seed bar for a claim. What
+it produced instead is the record: **11 of the 17 learnings came off this
+robot** — that a peak score hides an unreliable policy, that the best checkpoint
+is the luckiest episode, that a crash count was 0.9% of a gap we had already
+attributed to crashes, that a policy had learned one trot rather than a command.
+Every measurement discipline the rest of the repo now runs on was paid for here.
 
 **Read more:** [`CARD.md`](src/bestiary/robots/hound/CARD.md) — every dimension,
 the solved stance, the spring sizing, and the traction budget that explains why
-the hub motors are small
+the hub motors are small ·
+[learning 015, it learned one trot, not a command](research/learnings/015-it-learned-one-trot-not-a-command.md) ·
+[learning 017, the second machine reproduced the stack, not the comparison](research/learnings/017-reproduced-the-stack-not-the-comparison.md)
+
+---
 
 ### Whelp-16 — the one that has to survive a floor
 
 <p align="center">
   <img src="assets/whelp/whelp16.png" alt="WHELP-16 skeleton at the solved stance, with its derived limits" width="720"/>
+</p>
+
+<p align="center">
+  <em>The skeleton at its solved stance, annotated with the limits every number
+  below is derived from — not a render, and not trained: a design.</em>
 </p>
 
 Hound's printable sibling: the same topology in 2.21 kg of PETG and brass,
@@ -133,6 +181,8 @@ block on a 40 ms impact.
 the material choice, the print rules, and the sim-to-real settings that fail
 silently
 
+---
+
 ### Controls — Ant-v5, Walker2d-v5, Humanoid-v5
 
 <p align="center">
@@ -140,6 +190,12 @@ silently
   <img src="assets/foot_contact_v1.gif" alt="Foot-contact-shaped SAC policy on Ant-v5" width="190"/>
   <img src="assets/walker_baseline.gif" alt="Baseline SAC policy on Walker2d-v5" width="190"/>
   <img src="assets/humanoid_baseline.gif" alt="Baseline SAC policy on Humanoid-v5" width="190"/>
+</p>
+
+<p align="center">
+  <em>Ant-v5 unshaped · Ant-v5 with the foot-contact term · Walker2d-v5 ·
+  Humanoid-v5. All four are SAC on stock Gymnasium environments — the same
+  trainer as Spyder's first arm, on problems with known answers.</em>
 </p>
 
 The Ant pair is the point of this row. Nothing in the stock reward says "use all
@@ -153,6 +209,12 @@ Humanoid need no shaping: a biped has no degenerate gait to shape away.
 
 ## Every trained policy
 
+Grouped by trainer, because **the scores are only comparable inside a group.**
+A SAC eval return, a PPO iteration count and a validation loss do not rank
+against each other.
+
+### SAC — single MuJoCo env, this repo's trainer
+
 | Run | Env | Reward | Steps | Best eval | Gait |
 | --- | --- | --- | --- | --- | --- |
 | `spyder_walk_v3` | `Spyder-v0` | default (Ant-style + upright termination) | 3.75M | 7,392 | ~6.5 m/s four-legged bound |
@@ -164,6 +226,36 @@ Humanoid need no shaping: a biped has no degenerate gait to shape away.
 ```bash
 venv/bin/python -m bestiary.train.watch --run <name>   # add --latest for the newest checkpoint
 ```
+
+### PPO — Isaac Lab, thousands of parallel envs
+
+| Run | Robot | Reward | Budget | What it showed |
+| --- | --- | --- | --- | --- |
+| `spyder_forward_s1` | Spyder-12 | forward velocity, one term | 1,500 iters · 147M steps · 39 min | locomotion emerges with no shaping at all — [ep. 014](research/episodes/014-one-term-buys-speed.md) |
+| `spyder_ladder_s1` | Spyder-12 | one term added per arm, ×3 arms | 3 × 1,500 iters | which single shaping term buys the most gait — [ep. 015](research/episodes/015-ten-times-bought-survival.md) |
+| `spyder_overnight_s1` | Spyder-12 | full command-tracking table | 15,000 iters | 10× the training bought survival, not tracking — [ep. 015](research/episodes/015-ten-times-bought-survival.md) |
+| `spyder_fast_s1` | Spyder-12 | same table, 2.5× wider command envelope | +6,000 iters · 3.0 h (fine-tune) | **the command tour at the top of this page** — [ep. 016](research/episodes/016-wider-dials-same-brain.md) |
+| `isaac_hound_arm1_s{1,2,3}` | Hound-16 | command tracking | 3 seeds × 1,500 iters | the stack reproduced; the comparison did not — [learning 017](research/learnings/017-reproduced-the-stack-not-the-comparison.md) |
+
+**Single seed unless the run name says otherwise.** Under this repo's seed rule
+a one-seed arm is a *probe*, never a finding — the episodes say so on their own
+first line, and so does this table.
+
+### Supervised imitation — no reward, no environment
+
+| Run | Teacher | Data | Budget | Result |
+| --- | --- | --- | --- | --- |
+| `ntp_spot_s0` | pretrained Isaac Sim flat-terrain walker | 1,038 episodes · 3.2 h of tape @ 50 Hz | 11.5 min, 25.3M params | val loss 0.0013 · 12/12 held-out scripts · 7.223 m vs teacher 7.215 m |
+
+### The real record
+
+These tables are a showcase. The append-only ledger is the record:
+[`research/ledger.jsonl`](research/ledger.jsonl) — one row per finished run,
+every number computed from that run's own event files, with a verdict.
+It currently carries five Hound rows that never made it to a headline, which is
+[the point](#hound-16--the-16-dof-wheel-legged-dog).
+
+---
 
 ## Install
 
