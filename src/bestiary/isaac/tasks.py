@@ -274,6 +274,11 @@ def register() -> None:
             f"{_SPYDER_DEMO_CFG_MODULE}:SpyderDemoEnvCfg_PLAY",
             _SPYDER_RSL_RL_CFG,
         ),
+        (
+            "Bestiary-Demo-Hound-Play-v0",
+            "bestiary.isaac.hound_demo_env_cfg:HoundDemoEnvCfg_PLAY",
+            "bestiary.isaac.rl_cfg:HoundForwardV5PPORunnerCfg",
+        ),
     )
     for task_id, cfg_entry_point, rl_cfg in specs:
         if task_id in gym.registry:

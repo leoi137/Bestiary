@@ -227,6 +227,31 @@ class ScriptDriver:
         pass
 
 
+def _aim_prim(path: str, eye, target) -> None:
+    """Write one prim's transform to look at `target` from `eye`, +Z up.
+
+    Used for the player-authored chase camera, which is deliberately NOT a
+    Kit session camera — see the chase-cam block in main() and anomaly 62.
+    """
+    import omni.usd
+    from pxr import Gf, UsdGeom
+
+    stage = omni.usd.get_context().get_stage()
+    prim = stage.GetPrimAtPath(path)
+    if not prim.IsValid():
+        return
+    view = Gf.Matrix4d()
+    view.SetLookAt(Gf.Vec3d(*eye), Gf.Vec3d(*target), Gf.Vec3d(0.0, 0.0, 1.0))
+    xf = UsdGeom.Xformable(prim)
+    ops = xf.GetOrderedXformOps()
+    if len(ops) == 1 and ops[0].GetOpType() == UsdGeom.XformOp.TypeTransform:
+        op = ops[0]
+    else:
+        xf.ClearXformOpOrder()
+        op = xf.AddTransformOp()
+    op.Set(view.GetInverse())
+
+
 def _aim_camera(env, eye, target) -> None:
     """Point the render camera at `target` from `eye`, world frame, +Z up.
 
@@ -436,6 +461,32 @@ def main(args: argparse.Namespace) -> int:
         except Exception as exc:
             print(f"[bestiary] timeline autoplay failed: {exc!r}", flush=True)
 
+    # CHASE CAMERA (--follow --video): the player's OWN camera prim with its
+    # OWN render product — anomaly 62's designated experiment. Every attempt
+    # to move Kit's session cameras after boot was a measured no-op on the
+    # offscreen path (asset_root, set_camera_view, USD writes, USDRT writes);
+    # the hypothesis is that only cameras the render pipeline was BORN with
+    # are frozen. A camera we author post-boot, bound to a replicator render
+    # product we own, has no Kit viewport in the loop at all.
+    chase_grab = None
+    if args.follow and args.video:
+        import omni.replicator.core as rep
+        import omni.usd
+        from pxr import UsdGeom
+
+        _stage = omni.usd.get_context().get_stage()
+        _cam = UsdGeom.Camera.Define(_stage, "/World/BestiaryChaseCam")
+        _cam.GetFocalLengthAttr().Set(16.0)
+        _rp = rep.create.render_product("/World/BestiaryChaseCam", (1280, 720))
+        _annot = rep.AnnotatorRegistry.get_annotator("rgb")
+        _annot.attach([_rp])
+
+        def chase_grab():
+            data = _annot.get_data()
+            return None if data is None or getattr(data, "size", 0) == 0 else data[..., :3]
+
+        print("[bestiary] chase cam: own camera + render product created", flush=True)
+
     wrapper = RslRlVecEnvWrapper(env, clip_actions=None)
     agent_cfg = load_cfg_from_registry(args.task, "rsl_rl_cfg_entry_point")
     try:
@@ -561,8 +612,20 @@ def main(args: argparse.Namespace) -> int:
                 if args.follow:
                     p = robot.data.root_pos_w.torch if hasattr(robot.data.root_pos_w, "torch") else robot.data.root_pos_w
                     px, py, pz = float(p[0, 0]), float(p[0, 1]), float(p[0, 2])
-                    _aim_camera(env.unwrapped, (px + 2.6, py + 2.6, pz + 1.6), (px, py, pz + 0.2))
+                    if chase_grab is not None:
+                        # Trailing three-quarter view, leading the target a
+                        # little so a sprinter stays centred, not tail-edge.
+                        _aim_prim(
+                            "/World/BestiaryChaseCam",
+                            (px - 4.5, py + 5.5, pz + 2.5),
+                            (px + 1.5, py, pz + 0.3),
+                        )
+                    else:
+                        _aim_camera(env.unwrapped, (px + 2.6, py + 2.6, pz + 1.6), (px, py, pz + 0.2))
                 frame = env.render()
+                if chase_grab is not None:
+                    chase = chase_grab()
+                    frame = chase if chase is not None else frame
                 if frame is not None:
                     recorder.add(frame)
             sim_t += dt
