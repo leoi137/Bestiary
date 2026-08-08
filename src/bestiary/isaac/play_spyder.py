@@ -418,6 +418,24 @@ def main(args: argparse.Namespace) -> int:
     render_mode = "rgb_array" if args.video else None
     env = gym.make(args.task, cfg=env_cfg, render_mode=render_mode)
 
+    # LIVE VIEWER: press Play. Measured 2026-08-07 on this install — a kit
+    # viewport session boots with the timeline PAUSED, so env.step ticks the
+    # script clock while physics never advances: the robot hangs at spawn
+    # (60 s of telemetry, position frozen, never even fell) and the viewport
+    # redraws a paused scene, which reads as flashing/blue. Headless and
+    # offscreen paths never hit this because nothing gates them on the
+    # timeline. Autoplay is the fix; harmless where already playing.
+    if not args.video:
+        try:
+            import omni.timeline
+
+            _tl = omni.timeline.get_timeline_interface()
+            if not _tl.is_playing():
+                _tl.play()
+                print("[bestiary] timeline: pressed play (live viewers boot paused here)", flush=True)
+        except Exception as exc:
+            print(f"[bestiary] timeline autoplay failed: {exc!r}", flush=True)
+
     wrapper = RslRlVecEnvWrapper(env, clip_actions=None)
     agent_cfg = load_cfg_from_registry(args.task, "rsl_rl_cfg_entry_point")
     try:
