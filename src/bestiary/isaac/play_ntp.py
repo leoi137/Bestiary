@@ -53,6 +53,13 @@ parser.add_argument("--out", type=Path, default=None, help="default runs/<run>/e
 parser.add_argument("--device", type=str, choices=["cpu", "cuda"], default="cuda")
 parser.add_argument("--cam-dist", type=float, default=6.0, help="chase camera distance behind the body (m)")
 parser.add_argument("--cam-height", type=float, default=2.5, help="chase camera height above ground (m)")
+parser.add_argument(
+    "--style",
+    choices=["none", "studio"],
+    default="none",
+    help="filming look: 'studio' = teal robot, charcoal floor, cool dome light. "
+    "Pure USD material/light overrides — the physics scene is untouched",
+)
 args, _unknown = parser.parse_known_args()
 
 simulation_app = SimulationApp({"headless": True})
@@ -141,6 +148,50 @@ def main() -> None:
     SimulationManager.set_physics_sim_device(args.device)
 
     spot = NTPController(run_dir, args.checkpoint, args.controller, prim_path="/World/Spot", position=[0, 0, 0.8])
+
+    if args.style == "studio":
+        # Filming look only: material binds stronger-than-descendants override
+        # the referenced assets' looks without touching a single physics prim.
+        from pxr import Gf, Sdf, UsdLux, UsdShade
+
+        stage = omni.usd.get_context().get_stage()
+
+        def make_material(path: str, color: tuple, roughness: float, metallic: float):
+            mat = UsdShade.Material.Define(stage, path)
+            sh = UsdShade.Shader.Define(stage, path + "/shader")
+            sh.CreateIdAttr("UsdPreviewSurface")
+            sh.CreateInput("diffuseColor", Sdf.ValueTypeNames.Color3f).Set(Gf.Vec3f(*color))
+            sh.CreateInput("roughness", Sdf.ValueTypeNames.Float).Set(roughness)
+            sh.CreateInput("metallic", Sdf.ValueTypeNames.Float).Set(metallic)
+            mat.CreateSurfaceOutput().ConnectToSource(sh.ConnectableAPI(), "surface")
+            return mat
+
+        from pxr import Usd
+
+        teal = make_material("/World/Looks/teal_body", (0.05, 0.62, 0.68), roughness=0.35, metallic=0.3)
+        blue = make_material("/World/Looks/blue_legs", (0.55, 0.78, 0.88), roughness=0.45, metallic=0.15)
+        floor = make_material("/World/Looks/studio_floor", (0.07, 0.09, 0.13), roughness=0.85, metallic=0.0)
+
+        api = UsdShade.MaterialBindingAPI.Apply(stage.GetPrimAtPath("/World/Ground"))
+        api.Bind(floor, bindingStrength=UsdShade.Tokens.strongerThanDescendants)
+        # The Spot asset instances its meshes, and bindings cannot reach
+        # inside instances (two measured failures: a root-level bind tinted
+        # only the un-instanced shins; per-mesh binds tinted nothing). So:
+        # de-instance the whole robot subtree first, then bind per mesh.
+        spot_root = stage.GetPrimAtPath("/World/Spot")
+        for prim in Usd.PrimRange(spot_root):
+            if prim.IsInstanceable():
+                prim.SetInstanceable(False)
+        for prim in Usd.PrimRange(spot_root):
+            if prim.GetTypeName() not in ("Mesh", "GeomSubset"):
+                continue
+            leggy = any(t in str(prim.GetPath()).lower() for t in ("uleg", "lleg", "hip", "leg"))
+            api = UsdShade.MaterialBindingAPI.Apply(prim)
+            api.Bind(blue if leggy else teal, bindingStrength=UsdShade.Tokens.strongerThanDescendants)
+        dome = UsdLux.DomeLight.Define(stage, "/World/StyleDome")
+        dome.CreateIntensityAttr(600.0)
+        dome.CreateColorAttr(Gf.Vec3f(0.85, 0.95, 1.0))
+
     dt = float(spot._dt)
     SimulationManager.set_physics_dt(dt)
     RenderingManager.set_dt(FAST_DT_S)
